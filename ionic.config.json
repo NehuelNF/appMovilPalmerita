@@ -1,0 +1,7 @@
+{
+  "name": "appMovilPalmerita",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
