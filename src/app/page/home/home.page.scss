@@ -1,0 +1,79 @@
+/* Estilos para el contenedor principal */
+.container {
+    width: 412px; /* Ancho aproximado del S10 Ultra */
+    margin: 0 auto;
+    padding: 10px;
+    box-sizing: border-box;
+    background-color: #1e1e1e; /* Fondo oscuro similar a la imagen */
+  }
+  
+  /* Estilos para cada elemento de la lista */
+  .list-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  /* Estilos para la imagen circular */
+  .circular-icon {
+    width: 40px; /* Tamaño del icono ajustado */
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px; /* Espacio entre el icono y el texto */
+  }
+  
+  /* Estilos para el texto */
+  .item-text {
+    color: white; /* Color del texto */
+    font-family: Arial, sans-serif; /* Fuente similar a la de la imagen */
+    font-size: 16px; /* Tamaño de fuente ajustado */
+  }
+  
+  /* Estilos específicos para el logo de One Piece */
+  .container-logo {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 10px; /* Consistente con otros elementos de la lista */
+  }
+  
+  .container-logo .circular-icon {
+    /* Ya está definido en .circular-icon, no es necesario repetir */
+  }
+  
+  .container-logo .item-text {
+    font-weight: bold; /* Hacer el texto de One Piece en negrita */
+  }
+  
+  /* Media query para dispositivos más pequeños */
+  @media screen and (max-width: 412px) {
+    .container {
+      width: 100%;
+    }
+    
+    .circular-icon {
+      width: 30px;
+      height: 30px;
+    }
+    
+    .item-text {
+      font-size: 14px;
+    }
+  }
+  
+  .button-container {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+  }
+  
+  /* Opcionalmente, si quieres añadir algo de margen */
+  ion-button[shape="round"] {
+    margin-left: auto;
+  }
+  
+  
+  .container-maldi{
+    text-align: center;
+  }

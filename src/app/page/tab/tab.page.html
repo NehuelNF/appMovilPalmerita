@@ -1,0 +1,20 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+<ion-tabs>
+  <ion-tab-bar slot="bottom">
+    <ion-tab-button tab="season">
+      <span class="material-symbols-outlined">saved_search</span>
+      Season
+    </ion-tab-button>
+    <ion-tab-button tab="home">
+      <span class="material-symbols-outlined">home</span>
+      Inicio
+    </ion-tab-button>
+    
+    <ion-tab-button id="present-alert">
+      <ion-alert trigger="present-alert" header="No disponible" message="Esto aun no esta disponible :c" [buttons]="alertButtons"></ion-alert>
+      <span class="material-symbols-outlined">timer</span>
+      Contador
+    </ion-tab-button>
+  </ion-tab-bar>
+</ion-tabs>
