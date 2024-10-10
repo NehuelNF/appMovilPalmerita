@@ -3,13 +3,37 @@ import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
-    path: 'home',
-    loadChildren: () => import('./home/home.module').then( m => m.HomePageModule)
+  path: 'splash',
+  loadChildren: () => import('./splash/splash.module').then( m => m.SplashPageModule)
   },
   {
     path: '',
-    redirectTo: 'home',
+    redirectTo: 'splash',
     pathMatch: 'full'
+  },
+  {
+    path: 'login',
+    loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
+  },
+  {
+    path: 'register',
+    loadChildren: () => import('./register/register.module').then( m => m.RegisterPageModule)
+  },
+  {
+    path: 'noticia',
+    loadChildren: () => import('./page/noticia/noticia.module').then( m => m.NoticiaPageModule)
+  },
+  {
+    path: 'season',
+    loadChildren: () => import('./page/season/season.module').then( m => m.SeasonPageModule)
+  },
+  {
+    path: 'tab',
+    loadChildren: () => import('./page/tab/tab.module').then( m => m.TabPageModule)
+  },
+  {
+    path: 'vtuber',
+    loadChildren: () => import('./page/vtuber/vtuber.module').then( m => m.VtuberPageModule)
   },
 ];
 

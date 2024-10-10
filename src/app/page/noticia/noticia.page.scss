@@ -1,0 +1,28 @@
+.container-text-title{
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Estilos para el contenedor principal */
+.container {
+    width: 412px; /* Ancho aproximado del S10 Ultra */
+    height: 915px; /* Alto aproximado del S10 Ultra */
+    margin: 0 auto; /* Centrar el contenedor */
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  
+  /* Estilos para el texto */
+  .text {
+    font-size: 14px; /* Tamaño de letra aumentado */
+    line-height: 1.5; /* Espaciado entre líneas para mejor legibilidad */
+    text-align: center; /* Centrar el texto */
+  }
+  
+  /* Media query para asegurar que los estilos se apliquen en dispositivos similares */
+  @media screen and (max-width: 412px) {
+    .container {
+      width: 100%;
+      height: auto;
+    }
+  }
