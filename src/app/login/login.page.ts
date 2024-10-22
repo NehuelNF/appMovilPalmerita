@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { sessionService } from 'src/managers/sessionService';
+import { StorageService } from 'src/managers/storageService';
 
 @Component({
   selector: 'app-login',
@@ -9,7 +10,7 @@ import { sessionService } from 'src/managers/sessionService';
 })
 export class LoginPage implements OnInit {
 
-  constructor(private router: Router, private sessionService: sessionService) { }
+  constructor(private router: Router, private sessionService: sessionService, private storageService : StorageService) { }
 
   identifier: string = '';
   password: string = '';
@@ -17,19 +18,18 @@ export class LoginPage implements OnInit {
   ngOnInit() {
   }
 
-  onLoginButtonPressed() {
+  async onLoginButtonPressed() {
     console.log('Intentando iniciar sesión con:', this.identifier);
 
     if (!this.identifier || !this.password) {
-      console.log('Login fallido: Campos vacíos');
       alert('Por favor, complete todos los campos.');
       return;
     }
 
     if (this.sessionService.login(this.identifier, this.password)) {
+      await this.storageService.setUsername(this.identifier);
       this.router.navigate(['/tab/home']);
     } else {
-      console.log('Login fallido');
       alert('Nombre de usuario o contraseña incorrectos.');
     }
   }

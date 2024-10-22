@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { sessionService } from 'src/managers/sessionService';
 import { Router } from '@angular/router';
+import { sessionService } from 'src/managers/sessionService';
+import { StorageService } from 'src/managers/storageService';
 
 @Component({
   selector: 'app-register',
@@ -13,17 +14,20 @@ export class RegisterPage implements OnInit {
   username: string = '';
   password: string = '';
 
-  constructor(private sessionService: sessionService, private router: Router) { }
+  constructor(
+    private sessionService: sessionService,  // Cambia a PascalCase
+    private storageService: StorageService, 
+    private router: Router
+  ) {}
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
-  onRegisterButtonPressed() {
+  async onRegisterButtonPressed() {
     if (this.sessionService.register(this.username, this.password, this.email)) {
       this.router.navigate(['/login']);
+      await this.storageService.setUsername(this.username);
     } else {
       alert('Error en el registro. El email o nombre de usuario ya existe.');
     }
   }
-
 }
