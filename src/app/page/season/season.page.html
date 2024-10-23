@@ -11,6 +11,21 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
+  <!-- Selector de día -->
+  <ion-item>
+    <ion-label>Día</ion-label>
+    <ion-select [(ngModel)]="selectedDay" (ionChange)="filterAnimesByDay()">
+      <ion-select-option value="all">Todos</ion-select-option>
+      <ion-select-option value="monday">Lunes</ion-select-option>
+      <ion-select-option value="tuesday">Martes</ion-select-option>
+      <ion-select-option value="wednesday">Miércoles</ion-select-option>
+      <ion-select-option value="thursday">Jueves</ion-select-option>
+      <ion-select-option value="friday">Viernes</ion-select-option>
+      <ion-select-option value="saturday">Sábado</ion-select-option>
+      <ion-select-option value="sunday">Domingo</ion-select-option>
+    </ion-select>
+  </ion-item>
+
   <!-- Loading spinner -->
   <div *ngIf="isLoading" class="ion-padding ion-text-center">
     <ion-spinner></ion-spinner>
@@ -25,7 +40,7 @@
 
   <!-- Anime list -->
   <div class="card-grid" *ngIf="!isLoading && !error">
-    <ion-card *ngFor="let anime of animes" [routerLink]="['/anime', anime.mal_id]">
+    <ion-card *ngFor="let anime of filteredAnimes" [routerLink]="['/anime', anime.mal_id]">
       <img [src]="anime.images.jpg.large_image_url" [alt]="anime.title"/>
       <div class="card-info">
         <h3>{{ anime.title }}</h3>
