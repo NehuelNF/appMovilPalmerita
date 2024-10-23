@@ -1,65 +1,52 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
-    <ion-title>Season</ion-title>
+    <ion-title>
+      Animes de Temporada
+    </ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
-  <div class="card-grid">
-    <ion-card>
-      <ion-card-content>
-        <a href="./vtuber">
-          <img alt="VTuber anime" src="./../../assets/images/vtuber.jpg">
-        </a>
-        <div class="card-info">
-          <ion-card-header>
-            <ion-card-title>VTuber Nandaga Haishin Kiri Wasuretara Densetsu ni Natteta</ion-card-title>
-          </ion-card-header>
-          <p class="card-status">Actualmente al Aire</p>
-        </div>
-      </ion-card-content>
-    </ion-card>
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
 
-    <ion-card>
-      <ion-card-content>
-        <a href="./roshidere">
-          <img alt="Roshidere" src="./../../assets/images/Roshidere.jpg">
-        </a>
-        <div class="card-info">
-          <ion-card-header>
-            <ion-card-title>Tokidoki Bosotto Russia-go de Dereru Tonari no Alya-san</ion-card-title>
-          </ion-card-header>
-          <p class="card-status">Actualmente al Aire</p>
-        </div>
-      </ion-card-content>
-    </ion-card>
+  <!-- Selector de día -->
+  <ion-item>
+    <ion-label>Día</ion-label>
+    <ion-select [(ngModel)]="selectedDay" (ionChange)="filterAnimesByDay()">
+      <ion-select-option value="all">Todos</ion-select-option>
+      <ion-select-option value="monday">Lunes</ion-select-option>
+      <ion-select-option value="tuesday">Martes</ion-select-option>
+      <ion-select-option value="wednesday">Miércoles</ion-select-option>
+      <ion-select-option value="thursday">Jueves</ion-select-option>
+      <ion-select-option value="friday">Viernes</ion-select-option>
+      <ion-select-option value="saturday">Sábado</ion-select-option>
+      <ion-select-option value="sunday">Domingo</ion-select-option>
+    </ion-select>
+  </ion-item>
 
-    <ion-card>
-      <ion-card-content>
-        <a href="./fairytail100">
-          <img alt="Fairy Tail: 100-nen Quest" src="./../../assets/images/FairyTail100.jpg">
-        </a>
-        <div class="card-info">
-          <ion-card-header>
-            <ion-card-title>Fairy Tail: 100-nen Quest</ion-card-title>
-          </ion-card-header>
-          <p class="card-status">Actualmente al Aire</p>
-        </div>
-      </ion-card-content>
-    </ion-card>
+  <!-- Loading spinner -->
+  <div *ngIf="isLoading" class="ion-padding ion-text-center">
+    <ion-spinner></ion-spinner>
+  </div>
 
-    <ion-card>
-      <ion-card-content>
-        <a href="./shikanoko">
-          <img alt="Shikanoko Nokonoko Koshitantan" src="./../../assets/images/shikanoko.jpg">
-        </a>
-        <div class="card-info">
-          <ion-card-header>
-            <ion-card-title>Shikanoko Nokonoko Koshitantan</ion-card-title>
-          </ion-card-header>
-          <p class="card-status">Actualmente al Aire</p>
-        </div>
-      </ion-card-content>
+  <!-- Error message -->
+  <ion-item *ngIf="error" lines="none">
+    <ion-label color="danger" class="ion-text-center">
+      {{ error }}
+    </ion-label>
+  </ion-item>
+
+  <!-- Anime list -->
+  <div class="card-grid" *ngIf="!isLoading && !error">
+    <ion-card *ngFor="let anime of filteredAnimes" [routerLink]="['/anime', anime.mal_id]">
+      <img [src]="anime.images.jpg.large_image_url" [alt]="anime.title"/>
+      <div class="card-info">
+        <h3>{{ anime.title }}</h3>
+        <p class="card-status">{{ anime.status }}</p>
+        <p class="card-airing-time">Release time: {{ anime.broadcast.time }}</p>
+      </div>
     </ion-card>
   </div>
 </ion-content>
