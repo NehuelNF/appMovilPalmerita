@@ -4,25 +4,24 @@ import { FormsModule } from '@angular/forms';
 
 import { IonicModule } from '@ionic/angular';
 
-import { SeasonPageRoutingModule } from './season-routing.module';
-
-import { SeasonPage } from './season.page';
-
+import { AnimeDetailPageRoutingModule } from './anime-detail-routing.module';
 import { RouterModule } from '@angular/router';
+
+import { AnimeDetailPage } from './anime-detail.page';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    SeasonPageRoutingModule,
+    AnimeDetailPageRoutingModule,
     RouterModule.forChild([
       {
         path: '',
-        component: SeasonPage
+        component: AnimeDetailPage
       }
     ])
   ],
-  declarations: [SeasonPage]
+  declarations: [AnimeDetailPage]
 })
-export class SeasonPageModule {}
+export class AnimeDetailPageModule {}

@@ -25,16 +25,17 @@ const routes: Routes = [
   },
   {
     path: 'season',
-    loadChildren: () => import('./page/season/season.module').then( m => m.SeasonPageModule)
+    loadChildren: () => import('./page/season/season.module').then(m => m.SeasonPageModule)
   },
   {
     path: 'tab',
     loadChildren: () => import('./page/tab/tab.module').then( m => m.TabPageModule)
   },
   {
-    path: 'vtuber',
-    loadChildren: () => import('./page/vtuber/vtuber.module').then( m => m.VtuberPageModule)
-  },
+    path: 'anime/:id',
+    loadChildren: () => import('./page/anime-detail/anime-detail.module').then(m => m.AnimeDetailPageModule)
+  }
+
 ];
 
 @NgModule({

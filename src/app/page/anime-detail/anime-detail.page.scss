@@ -1,0 +1,48 @@
+// src/app/page/anime-detail/anime-detail.page.scss
+.image-container {
+    width: 100%;
+    
+    img {
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+    }
+  }
+  
+  .text-container {
+    padding: 16px;
+  }
+  
+  .anime-title {
+    color: var(--ion-text-color);
+    font-family: Inter, sans-serif;
+    font-size: 20px;
+    margin: 0 0 8px 0;
+  }
+  
+  .anime-category {
+    color: var(--ion-color-medium);
+    font-family: Inter, sans-serif;
+    margin-bottom: 16px;
+  }
+  
+  .trailer-button {
+    width: 100%;
+    max-width: 151px;
+    margin-bottom: 16px;
+  }
+  
+  .description-title {
+    color: var(--ion-text-color);
+    font-family: Inter, sans-serif;
+    font-size: 20px;
+    margin: 0 0 8px 16px;
+  }
+  
+  .description-content {
+    background: var(--ion-color-medium);
+    padding: 16px;
+    color: var(--ion-text-color);
+    margin: 0 16px 16px;
+    border-radius: 4px;
+  }
