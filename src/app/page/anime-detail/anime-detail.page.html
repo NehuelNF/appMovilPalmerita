@@ -1,0 +1,46 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/season"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Anime</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Loading spinner -->
+  <div *ngIf="isLoading" class="ion-padding ion-text-center">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error && !isLoading" class="ion-padding">
+    <ion-text color="danger">
+      {{ error }}
+    </ion-text>
+  </div>
+
+  <!-- Anime content -->
+  <ng-container *ngIf="anime && !isLoading && !error">
+    <div class="image-container">
+      <img [src]="getImageUrl()" [alt]="anime.title">
+    </div>
+
+    <div class="text-container">
+      <h2 class="anime-title">{{ anime.title }}</h2>
+      <p class="anime-category">{{ getGenres() }}</p>
+      
+      <ion-button 
+        *ngIf="hasTrailer()"
+        class="trailer-button"
+        (click)="openTrailer()">
+        Ver Trailer
+      </ion-button>
+    </div>
+
+    <h3 class="description-title">Descripción</h3>
+    <div class="description-content">
+      {{ anime.synopsis }}
+    </div>
+  </ng-container>
+</ion-content>
