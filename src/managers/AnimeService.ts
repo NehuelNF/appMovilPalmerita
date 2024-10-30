@@ -24,4 +24,8 @@ export class AnimeService {
   getAnimeById(id: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/anime/${id}`);
   }
+
+  getUpcomingAnime(): Observable<AnimeResponse> {
+    return this.http.get<AnimeResponse>(`${this.baseUrl}/seasons/upcoming`);
+  }
 }

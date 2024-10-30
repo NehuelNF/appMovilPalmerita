@@ -21,6 +21,10 @@ const routes: Routes = [
         path: 'season',
         loadChildren: () => import('./../season/season.module').then( m => m.SeasonPageModule)
       },
+      {
+        path: 'proximamente',
+        loadChildren: () => import('./../proximamente/proximamente.module').then( m => m.ProximamentePageModule)
+      }
     ]
   }
   

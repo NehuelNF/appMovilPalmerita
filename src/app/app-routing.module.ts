@@ -34,7 +34,11 @@ const routes: Routes = [
   {
     path: 'anime/:id',
     loadChildren: () => import('./page/anime-detail/anime-detail.module').then(m => m.AnimeDetailPageModule)
+  },  {
+    path: 'proximamente',
+    loadChildren: () => import('./page/proximamente/proximamente.module').then( m => m.ProximamentePageModule)
   }
+
 
 ];
 
