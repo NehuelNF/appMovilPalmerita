@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { sessionService } from 'src/managers/sessionService';
+import { SessionService } from 'src/managers/SessionServicee';
 
 @Component({
   selector: 'app-login',
@@ -9,32 +9,28 @@ import { sessionService } from 'src/managers/sessionService';
 })
 export class LoginPage implements OnInit {
 
-  constructor(private router: Router, private sessionService: sessionService) { }
+  constructor(private router: Router, private sessionService: SessionService) { }
 
-  identifier: string = '';
+  email: string = '';
   password: string = '';
 
   ngOnInit() {
   }
-
-  onLoginButtonPressed() {
-    console.log('Intentando iniciar sesión con:', this.identifier);
-
-    if (!this.identifier || !this.password) {
-      console.log('Login fallido: Campos vacíos');
-      alert('Por favor, complete todos los campos.');
-      return;
-    }
-
-    if (this.sessionService.login(this.identifier, this.password)) {
-      this.router.navigate(['/tab/home']);
-    } else {
-      console.log('Login fallido');
-      alert('Nombre de usuario o contraseña incorrectos.');
+  async onLoginButtonPressed() {
+    try {
+      const userCredential = await this.sessionService.loginWith(this.email, this.password)
+      const user = userCredential.user
+      if (user) {
+        console.log('Usuario autenticado:', user);
+        this.router.navigate(['/tab/home']);
+      }
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
     }
   }
 
   onRegisterButtonPressed() {
     this.router.navigate(['/register']);
   }
+
 }

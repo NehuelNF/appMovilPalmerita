@@ -11,9 +11,7 @@ export class SplashPage implements OnInit {
   constructor(private router : Router) { }
 
   ngOnInit() {
-    setTimeout(() => {
     this.router.navigate(['/login']);
-    }, 4000);
   }
 
 }
