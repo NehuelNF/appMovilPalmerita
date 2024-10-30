@@ -1,30 +1,38 @@
 import { Injectable } from '@angular/core';
+
+//Fire base
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
 
 @Injectable({
   providedIn: 'root'
 })
+
 export class SessionService {
-  constructor(private afAuth: AngularFireAuth) {}
 
-  // Método para iniciar sesión con email y contraseña
-  login(email: string, password: string) {
-    return this.afAuth.signInWithEmailAndPassword(email, password);
+  constructor(private fireAuth: AngularFireAuth) {}
+
+  private readonly temporaryUserName: string = 'user';
+  private readonly temporaryPass: string = 'pass';
+
+
+  performLogin(user: string, password: string): boolean {
+    if(user == this.temporaryUserName && password == this.temporaryPass) {
+        return true;
+    } else {
+        return false;
+    }
+  }
+  
+  async registerUserWith(email: string, password: string) : Promise<any> {
+    return await this.fireAuth.createUserWithEmailAndPassword(email, password)
   }
 
-  // Método para registrarse con email y contraseña
-  register(email: string, password: string) {
-    return this.afAuth.createUserWithEmailAndPassword(email, password);
+  async loginWith(email: string, password: string) : Promise<any> {
+      return await this.fireAuth.signInWithEmailAndPassword(email, password)
   }
 
-  // Método para cerrar sesión
-  logout() {
-    return this.afAuth.signOut();
-  }
-
-  // Método para obtener el usuario actual
-  getUser() {
-    return this.afAuth.authState;
-  }
+  async getProfile() {
+    return await this.fireAuth.currentUser
+}
 }

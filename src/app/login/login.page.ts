@@ -16,28 +16,21 @@ export class LoginPage implements OnInit {
 
   ngOnInit() {
   }
-
-  onLoginButtonPressed() {
-    console.log('Intentando iniciar sesión con:', this.email);
-
-    if (!this.email || !this.password) {
-      console.log('Login fallido: Campos vacíos');
-      alert('Por favor, complete todos los campos.');
-      return;
-    }
-
-    this.sessionService.login(this.email, this.password)
-      .then((res) => {
-        console.log('Login exitoso', res);
+  async onLoginButtonPressed() {
+    try {
+      const userCredential = await this.sessionService.loginWith(this.email, this.password)
+      const user = userCredential.user
+      if (user) {
+        console.log('Usuario autenticado:', user);
         this.router.navigate(['/tab/home']);
-      })
-      .catch((err) => {
-        console.log('Login fallido', err);
-        alert('Nombre de usuario o contraseña incorrectos.');
-      });
+      }
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
+    }
   }
 
   onRegisterButtonPressed() {
     this.router.navigate(['/register']);
   }
+
 }
