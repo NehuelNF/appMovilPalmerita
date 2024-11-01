@@ -63,7 +63,12 @@ export class SessionService {
     }
   }
 
-  async getProfile() {
-    return await this.fireAuth.currentUser
+  async getProfile(): Promise<any> {
+    const user = await this.fireAuth.currentUser;
+    if (user) {
+      const userDoc = await this.firestore.collection('users').doc(user.uid).get().toPromise();
+      return userDoc ? userDoc.data() : null;
+    }
+    return null;
   }
 }
