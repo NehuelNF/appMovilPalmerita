@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { SessionService } from 'src/managers/SessionServicee';
+import { UserGetUseCase } from 'src/app/use-cases/user-get.use-case';
 
 @Component({
   selector: 'app-perfil',
@@ -8,14 +8,11 @@ import { SessionService } from 'src/managers/SessionServicee';
 })
 export class PerfilPage implements OnInit {
 
-  userName: string | undefined;
+  userName: string | null = null;
 
-  constructor(private sessionService: SessionService) { }
+  constructor(private userGetUseCase : UserGetUseCase) { }
 
   async ngOnInit() {
-    const profile = await this.sessionService.getProfile();
-    if (profile) {
-      this.userName = profile.username;
-    }
+    this.userName = await this.userGetUseCase.getUserName();
   }
 }

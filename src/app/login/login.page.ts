@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { SessionService } from 'src/managers/SessionServicee';
+import { UserLoginUseCase } from 'src/app/use-cases/user-login.use-case';
 
 @Component({
   selector: 'app-login',
@@ -8,30 +8,18 @@ import { SessionService } from 'src/managers/SessionServicee';
   styleUrls: ['./login.page.scss'],
 })
 export class LoginPage implements OnInit {
-
-  constructor(private router: Router, private sessionService: SessionService) { }
-  
   identifier: string = '';
   password: string = '';
 
-  ngOnInit() {
-  }
-  
+  constructor(private userLoginUseCase: UserLoginUseCase, private router: Router) {}
+
+  ngOnInit() {}
+
   async onLoginButtonPressed() {
-    try {
-      const userCredential = await this.sessionService.loginWith(this.identifier, this.password);
-      const user = userCredential.user;
-      if (user) {
-        console.log('Usuario autenticado:', user);
-        this.router.navigate(['/tab/home']);
-      }
-    } catch (error) {
-      console.error('Error al iniciar sesión:', error);
-    }
+    await this.userLoginUseCase.loginUser(this.identifier, this.password);
   }
 
   onRegisterButtonPressed() {
     this.router.navigate(['/register']);
   }
-
 }
