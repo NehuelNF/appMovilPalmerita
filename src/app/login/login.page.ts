@@ -8,6 +8,7 @@ import { UserLoginUseCase } from 'src/app/use-cases/user-login.use-case';
   styleUrls: ['./login.page.scss'],
 })
 export class LoginPage implements OnInit {
+  
   identifier: string = '';
   password: string = '';
 
