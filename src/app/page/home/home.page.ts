@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { sessionService } from 'src/managers/sessionService';
+import { SessionService } from 'src/managers/SessionServicee';
 
 @Component({
   selector: 'app-home',
@@ -8,10 +8,9 @@ import { sessionService } from 'src/managers/sessionService';
 })
 export class HomePage implements OnInit {
 
-  constructor(private sessionService : sessionService) { }
+  constructor(private sessionService : SessionService) { }
 
   ngOnInit() {
   }
 
-  username: string = this.sessionService.getUser()?.username || 'Usuario';
 }
