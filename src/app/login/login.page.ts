@@ -10,16 +10,17 @@ import { SessionService } from 'src/managers/SessionServicee';
 export class LoginPage implements OnInit {
 
   constructor(private router: Router, private sessionService: SessionService) { }
-
-  email: string = '';
+  
+  identifier: string = '';
   password: string = '';
 
   ngOnInit() {
   }
+  
   async onLoginButtonPressed() {
     try {
-      const userCredential = await this.sessionService.loginWith(this.email, this.password)
-      const user = userCredential.user
+      const userCredential = await this.sessionService.loginWith(this.identifier, this.password);
+      const user = userCredential.user;
       if (user) {
         console.log('Usuario autenticado:', user);
         this.router.navigate(['/tab/home']);

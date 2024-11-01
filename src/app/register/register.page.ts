@@ -9,6 +9,7 @@ import { CancelAlertService } from 'src/managers/CancelAlertService';
   styleUrls: ['./register.page.scss'],
 })
 export class RegisterPage implements OnInit {
+  username: string = '';
   email: string = '';
   password: string = '';
 
@@ -18,7 +19,7 @@ export class RegisterPage implements OnInit {
 
   async onRegisterButtonPressed() {
     try {
-      const userCredential = await this.sessionService.registerUserWith(this.email, this.password);
+      const userCredential = await this.sessionService.registerUserWith(this.email, this.password, this.username);
       const user = userCredential.user;
       if (user) {
         this.alert.showAlert(
@@ -76,6 +77,7 @@ export class RegisterPage implements OnInit {
   }
 
   clean() {
+    this.username = '';
     this.email = '';
     this.password = '';
   }

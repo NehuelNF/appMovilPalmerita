@@ -25,11 +25,12 @@ export class SessionService {
     }
   }
   
-  async registerUserWith(email: string, password: string): Promise<any> {
+  async registerUserWith(email: string, password: string, username: string): Promise<any> {
     try {
       const userCredential = await this.fireAuth.createUserWithEmailAndPassword(email, password);
       await this.firestore.collection('users').doc(userCredential.user?.uid).set({
         email: email,
+        username: username,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       return userCredential;
@@ -39,11 +40,30 @@ export class SessionService {
     }
   }
 
-  async loginWith(email: string, password: string) : Promise<any> {
-    return await this.fireAuth.signInWithEmailAndPassword(email, password);
+  async loginWith(identifier: string, password: string): Promise<any> {
+    try {
+      let userCredential;
+      if (identifier.includes('@')) {
+        // Login with email
+        userCredential = await this.fireAuth.signInWithEmailAndPassword(identifier, password);
+      } else {
+        // Login with username
+        const userDoc = await this.firestore.collection('users', ref => ref.where('username', '==', identifier)).get().toPromise();
+        if (userDoc && !userDoc.empty) {
+          const user = userDoc.docs[0].data() as { email: string };
+          userCredential = await this.fireAuth.signInWithEmailAndPassword(user.email, password);
+        } else {
+          throw new Error('Usuario no encontrado');
+        }
+      }
+      return userCredential;
+    } catch (error) {
+      console.error('Error during login:', error);
+      throw error;
+    }
   }
 
   async getProfile() {
     return await this.fireAuth.currentUser
-}
+  }
 }
