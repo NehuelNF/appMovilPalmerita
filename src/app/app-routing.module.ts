@@ -37,6 +37,10 @@ const routes: Routes = [
   },  {
     path: 'proximamente',
     loadChildren: () => import('./page/proximamente/proximamente.module').then( m => m.ProximamentePageModule)
+  },
+  {
+    path: 'perfil',
+    loadChildren: () => import('./page/perfil/perfil.module').then( m => m.PerfilPageModule)
   }
 
 
