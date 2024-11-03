@@ -8,8 +8,7 @@ import { StorageService } from 'src/managers/StorageService';
   styleUrls: ['./splash.page.scss'],
 })
 export class SplashPage implements OnInit {
-
-  constructor(private router : Router, private storageService: StorageService) { }
+  constructor(private router: Router, private storageService: StorageService) {}
 
   async ngOnInit() {
     const username = await this.storageService.get('username');
@@ -19,5 +18,4 @@ export class SplashPage implements OnInit {
       this.router.navigate(['/login']);
     }
   }
-
-}
+} 
