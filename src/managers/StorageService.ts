@@ -27,4 +27,8 @@ export class StorageService {
   async remove(key: string): Promise<void> {
     await this._storage?.remove(key);
   }
+
+  async clear(): Promise<void> {
+    await this._storage?.clear();
+  }
 }

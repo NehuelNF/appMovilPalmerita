@@ -11,6 +11,7 @@ export class SplashPage implements OnInit {
   constructor(private router: Router, private storageService: StorageService) {}
 
   async ngOnInit() {
+    await this.storageService.init(); // Asegúrate de que el almacenamiento esté inicializado
     const username = await this.storageService.get('username');
     if (username) {
       this.router.navigate(['/tab/home']);
@@ -18,4 +19,4 @@ export class SplashPage implements OnInit {
       this.router.navigate(['/login']);
     }
   }
-} 
+}

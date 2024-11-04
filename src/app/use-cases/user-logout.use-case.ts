@@ -15,8 +15,11 @@ export class UserLogoutUseCase {
 
   async logoutUser(): Promise<void> {
     try {
+      // Primero hacemos signOut de Firebase
       await this.fireAuth.signOut();
-      await this.storageService.remove('username');
+      // Limpiamos todo el storage
+      await this.storageService.clear(); // Añadir método clear() en StorageService
+      // Navegamos al login
       this.router.navigate(['/login']);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
