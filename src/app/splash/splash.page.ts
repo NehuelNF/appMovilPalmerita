@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { StorageService } from 'src/managers/StorageService';
 
 @Component({
   selector: 'app-splash',
@@ -7,11 +8,15 @@ import { Router } from '@angular/router';
   styleUrls: ['./splash.page.scss'],
 })
 export class SplashPage implements OnInit {
+  constructor(private router: Router, private storageService: StorageService) {}
 
-  constructor(private router : Router) { }
-
-  ngOnInit() {
-    this.router.navigate(['/login']);
+  async ngOnInit() {
+    await this.storageService.init(); // Asegúrate de que el almacenamiento esté inicializado
+    const username = await this.storageService.get('username');
+    if (username) {
+      this.router.navigate(['/tab/home']);
+    } else {
+      this.router.navigate(['/login']);
+    }
   }
-
 }

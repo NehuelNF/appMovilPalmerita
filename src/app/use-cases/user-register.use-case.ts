@@ -9,7 +9,6 @@ import firebase from 'firebase/compat/app';
   providedIn: 'root'
 })
 export class UserRegisterUseCase {
-    
   constructor(
     private fireAuth: AngularFireAuth,
     private firestore: AngularFirestore,
@@ -31,13 +30,13 @@ export class UserRegisterUseCase {
           'Registro exitoso',
           'Ya eres parte de nuestro sistema',
           () => {
-            this.router.navigate(['/splash']);
+            this.router.navigate(['/login']);
           }
         );
       } else {
         alert('¡Registro exitoso!');
       }
-      this.router.navigate(['/splash']);
+      this.router.navigate(['/login']);
     } catch (error: any) {
       console.error('Error during registration:', error);
       switch (error.code) {
