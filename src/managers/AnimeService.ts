@@ -28,4 +28,8 @@ export class AnimeService {
   getUpcomingAnime(): Observable<AnimeResponse> {
     return this.http.get<AnimeResponse>(`${this.baseUrl}/seasons/upcoming`);
   }
+
+  getTopAnime(): Observable<AnimeResponse> {
+    return this.http.get<AnimeResponse>(`${this.baseUrl}/top/anime?limit=3`);
+  }
 }

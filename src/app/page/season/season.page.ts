@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { AnimeService } from '../../../managers/AnimeService';
+import { FavoritesService } from '../../../managers/FavoritesService';
 
 @Component({
   selector: 'app-season',
@@ -13,7 +14,10 @@ export class SeasonPage implements OnInit {
   error: string | null = null;
   selectedDay: string = 'all';
 
-  constructor(private animeService: AnimeService) { }
+  constructor(
+    private animeService: AnimeService,
+    private favoritesService: FavoritesService
+  ) { }
 
   ngOnInit() {
     this.loadAnimes();
@@ -62,5 +66,18 @@ export class SeasonPage implements OnInit {
   handleRefresh(event: any) {
     this.loadAnimes();
     event.target.complete();
+  }
+
+  toggleFavorite(event: Event, anime: any) {
+    event.stopPropagation();
+    if (this.favoritesService.isFavorite(anime.mal_id)) {
+      this.favoritesService.removeFromFavorites(anime.mal_id);
+    } else {
+      this.favoritesService.addToFavorites(anime);
+    }
+  }
+
+  isFavorite(animeId: number): boolean {
+    return this.favoritesService.isFavorite(animeId);
   }
 }

@@ -2,7 +2,6 @@
   <ion-toolbar>
     <ion-title>Inicio</ion-title>
   </ion-toolbar>
-
 </ion-header>
 
 <ion-content [fullscreen]="true">
@@ -10,75 +9,52 @@
     <a href="./noticia"><img alt="Silhouette of mountains" src="./../../assets/images/jjk-1.webp"></a>
     <ion-card-header>
       <ion-card-title>¡Jujutsu Kaisen!</ion-card-title>
-
     </ion-card-header>
-  
     <ion-card-content>
       El famoso manga ya casi llega a su fin
     </ion-card-content>
   </ion-card>
 
-  <ion-list lines="full">
-    <ion-item>
-      <div class="container">
-        <div class="container-logo">
-          <img class="circular-icon" src="./../../assets/images/one-piece.jpg">
-          <ion-label class="item-text">One Piece</ion-label>
-        </div>
-      </div>
-      <div class="button-container" >
-        <ion-button shape="round">
-          <ion-icon slot="icon-only" name="heart"></ion-icon>
-        </ion-button>
-      </div>
-    </ion-item>
-    <ion-item>
-      <div class="container">
-        <div class="container-logo">
-          <img class="circular-icon" src="./../../assets/images/naruto.jpg">
-          <ion-label class="item-text">Naruto</ion-label>
-        </div>
-      </div>
-      <div class="button-container" >
-        <ion-button shape="round">
-          <ion-icon slot="icon-only" name="heart"></ion-icon>
-        </ion-button>
-      </div>
-    </ion-item>
-    <ion-item>
-      <div class="container">
-        <div class="container-logo">
-          <img class="circular-icon" src="./../../assets/images/kimetsu.jpg">
-          <ion-label class="item-text">Kimetsu No Yaiba</ion-label>
-        </div>
-      </div>
-      <div class="button-container" >
-        <ion-button shape="round">
-          <ion-icon slot="icon-only" name="heart"></ion-icon>
-        </ion-button>
-      </div>
-    </ion-item>
-    <ion-item>
-      <div class="container">
-        <div class="container-logo">
-          <img class="circular-icon" src="./../../assets/images/black.jpg">
-          <ion-label class="item-text">Black Clover</ion-label>
-        </div>
-      </div>
-      <div class="button-container" >
-        <ion-button shape="round">
-          <ion-icon slot="icon-only" name="heart"></ion-icon>
-        </ion-button>
-      </div>
-    </ion-item>
+  <!-- Loading spinner -->
+  <div *ngIf="isLoading" class="ion-padding ion-text-center">
+    <ion-spinner></ion-spinner>
+  </div>
 
+  <!-- Error message -->
+  <div *ngIf="error" class="ion-padding">
+    <ion-text color="danger">
+      {{ error }}
+    </ion-text>
+  </div>
+
+  <!-- Top 3 Anime Title -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Top 3 Anime</ion-card-title>
+    </ion-card-header>
+  </ion-card>
+  <!-- Top Anime List -->
+  <ion-list lines="full" *ngIf="!isLoading && !error">
+    <ion-item *ngFor="let anime of topAnimes" [routerLink]="['/anime', anime.mal_id]">
+      <div class="container">
+        <div class="container-logo">
+          <img class="circular-icon" [src]="anime.images.jpg.image_url">
+          <ion-label class="item-text">{{ anime.title }}</ion-label>
+        </div>
+      </div>
+      <div class="button-container">
+        <ion-button shape="round">
+          <ion-icon slot="icon-only" name="heart"></ion-icon>
+        </ion-button>
+      </div>
+    </ion-item>
   </ion-list>
-
-  <!--
-    <div class="container-maldi">
-      <ion-label>
-      ¡¡¡ Bienvenido {{ email }} !!!
-      </ion-label>
-    </div>
-  -->
+  
+  <!-- Favorites Button -->
+  <div class="ion-padding">
+    <ion-button expand="block" routerLink="/favoritos">
+      <ion-icon name="heart" slot="start"></ion-icon>
+      Ver Mis Animes Favoritos
+    </ion-button>
+  </div>
 </ion-content>

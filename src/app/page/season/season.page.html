@@ -40,13 +40,22 @@
 
   <!-- Anime list -->
   <div class="card-grid" *ngIf="!isLoading && !error">
-    <ion-card *ngFor="let anime of filteredAnimes" [routerLink]="['/anime', anime.mal_id]">
-      <img [src]="anime.images.jpg.large_image_url" [alt]="anime.title"/>
-      <div class="card-info">
-        <h3>{{ anime.title }}</h3>
-        <p class="card-status">{{ anime.status }}</p>
-        <p class="card-airing-time">Release time: {{ anime.broadcast.time }}</p>
+    <ion-card *ngFor="let anime of filteredAnimes">
+      <div [routerLink]="['/anime', anime.mal_id]">
+        <img [src]="anime.images.jpg.large_image_url" [alt]="anime.title"/>
+        <div class="card-info">
+          <h3>{{ anime.title }}</h3>
+          <p class="card-status">{{ anime.status }}</p>
+          <p class="card-airing-time">Release time: {{ anime.broadcast.time }}</p>
+        </div>
       </div>
+      <ion-button 
+        fill="clear" 
+        class="favorite-button" 
+        (click)="toggleFavorite($event, anime)"
+        [color]="isFavorite(anime.mal_id) ? 'danger' : 'medium'">
+        <ion-icon slot="icon-only" name="heart"></ion-icon>
+      </ion-button>
     </ion-card>
   </div>
 </ion-content>

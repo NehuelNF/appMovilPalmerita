@@ -1,0 +1,33 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tab/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Mis Favoritos</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="card-grid" *ngIf="favorites.length > 0">
+    <ion-card *ngFor="let anime of favorites">
+      <div [routerLink]="['/anime', anime.mal_id]">
+        <img [src]="anime.images.jpg.large_image_url" [alt]="anime.title"/>
+        <div class="card-info">
+          <h3>{{ anime.title }}</h3>
+          <p class="card-status">{{ anime.status }}</p>
+        </div>
+      </div>
+      <ion-button 
+        fill="clear" 
+        class="favorite-button"
+        (click)="removeFavorite($event, anime.mal_id)"
+        color="danger">
+        <ion-icon slot="icon-only" name="heart"></ion-icon>
+      </ion-button>
+    </ion-card>
+  </div>
+
+  <div *ngIf="favorites.length === 0" class="ion-text-center ion-padding">
+    <p>No tienes animes favoritos</p>
+  </div>
+</ion-content>
