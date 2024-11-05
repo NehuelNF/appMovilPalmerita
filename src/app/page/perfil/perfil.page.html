@@ -4,26 +4,50 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Perfil</ion-title>
-    </ion-toolbar>
-  </ion-header>
-  
-  <h2>Bienvenido, {{ userName }}!</h2>
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div class="profile-container">
+    <!-- Avatar y nombre -->
+    <div class="user-info">
+      <ion-avatar>
+        <ion-icon name="person-circle-outline" size="large"></ion-icon>
+      </ion-avatar>
+      <h2>Bienvenido, <span class="username">{{ userName }}!</span></h2>
+    </div>
 
-  <!-- Logout -->
-  <ion-button (click)="onLogoutButtonPressed()">Cerrar Sesion</ion-button>
+    <!-- Actualizar nombre -->
+    <div class="update-section">
+      <ion-item>
+        <ion-input [(ngModel)]="newUsername" 
+                   placeholder="INGRESAR NUEVO NOMBRE"
+                   class="custom-input">
+        </ion-input>
+      </ion-item>
+      <ion-button expand="block" 
+                  (click)="onUpdateUsername()"
+                  class="update-button"
+                  color="success">
+        <ion-icon slot="start" name="create-outline"></ion-icon>
+        Actualizar nombre
+      </ion-button>
+    </div>
 
-  <!-- Actualizar nombre -->
-  <ion-input [(ngModel)]="newUsername" placeholder="INGRESAR NUEVO NOMBRE"></ion-input>
-  <ion-button (click)="onUpdateUsername()">Click</ion-button>
+    <!-- Botones de acciones -->
+    <div class="action-buttons">
+      <ion-button expand="block" 
+                  (click)="onLogoutButtonPressed()"
+                  color="tertiary"
+                  class="logout-button">
+        <ion-icon slot="start" name="log-out-outline"></ion-icon>
+        Cerrar Sesión
+      </ion-button>
 
-  <!-- Eliminar cuenta -->
-  <ion-button color="danger" (click)="onDeleteAccount()">
-    <ion-icon slot="start" name="trash"></ion-icon>
-    Eliminar cuenta
-  </ion-button>
-
+      <ion-button expand="block" 
+                  (click)="onDeleteAccount()"
+                  color="danger"
+                  class="delete-button">
+        <ion-icon slot="start" name="trash-outline"></ion-icon>
+        Eliminar cuenta
+      </ion-button>
+    </div>
+  </div>
 </ion-content>

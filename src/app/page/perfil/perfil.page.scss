@@ -1,0 +1,87 @@
+/* perfil.page.scss */
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 20px;
+  }
+  
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
+  
+    ion-avatar {
+      width: 120px;  // Aumentado de 100px
+      height: 120px; // Aumentado de 100px
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 2px solid var(--ion-color-success);
+      
+      ion-icon {
+        width: 100%;
+        height: 100%;
+        font-size: 80px; // Tamaño más grande para el icono
+        color: var(--ion-color-success);
+        padding: 10px;
+      }
+    }
+  
+    h2 {
+      margin: 0;
+      color: var(--ion-color-light);
+      font-size: 1.5rem;
+      text-align: center;
+      
+      .username {
+        color: var(--ion-color-success);
+        font-weight: bold;
+      }
+    }
+  }
+  
+  .update-section {
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+  
+    ion-item {
+      --border-radius: 8px;
+      margin-bottom: 10px;
+    }
+  
+    .update-button {
+      margin-top: 10px;
+    }
+  }
+  
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+  
+    ion-button {
+      --border-radius: 8px;
+      height: 48px;
+      
+      &.delete-button {
+        margin-top: 10px;
+      }
+    }
+  }
+  
+  // Estilos para modo oscuro
+  @media (prefers-color-scheme: dark) {
+    .user-info h2 {
+      color: var(--ion-color-light);
+    }
+    
+    .update-section {
+      background: var(--ion-color-dark);
+    }
+  }
