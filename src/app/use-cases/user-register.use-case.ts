@@ -24,7 +24,9 @@ export class UserRegisterUseCase {
         username: username,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+
       const user = userCredential.user;
+      
       if (user) {
         this.alert.showAlert(
           'Registro exitoso',
@@ -36,9 +38,10 @@ export class UserRegisterUseCase {
       } else {
         alert('¡Registro exitoso!');
       }
+
       this.router.navigate(['/login']);
+
     } catch (error: any) {
-      console.error('Error during registration:', error);
       switch (error.code) {
         case 'auth/email-already-in-use':
           this.alert.showAlert(
