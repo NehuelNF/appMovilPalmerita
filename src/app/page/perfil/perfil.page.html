@@ -13,6 +13,17 @@
   
   <h2>Bienvenido, {{ userName }}!</h2>
 
+  <!-- Logout -->
   <ion-button (click)="onLogoutButtonPressed()">Cerrar Sesion</ion-button>
+
+  <!-- Actualizar nombre -->
+  <ion-input [(ngModel)]="newUsername" placeholder="INGRESAR NUEVO NOMBRE"></ion-input>
+  <ion-button (click)="onUpdateUsername()">Click</ion-button>
+
+  <!-- Eliminar cuenta -->
+  <ion-button color="danger" (click)="onDeleteAccount()">
+    <ion-icon slot="start" name="trash"></ion-icon>
+    Eliminar cuenta
+  </ion-button>
 
 </ion-content>
