@@ -7,7 +7,9 @@ import { StorageService } from 'src/managers/StorageService';
 @Injectable({
   providedIn: 'root'
 })
+
 export class UserLoginUseCase {
+  
   constructor(
     private fireAuth: AngularFireAuth,
     private firestore: AngularFirestore,
@@ -22,6 +24,7 @@ export class UserLoginUseCase {
 
       // Si no es un email, buscar el email asociado al username
       if (!identifier.includes('@')) {
+        
         const usersRef = this.firestore.collection('users');
         const querySnapshot = await usersRef
           .ref
@@ -52,7 +55,9 @@ export class UserLoginUseCase {
           .toPromise();
 
         if (userDoc?.exists) {
+
           const userData = userDoc.data() as { username?: string };
+          
           if (userData && userData['username']) {
             await this.storageService.set('username', userData['username']);
             this.router.navigate(['/tab/home']);

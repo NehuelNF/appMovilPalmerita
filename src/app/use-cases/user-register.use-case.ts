@@ -17,8 +17,11 @@ export class UserRegisterUseCase {
   ) {}
 
   async registerUser(email: string, password: string, username: string): Promise<void> {
+    
     try {
+      
       const userCredential = await this.fireAuth.createUserWithEmailAndPassword(email, password);
+      
       await this.firestore.collection('users').doc(userCredential.user?.uid).set({
         email: email,
         username: username,

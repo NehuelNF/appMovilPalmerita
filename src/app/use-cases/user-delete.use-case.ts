@@ -1,4 +1,3 @@
-// src/app/use-cases/user-delete.use-case.ts
 import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
@@ -8,7 +7,9 @@ import { StorageService } from 'src/managers/StorageService';
 @Injectable({
   providedIn: 'root'
 })
+
 export class UserDeleteUseCase {
+
   constructor(
     private fireAuth: AngularFireAuth,
     private firestore: AngularFirestore,

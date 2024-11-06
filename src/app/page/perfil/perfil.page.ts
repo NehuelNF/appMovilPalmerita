@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
   templateUrl: './perfil.page.html',
   styleUrls: ['./perfil.page.scss'],
 })
+
 export class PerfilPage implements OnInit {
   userName: string | null = null;
   newUsername: string = '';
