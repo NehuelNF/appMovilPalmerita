@@ -18,8 +18,8 @@ export class UserLogoutUseCase {
       // Primero hacemos signOut de Firebase
       await this.fireAuth.signOut();
       // Limpiamos todo el storage
-      await this.storageService.clear(); // Añadir método clear() en StorageService
-      // Navegamos al login
+      await this.storageService.clear();
+
       this.router.navigate(['/login']);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
