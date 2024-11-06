@@ -52,6 +52,29 @@ ion-card {
   --padding-end: 8px;
   --padding-top: 8px;
   --padding-bottom: 8px;
+  z-index: 10;
+  
+  &.is-favorite {
+    --color: var(--ion-color-danger);
+    ion-icon {
+      color: var(--ion-color-danger);
+    }
+  }
+
+  ion-icon {
+    font-size: 24px;
+    transition: all 0.3s ease;
+    
+    &.favorite-active {
+      transform: scale(1.2);
+      color: var(--ion-color-danger);
+      filter: drop-shadow(0 0 2px rgba(var(--ion-color-danger-rgb), 0.4));
+    }
+  }
+
+  &:active ion-icon {
+    transform: scale(1.4);
+  }
 }
 
 @media (min-width: 425px) {

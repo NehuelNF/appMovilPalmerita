@@ -6,7 +6,6 @@
     <ion-title>Mis Favoritos</ion-title>
   </ion-toolbar>
 </ion-header>
-
 <ion-content>
   <div class="card-grid" *ngIf="favorites.length > 0">
     <ion-card *ngFor="let anime of favorites">
@@ -15,18 +14,46 @@
         <div class="card-info">
           <h3>{{ anime.title }}</h3>
           <p class="card-status">{{ anime.status }}</p>
+          
+          <!-- Barra de progreso -->
+          <div class="progress-bar">
+            <div class="progress" [style.width.%]="(anime.episodesWatched / anime.episodes) * 100"></div>
+          </div>
+          
+          <!-- Control de episodios -->
+          <div class="episodes-control">
+            <ion-button 
+              fill="clear"
+              size="small"
+              (click)="$event.stopPropagation(); decreaseEpisodesWatched(anime)" 
+              [disabled]="!anime.episodesWatched">
+              <ion-icon name="remove"></ion-icon>
+            </ion-button>
+            
+            <span class="episodes-text">
+              {{ anime.episodesWatched || 0 }}/{{ anime.episodes || 'Desconocido' }}
+            </span>
+            
+            <ion-button 
+              fill="clear"
+              size="small"
+              (click)="$event.stopPropagation(); increaseEpisodesWatched(anime)"
+              [disabled]="anime.episodes && anime.episodesWatched >= anime.episodes">
+              <ion-icon name="add"></ion-icon>
+            </ion-button>
+          </div>
         </div>
       </div>
+      
       <ion-button 
         fill="clear" 
         class="favorite-button"
-        (click)="removeFavorite($event, anime.mal_id)"
+        (click)="removeFavorite(anime)"
         color="danger">
         <ion-icon slot="icon-only" name="heart"></ion-icon>
       </ion-button>
     </ion-card>
   </div>
-
   <div *ngIf="favorites.length === 0" class="ion-text-center ion-padding">
     <p>No tienes animes favoritos</p>
   </div>

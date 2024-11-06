@@ -35,16 +35,17 @@
   </ion-card>
   <!-- Top Anime List -->
   <ion-list lines="full" *ngIf="!isLoading && !error">
-    <ion-item *ngFor="let anime of topAnimes" [routerLink]="['/anime', anime.mal_id]">
+    <ion-item *ngFor="let anime of topAnimes; let i = index" [routerLink]="['/anime', anime.mal_id]">
       <div class="container">
         <div class="container-logo">
+          <div class="rank-indicator">#{{i + 1}}</div>
           <img class="circular-icon" [src]="anime.images.jpg.image_url">
           <ion-label class="item-text">{{ anime.title }}</ion-label>
         </div>
       </div>
       <div class="button-container">
-        <ion-button shape="round">
-          <ion-icon slot="icon-only" name="heart"></ion-icon>
+        <ion-button shape="round" (click)="toggleFavorite(anime, $event)">
+          <ion-icon slot="icon-only" [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'"></ion-icon>
         </ion-button>
       </div>
     </ion-item>

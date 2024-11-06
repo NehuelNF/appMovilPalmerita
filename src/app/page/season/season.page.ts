@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { AnimeService } from '../../../managers/AnimeService';
 import { FavoritesService } from '../../../managers/FavoritesService';
+import { Observable } from 'rxjs';
+import { take } from 'rxjs/operators';
+import { ToastController } from '@ionic/angular';
 
 @Component({
   selector: 'app-season',
@@ -13,14 +16,17 @@ export class SeasonPage implements OnInit {
   isLoading = true;
   error: string | null = null;
   selectedDay: string = 'all';
+  favorites: Set<number> = new Set();
 
   constructor(
     private animeService: AnimeService,
-    private favoritesService: FavoritesService
+    private favoritesService: FavoritesService,
+    private toastCtrl: ToastController
   ) { }
 
   ngOnInit() {
     this.loadAnimes();
+    this.loadFavorites();
   }
 
   daysMap: { [key: string]: string } = {
@@ -49,6 +55,16 @@ export class SeasonPage implements OnInit {
     });
   }
 
+  loadFavorites() {
+    this.favoritesService.getFavorites().subscribe(favorites => {
+      this.favorites.clear();
+      favorites.forEach(anime => {
+        const id = anime.mal_id || anime.id;
+        if (id) this.favorites.add(id);
+      });
+    });
+  }
+
   filterAnimesByDay() {
     // console.log('Selected Day:', this.selectedDay);
     if (this.selectedDay === 'all') {
@@ -68,16 +84,37 @@ export class SeasonPage implements OnInit {
     event.target.complete();
   }
 
-  toggleFavorite(event: Event, anime: any) {
-    event.stopPropagation();
-    if (this.favoritesService.isFavorite(anime.mal_id)) {
-      this.favoritesService.removeFromFavorites(anime.mal_id);
-    } else {
-      this.favoritesService.addToFavorites(anime);
+  async toggleFavorite(anime: any) {
+    try {
+      const result = await this.favoritesService.toggleFavorite(anime).pipe(take(1)).toPromise();
+      // Verificar que result no sea undefined
+      if (!result) {
+        throw new Error('No se pudo procesar la solicitud');
+      }
+
+      // Actualizar el conjunto de favoritos
+      if (result.action === 'added') {
+        this.favorites.add(anime.mal_id);
+      } else {
+        this.favorites.delete(anime.mal_id);
+      }
+      
+      await this.toastCtrl.create({
+        message: result.action === 'added' ? 'Añadido a favoritos' : 'Eliminado de favoritos',
+        duration: 2000,
+        color: result.action === 'added' ? 'success' : 'medium'
+      }).then(toast => toast.present());
+
+    } catch (error) {
+      await this.toastCtrl.create({
+        message: 'Por favor, inicia sesión para añadir favoritos',
+        duration: 3000,
+        color: 'danger'
+      }).then(toast => toast.present());
     }
   }
 
   isFavorite(animeId: number): boolean {
-    return this.favoritesService.isFavorite(animeId);
+    return this.favorites.has(animeId);
   }
 }

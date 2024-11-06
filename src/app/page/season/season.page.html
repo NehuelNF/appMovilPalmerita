@@ -52,9 +52,13 @@
       <ion-button 
         fill="clear" 
         class="favorite-button" 
-        (click)="toggleFavorite($event, anime)"
-        [color]="isFavorite(anime.mal_id) ? 'danger' : 'medium'">
-        <ion-icon slot="icon-only" name="heart"></ion-icon>
+        (click)="toggleFavorite(anime)"
+        [class.is-favorite]="isFavorite(anime.mal_id)">
+        <ion-icon 
+          slot="icon-only" 
+          name="heart"
+          [class.favorite-active]="isFavorite(anime.mal_id)">
+        </ion-icon>
       </ion-button>
     </ion-card>
   </div>
