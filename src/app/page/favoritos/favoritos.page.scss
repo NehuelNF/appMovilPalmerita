@@ -1,0 +1,89 @@
+ion-content {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 16px;
+}
+
+ion-card {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    aspect-ratio: 16 / 9;
+  }
+
+  .card-info {
+    padding: 16px;
+    background: var(--ion-background-color);
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: var(--ion-text-color);
+    }
+
+    .card-status {
+      margin: 0;
+      font-style: italic;
+      color: var(--ion-color-medium);
+    }
+  }
+}
+
+.favorite-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  --background: rgba(0, 0, 0, 0.5);
+}
+
+.episodes-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--ion-color-light);
+
+  ion-button {
+    --padding-start: 12px;
+    --padding-end: 12px;
+    
+    &[disabled] {
+      opacity: 0.5;
+    }
+  }
+}
+
+.episodes-text {
+  text-align: center;
+  margin: 8px 0;
+  color: var(--ion-color-medium);
+  font-size: 14px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--ion-color-light);
+  margin: 8px 0;
+
+  .progress {
+    height: 100%;
+    background: var(--ion-color-primary);
+    transition: width 0.3s ease;
+  }
+}

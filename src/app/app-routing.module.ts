@@ -34,13 +34,18 @@ const routes: Routes = [
   {
     path: 'anime/:id',
     loadChildren: () => import('./page/anime-detail/anime-detail.module').then(m => m.AnimeDetailPageModule)
-  },  {
+  },
+  {
     path: 'proximamente',
     loadChildren: () => import('./page/proximamente/proximamente.module').then( m => m.ProximamentePageModule)
   },
   {
     path: 'perfil',
     loadChildren: () => import('./page/perfil/perfil.module').then( m => m.PerfilPageModule)
+  },
+  {
+    path: 'favoritos',
+    loadChildren: () => import('./page/favoritos/favoritos.module').then( m => m.FavoritosPageModule)
   }
 
 

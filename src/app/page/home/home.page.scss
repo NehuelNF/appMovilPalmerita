@@ -36,6 +36,8 @@
     align-items: center;
     justify-content: flex-start;
     margin-bottom: 10px; /* Consistente con otros elementos de la lista */
+    position: relative;
+    padding-left: 20px;
   }
   
   .container-logo .circular-icon {
@@ -73,7 +75,21 @@
     margin-left: auto;
   }
   
-  
   .container-maldi{
     text-align: center;
+  }
+
+  .rank-indicator {
+    position: absolute;
+    left: -10px;
+    background: #ffd700;
+    color: black;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
   }
