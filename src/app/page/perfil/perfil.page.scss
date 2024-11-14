@@ -33,12 +33,12 @@
   
     h2 {
       margin: 0;
-      color: var(--ion-color-light);
       font-size: 1.5rem;
       text-align: center;
+      color: white; // Base text color for "Bienvenido"
       
       .username {
-        color: var(--ion-color-success);
+        color: var(--ion-color-success); // Keep username in success color
         font-weight: bold;
       }
     }
