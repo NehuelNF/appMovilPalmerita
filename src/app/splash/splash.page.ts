@@ -10,7 +10,7 @@ import { StorageService } from 'src/managers/StorageService';
 export class SplashPage implements OnInit {
   constructor(private router: Router, private storageService: StorageService) {}
 
-  async ngOnInit() {
+  async ionViewDidEnter() {
     await this.storageService.init(); // Asegúrate de que el almacenamiento esté inicializado
     const username = await this.storageService.get('username');
     if (username) {
@@ -18,5 +18,8 @@ export class SplashPage implements OnInit {
     } else {
       this.router.navigate(['/login']);
     }
+  }
+
+  async ngOnInit() {
   }
 }
