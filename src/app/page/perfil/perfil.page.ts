@@ -5,16 +5,18 @@ import { UserUpdateUseCase } from 'src/app/use-cases/user-update.use-case';
 import { UserDeleteUseCase } from 'src/app/use-cases/user-delete.use-case';
 import { AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
+import { ActionSheetService } from 'src/managers/ActionSheetService';
+import { UpdateAvatarUseCase } from 'src/app/use-cases/update-avatar.use-case';
 
 @Component({
   selector: 'app-perfil',
   templateUrl: './perfil.page.html',
   styleUrls: ['./perfil.page.scss'],
 })
-
 export class PerfilPage implements OnInit {
   userName: string | null = null;
   newUsername: string = '';
+  avatar: string | null = null;
 
   constructor(
     private userGetUseCase: UserGetUseCase,
@@ -22,7 +24,9 @@ export class PerfilPage implements OnInit {
     private router: Router,
     private userUpdateUseCase: UserUpdateUseCase,
     private alertController: AlertController,
-    private userDeleteUseCase: UserDeleteUseCase
+    private userDeleteUseCase: UserDeleteUseCase,
+    private actionSheetService: ActionSheetService,
+    private updateAvatarUseCase: UpdateAvatarUseCase
   ) {}
 
   async ngOnInit() {
@@ -31,10 +35,21 @@ export class PerfilPage implements OnInit {
       if (!this.userName) {
         this.router.navigate(['/login']);
       }
+      const user = await this.userGetUseCase.getUser();
+      this.avatar = user?.avatar || null;
+
+      this.updateAvatarUseCase.avatarUpdated$.subscribe(newAvatar => {
+        this.avatar = newAvatar;
+      });
     } catch (error) {
       console.error('Error al obtener nombre de usuario:', error);
       this.router.navigate(['/login']);
     }
+  }
+
+  // Mostrar el actionsheet
+  async showActionSheet() {
+    await this.actionSheetService.presentActionSheet();
   }
 
   // Añadir estos métodos para alerts
