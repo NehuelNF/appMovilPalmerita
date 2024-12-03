@@ -17,7 +17,9 @@ import { IonicStorageModule } from '@ionic/storage-angular';
 import { StorageService } from 'src/managers/StorageService'; 
 
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [
+    AppComponent,
+  ],
   imports: [
     BrowserModule, 
     IonicModule.forRoot(), 
