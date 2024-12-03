@@ -20,10 +20,6 @@ const routes: Routes = [
     loadChildren: () => import('./register/register.module').then( m => m.RegisterPageModule)
   },
   {
-    path: 'noticia',
-    loadChildren: () => import('./page/noticia/noticia.module').then( m => m.NoticiaPageModule)
-  },
-  {
     path: 'season',
     loadChildren: () => import('./page/season/season.module').then(m => m.SeasonPageModule)
   },
