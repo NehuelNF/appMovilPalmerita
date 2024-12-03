@@ -5,16 +5,19 @@ import { UserUpdateUseCase } from 'src/app/use-cases/user-update.use-case';
 import { UserDeleteUseCase } from 'src/app/use-cases/user-delete.use-case';
 import { AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
+import { ActionSheetService } from 'src/managers/ActionSheetService';
+import { UpdateAvatarUseCase } from 'src/app/use-cases/update-avatar.use-case';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
 
 @Component({
   selector: 'app-perfil',
   templateUrl: './perfil.page.html',
   styleUrls: ['./perfil.page.scss'],
 })
-
 export class PerfilPage implements OnInit {
   userName: string | null = null;
   newUsername: string = '';
+  avatar: string | null = null;
 
   constructor(
     private userGetUseCase: UserGetUseCase,
@@ -22,19 +25,50 @@ export class PerfilPage implements OnInit {
     private router: Router,
     private userUpdateUseCase: UserUpdateUseCase,
     private alertController: AlertController,
-    private userDeleteUseCase: UserDeleteUseCase
+    private userDeleteUseCase: UserDeleteUseCase,
+    private actionSheetService: ActionSheetService,
+    private updateAvatarUseCase: UpdateAvatarUseCase,
+    private fireAuth: AngularFireAuth
   ) {}
 
   async ngOnInit() {
     try {
-      this.userName = await this.userGetUseCase.getUserName();
-      if (!this.userName) {
-        this.router.navigate(['/login']);
-      }
+      // Obtener datos iniciales
+      await this.loadUserData();
+      
+      // Suscribirse a cambios de autenticación
+      this.fireAuth.authState.subscribe(async user => {
+        if (user) {
+          await this.loadUserData();
+        } else {
+          this.router.navigate(['/login']);
+        }
+      });
     } catch (error) {
       console.error('Error al obtener nombre de usuario:', error);
       this.router.navigate(['/login']);
     }
+  }
+
+  // Método para cargar los datos del usuario
+  private async loadUserData() {
+    this.userName = await this.userGetUseCase.getUserName();
+    if (!this.userName) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    
+    const user = await this.userGetUseCase.getUser();
+    this.avatar = user?.avatar || null;
+  
+    this.updateAvatarUseCase.avatarUpdated$.subscribe(newAvatar => {
+      this.avatar = newAvatar;
+    });
+  }
+
+  // Mostrar el actionsheet
+  async showActionSheet() {
+    await this.actionSheetService.presentActionSheet();
   }
 
   // Añadir estos métodos para alerts
@@ -60,9 +94,15 @@ export class PerfilPage implements OnInit {
   async onLogoutButtonPressed() {
     try {
       await this.userLogoutUseCase.logoutUser();
+      // Limpiar todos los datos del usuario actual
       this.userName = null;
+      this.avatar = null;
+      this.newUsername = '';
+      // Navegar al login
+      this.router.navigate(['/login']);
     } catch (error) {
       console.error('Error durante el logout:', error);
+      await this.showErrorAlert('Error al cerrar sesión');
     }
   }
 

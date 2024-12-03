@@ -8,8 +8,11 @@
   <div class="profile-container">
     <!-- Avatar y nombre -->
     <div class="user-info">
-      <ion-avatar>
-        <ion-icon name="person-circle-outline" size="large"></ion-icon>
+      <ion-avatar (click)="showActionSheet()"> <!-- Añade el evento click -->
+        <img *ngIf="avatar; else defaultAvatar" [src]="'data:image/jpeg;base64,' + avatar" />
+        <ng-template #defaultAvatar>
+          <ion-icon name="person-circle-outline" size="large"></ion-icon>
+        </ng-template>
       </ion-avatar>
       <h2>Bienvenido, <span class="username">{{ userName }}!</span></h2>
     </div>
