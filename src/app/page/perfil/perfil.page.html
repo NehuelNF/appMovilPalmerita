@@ -34,6 +34,16 @@
       </ion-button>
     </div>
 
+    <div class="link-account-section" *ngIf="!isGoogleUser">
+      <ion-button expand="block"
+                  (click)="linkWithGoogle()"
+                  class="link-google-button"
+                  color="light">
+        <ion-icon slot="start" name="logo-google"></ion-icon>
+        Vincular cuenta con Google
+      </ion-button>
+    </div>
+
     <!-- Botones de acciones -->
     <div class="action-buttons">
       <ion-button expand="block" 

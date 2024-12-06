@@ -20,16 +20,25 @@
       </div>
 
       <div>
-        <ion-button expand="block" (click)="onLoginButtonPressed()" ><span class="material-symbols-outlined">arrow_forward</span></ion-button>
+        <ion-button expand="block" (click)="onLoginButtonPressed()"><span class="material-symbols-outlined">arrow_forward</span></ion-button>
       </div>
+
+      <div class="separator">
+        <span>o</span>
+      </div>
+
+      <div>
+        <ion-button expand="block" color="light" class="google-btn" (click)="googleLogin()">
+          <ion-icon slot="start" name="logo-google"></ion-icon>
+          Continuar con Google
+        </ion-button>
+      </div>
+
       <div>
         <ion-button color="success" expand="block" (click)="onRegisterButtonPressed()"> Registrarse </ion-button>
       </div>
 
     </div>
   </div>
-
-
-  
 
 </ion-content>

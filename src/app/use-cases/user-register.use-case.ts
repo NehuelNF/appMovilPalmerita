@@ -86,6 +86,50 @@ export class UserRegisterUseCase {
     }
   }
 
+  async registerWithGoogle(): Promise<void> {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      const result = await this.fireAuth.signInWithPopup(provider);
+      
+      if (result.user) {
+        // Verificar si el usuario ya existe
+        const userDoc = await this.firestore.collection('users').doc(result.user.uid).get().toPromise();
+        
+        if (!userDoc?.exists) {
+          // Solo crear documento si el usuario no existe
+          await this.firestore.collection('users').doc(result.user.uid).set({
+            email: result.user.email,
+            username: result.user.displayName,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+
+        this.alert.showAlert(
+          'Inicio de sesión exitoso',
+          'Has iniciado sesión correctamente con Google',
+          () => {
+            this.router.navigate(['/tab/home']);
+          }
+        );
+      }
+    } catch (error: any) {
+      let errorMessage = 'Hubo un problema al registrarse con Google';
+      
+      if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'El popup fue bloqueado. Por favor, permite las ventanas emergentes.';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'El proceso fue cancelado.';
+      }
+
+      this.alert.showAlert(
+        'Error',
+        errorMessage,
+        () => {}
+      );
+      console.error('Error al registrarse con Google:', error);
+    }
+  }
+
   clean() {
   }
 }

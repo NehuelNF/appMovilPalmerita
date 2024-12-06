@@ -19,6 +19,10 @@ export class LoginPage implements OnInit {
     await this.userLoginUseCase.loginUser(this.identifier, this.password);
   }
 
+  async googleLogin() {
+    await this.userLoginUseCase.loginWithGoogle();
+  }
+
   onRegisterButtonPressed() {
     this.router.navigate(['/register']);
   }

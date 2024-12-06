@@ -21,6 +21,10 @@ export class RegisterPage implements OnInit {
     this.router.navigate(['/login']);
   }
 
+  async googleRegister() {
+    await this.userRegisterUseCase.registerWithGoogle();
+  }
+
   clean() {
     this.username = '';
     this.email = '';
