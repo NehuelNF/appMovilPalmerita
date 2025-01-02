@@ -15,6 +15,7 @@ import { environment } from 'src/environments/environment';
 
 import { IonicStorageModule } from '@ionic/storage-angular';
 import { StorageService } from 'src/managers/StorageService'; 
+import { GoogleAuthService } from '../managers/GoogleAuthService';
 
 @NgModule({
   declarations: [
@@ -29,7 +30,11 @@ import { StorageService } from 'src/managers/StorageService';
     AngularFireAuthModule,
     IonicStorageModule.forRoot()
   ],
-  providers: [{ provide: RouteReuseStrategy, useClass: IonicRouteStrategy }, provideHttpClient()],
+  providers: [
+    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+    provideHttpClient(),
+    GoogleAuthService
+  ],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

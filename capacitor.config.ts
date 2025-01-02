@@ -7,10 +7,14 @@ const config: CapacitorConfig = {
   plugins: {
     GoogleAuth: {
       scopes: ['profile', 'email'],
-      serverClientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+      serverClientId: 'TU_ID_CLIENTE_REAL.apps.googleusercontent.com', // Reemplaza esto con tu ID real
+      androidClientId: 'TU_ID_CLIENTE_ANDROID.apps.googleusercontent.com', // Añade esto
       forceCodeForRefreshToken: true,
     },
   },
+  server: {
+    androidScheme: 'https'
+  }
 };
 
 export default config;

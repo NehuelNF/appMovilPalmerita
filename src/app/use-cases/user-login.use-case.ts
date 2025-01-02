@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { StorageService } from 'src/managers/StorageService';
 import { CancelAlertService } from 'src/managers/CancelAlertService';
 import firebase from 'firebase/compat/app';
+import { GoogleAuthService } from '../../managers/GoogleAuthService';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +18,8 @@ export class UserLoginUseCase {
     private firestore: AngularFirestore,
     private router: Router,
     private storageService: StorageService,
-    private alert: CancelAlertService
+    private alert: CancelAlertService,
+    private googleAuthService: GoogleAuthService
   ) {}
 
   async loginUser(identifier: string, password: string): Promise<void> {
@@ -75,49 +77,14 @@ export class UserLoginUseCase {
 
   async loginWithGoogle(): Promise<void> {
     try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      const result = await this.fireAuth.signInWithPopup(provider);
-      
-      if (result.user) {
-        const userDoc = await this.firestore.collection('users').doc(result.user.uid).get().toPromise();
-        
-        if (userDoc?.exists) {
-          const userData = userDoc.data() as { username?: string };
-          if (userData && userData['username']) {
-            await this.storageService.set('username', userData['username']);
-          }
-          
-          this.alert.showAlert(
-            'Inicio de sesión exitoso',
-            'Has iniciado sesión correctamente con Google',
-            () => {
-              this.router.navigate(['/tab/home']);
-            }
-          );
-        } else {
-          this.alert.showAlert(
-            'Usuario no registrado',
-            'Por favor, regístrate primero con Google',
-            () => {
-              this.router.navigate(['/register']);
-            }
-          );
-        }
+      const user = await this.googleAuthService.signIn();
+      if (user) {
+        // Aquí puedes manejar la información del usuario
+        console.log('Usuario autenticado:', user);
+        await this.router.navigate(['/tab/home']);
       }
-    } catch (error: any) {
-      let errorMessage = 'Hubo un problema al iniciar sesión con Google';
-      
-      if (error.code === 'auth/popup-blocked') {
-        errorMessage = 'El popup fue bloqueado. Por favor, permite las ventanas emergentes.';
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'El proceso fue cancelado.';
-      }
-
-      this.alert.showAlert(
-        'Error',
-        errorMessage,
-        () => {}
-      );
+    } catch (error) {
+      console.error('Error en login con Google:', error);
     }
   }
 }
