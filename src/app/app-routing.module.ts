@@ -20,10 +20,6 @@ const routes: Routes = [
     loadChildren: () => import('./register/register.module').then( m => m.RegisterPageModule)
   },
   {
-    path: 'season',
-    loadChildren: () => import('./page/season/season.module').then(m => m.SeasonPageModule)
-  },
-  {
     path: 'tab',
     loadChildren: () => import('./page/tab/tab.module').then( m => m.TabPageModule)
   },
@@ -42,6 +38,10 @@ const routes: Routes = [
   {
     path: 'favoritos',
     loadChildren: () => import('./page/favoritos/favoritos.module').then( m => m.FavoritosPageModule)
+  },
+  {
+    path: 'notifications-settings',
+    loadChildren: () => import('./page/notifications-settings/notifications-settings.module').then( m => m.NotificationsSettingsPageModule)
   }
 
 

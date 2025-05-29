@@ -7,6 +7,7 @@ import { IonicModule } from '@ionic/angular';
 import { SeasonPageRoutingModule } from './season-routing.module';
 
 import { SeasonPage } from './season.page';
+import { SharedModule } from '../../shared/shared.module';
 
 import { RouterModule } from '@angular/router';
 
@@ -16,6 +17,7 @@ import { RouterModule } from '@angular/router';
     FormsModule,
     IonicModule,
     SeasonPageRoutingModule,
+    SharedModule,
     RouterModule.forChild([
       {
         path: '',

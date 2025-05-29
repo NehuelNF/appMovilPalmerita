@@ -2,18 +2,18 @@ import { Component, OnInit } from '@angular/core';
 import { UserGetUseCase } from 'src/app/use-cases/user-get.use-case';
 import { UserLogoutUseCase } from 'src/app/use-cases/user-logout.use-case';
 import { UserUpdateUseCase } from 'src/app/use-cases/user-update.use-case';
-import { UserDeleteUseCase } from 'src/app/use-cases/user-delete.use-case';
 import { AlertController, ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { ActionSheetService } from 'src/managers/ActionSheetService';
 import { UpdateAvatarUseCase } from 'src/app/use-cases/update-avatar.use-case';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { UserProfileUseCase } from 'src/app/use-cases/user-profile.use-case';
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { AuthService } from '../../../managers/AuthService'; // Make sure this path is correct
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import { FirebaseError } from 'firebase/app';
+import { NotificationService } from '../../managers/NotificationService'; // Importar NotificationService
+import { UserDeleteUseCase } from 'src/app/use-cases/user-delete.use-case'; // Asegúrate que la ruta es correcta
 
 @Component({
   selector: 'app-perfil',
@@ -32,13 +32,14 @@ export class PerfilPage implements OnInit {
     private router: Router,
     private userUpdateUseCase: UserUpdateUseCase,
     private alertController: AlertController,
-    private userDeleteUseCase: UserDeleteUseCase,
     private actionSheetService: ActionSheetService,
     private updateAvatarUseCase: UpdateAvatarUseCase,
     private fireAuth: AngularFireAuth,
     private userProfileUseCase: UserProfileUseCase,
     private toastController: ToastController,
-    private authService: AuthService
+    private authService: AuthService,
+    private notificationService: NotificationService, // Inyectar NotificationService
+    private userDeleteUseCase: UserDeleteUseCase // Inyectar UserDeleteUseCase
   ) {}
 
   async ngOnInit() {
@@ -125,7 +126,7 @@ export class PerfilPage implements OnInit {
   //Actualizar nombre
   async onUpdateUsername() {
     try {
-      if (this.newUsername) {
+      if (this.newUsername) { // Paréntesis añadido
         await this.userUpdateUseCase.updateUsername(this.newUsername);
         this.userName = this.newUsername;
         this.newUsername = '';
@@ -152,7 +153,7 @@ export class PerfilPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             try {
-              await this.userDeleteUseCase.deleteUser();
+              await this.userDeleteUseCase.deleteUser(); // Corregido userDeleteUseCase
             } catch (error: any) {
               await this.showErrorAlert('Error al eliminar cuenta: ' + error.message);
             }
@@ -207,5 +208,17 @@ export class PerfilPage implements OnInit {
       });
       toast.present();
     }
+  }
+
+  // Nuevo método para probar notificaciones
+  async testNotifications() {
+    console.log('Botón de probar notificaciones presionado');
+    await this.notificationService.sendTestNotification();
+    const alert = await this.alertController.create({
+      header: 'Notificación Enviada',
+      message: 'Se ha enviado una notificación de prueba. Deberías recibirla en breve.',
+      buttons: ['OK']
+    });
+    await alert.present();
   }
 }

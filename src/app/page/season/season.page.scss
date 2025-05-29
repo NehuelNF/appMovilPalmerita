@@ -6,91 +6,609 @@ ion-content {
   --padding-bottom: 16px;
 }
 
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 16px;
+// MEJORA: Barra de días deslizable y responsiva
+.day-filters-container {
+  padding: 8px 0;
+  background: rgba(var(--ion-color-primary-rgb), 0.02);
+  border-bottom: 1px solid rgba(var(--ion-color-primary-rgb), 0.1);
 }
 
-ion-card {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-  overflow: hidden;
-
-  img {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
-    aspect-ratio: 16 / 9;
-  }
-
-  .card-info {
-    padding: 16px;
-    background: var(--ion-background-color);
-
-    h3 {
-      margin: 0 0 8px 0;
-      font-size: 16px;
-      color: var(--ion-text-color);
-    }
-
-    .card-status {
-      margin: 0;
-      font-style: italic;
-      color: var(--ion-color-medium);
-    }
-  }
-}
-
-.favorite-button {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  --padding-start: 8px;
-  --padding-end: 8px;
-  --padding-top: 8px;
-  --padding-bottom: 8px;
-  z-index: 10;
+.day-segment {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding: 8px 16px;
+  margin: 0 !important;
+  border-radius: 0;
+  background: transparent;
   
-  &.is-favorite {
-    --color: var(--ion-color-danger);
-    ion-icon {
-      color: var(--ion-color-danger);
+  // Scrollbar personalizado para web
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(var(--ion-color-primary-rgb), 0.3);
+    border-radius: 2px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--ion-color-primary-rgb), 0.5);
+  }
+}
+
+.day-button {
+  min-width: 85px;
+  max-width: 120px;
+  height: 44px;
+  margin: 0 6px;
+  border-radius: 22px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  
+  &::part(native) {
+    border-radius: 22px;
+    border: 2px solid transparent;
+  }
+  
+  ion-label {
+    font-weight: 600;
+    font-size: 13px;
+    margin: 0 4px;
+  }
+  
+  ion-badge {
+    margin-left: 4px;
+    min-width: 18px;
+    height: 18px;
+    font-size: 11px;
+    border-radius: 9px;
+  }
+  
+  &.segment-button-checked {
+    background: var(--ion-color-primary);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.3);
+    
+    &::part(native) {
+      border-color: var(--ion-color-primary);
+    }
+    
+    ion-badge {
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ion-color-primary);
     }
   }
+  
+  &:not(.segment-button-checked) {
+    background: rgba(var(--ion-color-primary-rgb), 0.05);
+    color: var(--ion-color-primary);
+    
+    &:hover {
+      background: rgba(var(--ion-color-primary-rgb), 0.1);
+      transform: translateY(-1px);
+    }
+    
+    ion-badge {
+      background: var(--ion-color-primary);
+      color: white;
+    }
+  }
+}
 
-  ion-icon {
-    font-size: 24px;
+// MEJORA: Grid de animes con márgenes apropiados entre cartas
+.anime-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px; // Margen entre cartas
+  padding: 20px 16px;
+  
+  @media (min-width: 425px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px; // Más espacio en pantallas medianas
+  }
+  
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px; // Aún más espacio en tablets
+    padding: 24px 20px;
+  }
+  
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px; // Máximo espacio en desktop
+    padding: 28px 24px;
+  }
+}
+
+.anime-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 0; // Eliminar márgenes por defecto
+  color: white !important;
+  
+  &:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 28px rgba(103, 126, 234, 0.25);
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+  }
+  
+  .image-container {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    overflow: hidden;
+    
+    .anime-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    
+    &:hover .anime-image {
+      transform: scale(1.08);
+    }
+    
+    .image-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+      padding: 20px 12px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      
+      .rating, .episode-count {
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        
+        ion-icon {
+          font-size: 14px;
+        }
+      }
+      
+      .rating {
+        background: rgba(255, 193, 7, 0.9);
+        color: #000;
+      }
+    }
+  }
+  
+  // NUEVO: Botón de compartir mejorado
+  .share-btn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    transition: all 0.3s ease;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    ion-icon {
+      font-size: 20px;
+      color: var(--ion-color-primary);
+    }
+  }
+  
+  .favorite-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    transition: all 0.3s ease;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    &[color="danger"] {
+      background: rgba(var(--ion-color-danger-rgb), 0.95);
+      
+      &:hover {
+        background: var(--ion-color-danger);
+      }
+      
+      ion-icon {
+        color: white;
+        animation: heartBeat 0.6s ease-in-out;
+      }
+    }
+    
+    ion-icon {
+      font-size: 20px;
+      transition: all 0.3s ease;
+    }
+  }
+  
+  .anime-info {
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.4); // Fondo semi-transparente para mejor legibilidad
+    
+    .anime-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      line-height: 1.3;
+      color: #ffffff !important; // Texto blanco sobre fondo oscuro
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); // Sombra para mejor legibilidad
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .anime-title-english {
+      font-size: 13px;
+      color: #e5e7eb !important; // Gris claro para subtítulo
+      margin: 0 0 12px 0;
+      font-style: italic;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .anime-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 12px 0;
+      
+      .broadcast-info {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        font-size: 12px;
+        color: #e5e7eb !important;
+        
+        ion-icon {
+          font-size: 14px;
+          color: #e5e7eb;
+        }
+        
+        .broadcast-day {
+          font-weight: 600;
+          color: #ffffff !important;
+        }
+        
+        .broadcast-time {
+          color: #d1d5db !important;
+          font-size: 11px;
+        }
+        
+        // NUEVOS estilos para chips de zona horaria
+        .timezone-chip {
+          --background: rgba(34, 197, 94, 0.9);
+          --color: white;
+          height: 20px;
+          font-size: 9px;
+          font-weight: 600;
+          border: 1px solid rgba(34, 197, 94, 0.7);
+          
+          ion-icon {
+            font-size: 10px;
+            color: white;
+          }
+        }
+        
+        .day-changed-chip {
+          --background: rgba(251, 146, 60, 0.9);
+          --color: white;
+          height: 20px;
+          font-size: 9px;
+          font-weight: 600;
+          border: 1px solid rgba(251, 146, 60, 0.7);
+          animation: pulseWarning 2s infinite;
+          
+          ion-icon {
+            font-size: 10px;
+            color: white;
+          }
+        }
+      }
+      
+      .studio-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #e5e7eb !important;
+        
+        ion-icon {
+          font-size: 14px;
+          color: #e5e7eb;
+        }
+      }
+      
+      .status-info {
+        ion-chip {
+          font-size: 11px;
+          height: 24px;
+          font-weight: 500;
+        }
+      }
+    }
+    
+    // NUEVO: Estilo para detalles de zona horaria
+    .timezone-details {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin: 8px 0 0 0;
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      cursor: help;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.02);
+      }
+      
+      ion-icon {
+        font-size: 12px;
+        color: #d1d5db;
+      }
+      
+      small {
+        font-size: 10px;
+        color: #d1d5db;
+        font-weight: 500;
+      }
+    }
+    
+    .genres {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin: 8px 0;
+      
+      ion-chip {
+        font-size: 10px;
+        height: 20px;
+        --background: rgba(255, 255, 255, 0.2);
+        --color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+    }
+    
+    .synopsis {
+      font-size: 12px;
+      line-height: 1.4;
+      color: #e5e7eb !important; // Gris claro para synopsis
+      margin: 8px 0 0 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.2); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+// Mejoras adicionales para la página
+.season-header {
+  padding: 16px;
+  background: linear-gradient(135deg, var(--ion-color-primary) 0%, var(--ion-color-secondary) 100%);
+  color: white;
+  
+  .season-info {
+    text-align: center;
+    
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      
+      ion-icon {
+        font-size: 28px;
+      }
+    }
+    
+    .anime-count, .last-update, .timezone-info {
+      margin: 4px 0;
+      font-size: 14px;
+      opacity: 0.9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      
+      ion-icon {
+        font-size: 16px;
+      }
+    }
+    
+    // NUEVO: Estilo especial para el indicador de zona horaria
+    .timezone-info {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 6px 12px;
+      margin: 8px auto 0;
+      max-width: 220px;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+.additional-filters {
+  padding: 16px;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+  
+  ion-chip {
+    margin: 4px 6px 4px 0;
     transition: all 0.3s ease;
     
-    &.favorite-active {
-      transform: scale(1.2);
-      color: var(--ion-color-danger);
-      filter: drop-shadow(0 0 2px rgba(var(--ion-color-danger-rgb), 0.4));
+    &:hover {
+      transform: translateY(-1px);
     }
   }
-
-  &:active ion-icon {
-    transform: scale(1.4);
+  
+  .sort-item {
+    margin-top: 12px;
+    --padding-start: 0;
   }
 }
 
-@media (min-width: 425px) {
-  .card-grid {
-    grid-template-columns: repeat(2, 1fr);
+.loading-container, .error-container, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-content {
+  margin-bottom: 40px;
+  
+  h3 {
+    margin: 16px 0 8px 0;
+    color: var(--ion-color-primary);
+  }
+  
+  p {
+    color: var(--ion-color-medium);
+    margin: 0;
   }
 }
 
-@media (min-width: 768px) {
-  .card-grid {
-    grid-template-columns: repeat(3, 1fr);
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 20px;
+  
+  .skeleton-card {
+    background: var(--ion-color-light);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 0; // Sin márgenes adicionales
   }
 }
 
-@media (min-width: 1024px) {
-  .card-grid {
-    grid-template-columns: repeat(4, 1fr);
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  
+  .load-more-btn {
+    --background: var(--ion-color-primary);
+    --color: white;
+    --border-radius: 24px;
+    height: 48px;
+    font-weight: 600;
+  }
+}
+
+// NUEVAS animaciones para indicadores
+@keyframes pulseWarning {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+// Animación para el chip de Chile
+@keyframes pulseSuccess {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+  }
+}
+
+// Aplicar animación al chip de Chile
+.timezone-chip {
+  animation: pulseSuccess 3s infinite;
+}
+
+// ESTILOS responsivos para los nuevos elementos
+@media (max-width: 425px) {
+  .broadcast-info {
+    .timezone-chip,
+    .day-changed-chip {
+      font-size: 8px !important;
+      height: 18px !important;
+      
+      ion-icon {
+        font-size: 9px !important;
+      }
+    }
+  }
+  
+  .timezone-details {
+    padding: 3px 6px !important;
+    
+    ion-icon {
+      font-size: 11px !important;
+    }
+    
+    small {
+      font-size: 9px !important;
+    }
   }
 }

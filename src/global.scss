@@ -36,3 +36,49 @@
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import "@ionic/angular/css/palettes/dark.system.css";
 @import "@ionic/angular/css/palettes/dark.class.css";
+
+/* 
+ * SOLUCIÓN GLOBAL INFALIBLE PARA TÍTULOS BLANCOS
+ * Esta regla sobrescribe cualquier estilo de Ionic con color negro directo
+ */
+ion-title {
+  color: #000000 !important;
+  --color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Para modo oscuro, usar blanco */
+@media (prefers-color-scheme: dark) {
+  ion-title {
+    color: #ffffff !important;
+    --color: #ffffff !important;
+  }
+}
+
+/* Específicamente para headers */
+ion-header ion-title {
+  color: #000000 !important;
+  --color: #000000 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-header ion-title {
+    color: #ffffff !important;
+    --color: #ffffff !important;
+  }
+}
+
+/* Si el dispositivo tiene un tema específico aplicado */
+.ios ion-title,
+.md ion-title {
+  color: #000000 !important;
+  --color: #000000 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ios ion-title,
+  .md ion-title {
+    color: #ffffff !important;
+    --color: #ffffff !important;
+  }
+}

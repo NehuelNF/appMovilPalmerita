@@ -4,26 +4,51 @@
   </ion-toolbar>
 </ion-header>
 <ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)" class="custom-refresher">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="🎬 Desliza para ver próximos estrenos"
+      refreshingSpinner="circles"
+      refreshingText="✨ Cargando próximos animes...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <ion-header collapse="condense">
     <ion-toolbar>
       <ion-title size="large">Próximamente</ion-title>
     </ion-toolbar>
   </ion-header>
-  <!-- Loading spinner -->
-  <div *ngIf="isLoading" class="ion-padding ion-text-center">
-    <ion-spinner></ion-spinner>
+
+  <!-- Last refresh info -->
+  <div class="ion-padding-horizontal ion-padding-top" *ngIf="lastRefresh">
+    <ion-text color="medium" class="refresh-info">
+      <small>{{ getLastRefreshText() }}</small>
+    </ion-text>
   </div>
+
+  <!-- Skeleton loading -->
+  <div *ngIf="isLoading" class="skeleton-container ion-padding">
+    <app-skeleton-loader type="card" *ngFor="let item of [1,2,3,4,5]"></app-skeleton-loader>
+  </div>
+
   <!-- Error message -->
   <div *ngIf="error && !isLoading" class="ion-padding">
     <ion-text color="danger">
       {{ error }}
     </ion-text>
+    <ion-button expand="block" fill="outline" (click)="forceRefresh()" class="ion-margin-top">
+      <ion-icon name="refresh" slot="start"></ion-icon>
+      Reintentar
+    </ion-button>
   </div>
+
   <!-- Upcoming anime list -->
-  <div class="card-grid" *ngIf="!isLoading && !error">
-    <ion-card *ngFor="let anime of upcomingAnimes">
+  <div class="card-grid animate-fade-in" *ngIf="!isLoading && !error">
+    <ion-card *ngFor="let anime of upcomingAnimes; let i = index"
+             class="animate-slide-up"
+             [style.animation-delay]="(i * 0.1) + 's'">
       <div [routerLink]="['/anime', anime.mal_id]">
-        <img [src]="anime.images.jpg.large_image_url" [alt]="anime.title"/>
+        <img [src]="anime.images.jpg.large_image_url" [alt]="anime.title" loading="lazy"/>
         <div class="card-info">
           <h3>{{ anime.title }}</h3>
           <p class="card-status">{{ anime.status }}</p>
@@ -32,12 +57,12 @@
       </div>
       <ion-button 
         fill="clear" 
-        class="favorite-button" 
+        class="favorite-button animate-scale" 
         (click)="toggleFavorite(anime)"
         [class.is-favorite]="isFavorite(anime.mal_id)">
         <ion-icon 
           slot="icon-only" 
-          name="heart"
+          [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'"
           [class.favorite-active]="isFavorite(anime.mal_id)">
         </ion-icon>
       </ion-button>

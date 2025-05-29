@@ -62,5 +62,21 @@
         Eliminar cuenta
       </ion-button>
     </div>
+
+    <!-- Botones para notificaciones -->
+    <div class="notifications-section ion-margin-top">
+      <ion-button expand="block" (click)="testNotifications()" class="ion-margin-bottom">
+        <ion-icon slot="start" name="notifications-outline"></ion-icon>
+        Probar Notificaciones
+      </ion-button>
+      
+      <ion-button expand="block" 
+                  [routerLink]="['/notifications-settings']"
+                  color="secondary"
+                  class="ion-margin-bottom">
+        <ion-icon slot="start" name="settings-outline"></ion-icon>
+        Configurar Notificaciones
+      </ion-button>
+    </div>
   </div>
 </ion-content>

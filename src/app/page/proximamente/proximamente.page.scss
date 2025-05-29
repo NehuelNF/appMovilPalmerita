@@ -1,96 +1,311 @@
-// src/app/page/season/season.page.scss
+// src/app/page/proximamente/proximamente.page.scss
 ion-content {
-    --padding-start: 16px;
-    --padding-end: 16px;
-    --padding-top: 16px;
-    --padding-bottom: 16px;
-  }
-  
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: 16px;
-  }
-  
-  ion-card {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-    overflow: hidden;
-  
-    img {
-      width: 100%;
-      height: auto;
-      object-fit: cover;
-      aspect-ratio: 16 / 9;
-    }
-  
-    .card-info {
-      padding: 16px;
-      background: var(--ion-background-color);
-  
-      h3 {
-        margin: 0 0 8px 0;
-        font-size: 16px;
-        color: var(--ion-text-color);
-      }
-  
-      .card-status {
-        margin: 0;
-        font-style: italic;
-        color: var(--ion-color-medium);
-      }
-    }
-  }
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+}
 
-  .favorite-button {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    --padding-start: 8px;
-    --padding-end: 8px;
-    --padding-top: 8px;
-    --padding-bottom: 8px;
-    z-index: 10;
-    
-    &.is-favorite {
-      --color: var(--ion-color-danger);
-      ion-icon {
-        color: var(--ion-color-danger);
-      }
-    }
-  
-    ion-icon {
-      font-size: 24px;
-      transition: all 0.3s ease;
-      
-      &.favorite-active {
-        transform: scale(1.2);
-        color: var(--ion-color-danger);
-        filter: drop-shadow(0 0 2px rgba(var(--ion-color-danger-rgb), 0.4));
-      }
-    }
-  
-    &:active ion-icon {
-      transform: scale(1.4);
-    }
-  }
+// MEJORA: Grid de animes con márgenes apropiados entre cartas (igual que season)
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px; // Margen entre cartas
+  padding: 20px 16px;
   
   @media (min-width: 425px) {
-    .card-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px; // Más espacio en pantallas medianas
   }
   
   @media (min-width: 768px) {
-    .card-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px; // Aún más espacio en tablets
+    padding: 24px 20px;
   }
   
   @media (min-width: 1024px) {
-    .card-grid {
-      grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px; // Máximo espacio en desktop
+    padding: 28px 24px;
+  }
+  
+  ion-card {
+    margin: 0; // Eliminar márgenes por defecto
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    // CAMBIO: Fondo con gradiente para contraste con texto blanco
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    
+    &:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+    }
+    
+    img {
+      width: 100%;
+      height: 280px;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    
+    &:hover img {
+      transform: scale(1.08);
+    }
+    
+    .card-info {
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.4); // Fondo semi-transparente para mejor legibilidad
+      
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff !important; // Texto blanco sobre fondo oscuro
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); // Sombra para mejor legibilidad
+      }
+      
+      .card-status {
+        color: #fbbf24 !important; // Amarillo brillante para status
+        font-size: 12px;
+        font-weight: 500;
+        margin: 4px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: rgba(251, 191, 36, 0.2);
+        padding: 4px 8px;
+        border-radius: 12px;
+        display: inline-block;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+      }
+      
+      .card-airing-time {
+        color: #e5e7eb !important; // Gris claro para fecha
+        font-size: 12px;
+        margin: 8px 0 0 0;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        
+        ion-icon {
+          font-size: 14px;
+          color: #e5e7eb;
+        }
+      }
     }
   }
+}
+
+// Remover la regla que forzaba todo a ser oscuro
+// .card-grid ion-card .card-info * {
+//   color: var(--ion-text-color) !important;
+// }
+
+// Aplicar colores específicos solo donde es necesario
+.card-grid ion-card .card-info h3 {
+  color: var(--ion-text-color) !important;
+}
+
+// Botón de favoritos mejorado
+.favorite-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  transition: all 0.3s ease;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  
+  &:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  &.is-favorite {
+    background: rgba(var(--ion-color-danger-rgb), 0.95);
+    
+    &:hover {
+      background: var(--ion-color-danger);
+    }
+    
+    ion-icon {
+      color: white;
+      animation: heartBeat 0.6s ease-in-out;
+    }
+  }
+  
+  ion-icon {
+    font-size: 20px;
+    transition: all 0.3s ease;
+  }
+}
+
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.2); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+// Estilos adicionales para mejor presentación
+.upcoming-header {
+  padding: 16px;
+  background: linear-gradient(135deg, var(--ion-color-warning) 0%, var(--ion-color-secondary) 100%);
+  color: white;
+  text-align: center;
+  
+  h2 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    
+    ion-icon {
+      font-size: 28px;
+    }
+  }
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+  }
+}
+
+// Estados de carga y error mejorados
+.loading-container, .error-container, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-content {
+  margin-bottom: 40px;
+  
+  h3 {
+    margin: 16px 0 8px 0;
+    color: var(--ion-color-warning);
+  }
+  
+  p {
+    color: var(--ion-color-medium);
+    margin: 0;
+  }
+}
+
+// Skeleton loaders con márgenes apropiados
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  padding: 20px 16px;
+  
+  .skeleton-card {
+    background: var(--ion-color-light);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 0; // Sin márgenes adicionales
+  }
+  
+  @media (min-width: 425px) {
+    gap: 24px;
+  }
+  
+  @media (min-width: 768px) {
+    gap: 28px;
+    padding: 24px 20px;
+  }
+  
+  @media (min-width: 1024px) {
+    gap: 32px;
+    padding: 28px 24px;
+  }
+}
+
+// Estilos para el header y título
+ion-header {
+  ion-toolbar {
+    ion-title {
+      color: var(--ion-color-primary) !important;
+      font-weight: 600;
+    }
+  }
+}
+
+// Título colapsable también visible
+ion-header[collapse="condense"] {
+  ion-toolbar {
+    ion-title {
+      color: var(--ion-color-primary) !important;
+      font-weight: 700;
+    }
+  }
+}
+
+// SOLUCIÓN INFALIBLE: Estilos muy específicos para sobrescribir cualquier estilo de Ionic
+ion-title {
+  color: #000000 !important;
+  --color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+// Asegurar que en modo oscuro también funcione
+@media (prefers-color-scheme: dark) {
+  ion-title {
+    color: #ffffff !important;
+    --color: #ffffff !important;
+  }
+}
+
+// Para el título dentro del toolbar específicamente
+ion-toolbar ion-title {
+  color: #000000 !important;
+  --color: #000000 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-toolbar ion-title {
+    color: #ffffff !important;
+    --color: #ffffff !important;
+  }
+}
+
+// Para cualquier título en headers
+ion-header ion-toolbar ion-title {
+  color: #000000 !important;
+  --color: #000000 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-header ion-toolbar ion-title {
+    color: #ffffff !important;
+    --color: #ffffff !important;
+  }
+}

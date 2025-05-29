@@ -1,0 +1,159 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tab/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Configuración de Notificaciones</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Notificaciones</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Estadísticas generales -->
+  <div class="stats-container ion-padding">
+    <h2>
+      <ion-icon name="stats-chart-outline"></ion-icon>
+      Estado de las Notificaciones
+    </h2>
+    
+    <div class="stats-grid">
+      <ion-card class="stat-card">
+        <ion-card-content>
+          <div class="stat-number">{{ stats.pending }}</div>
+          <div class="stat-label">Pendientes</div>
+          <ion-icon name="time-outline" color="warning"></ion-icon>
+        </ion-card-content>
+      </ion-card>
+      
+      <ion-card class="stat-card">
+        <ion-card-content>
+          <div class="stat-number">{{ stats.scheduled }}</div>
+          <div class="stat-label">Programadas</div>
+          <ion-icon name="calendar-outline" color="success"></ion-icon>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Próxima notificación -->
+    <ion-card *ngIf="stats.nextNotification" class="next-notification-card">
+      <ion-card-header>
+        <ion-card-subtitle>
+          <ion-icon name="time-outline"></ion-icon>
+          Próxima notificación
+        </ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <h3>{{ stats.nextNotification.title }}</h3>
+        <p>{{ formatDate(stats.nextNotification.scheduledAt) }}</p>
+        <ion-chip color="primary">
+          {{ getTimeUntilNotification(stats.nextNotification.scheduledAt) }}
+        </ion-chip>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Mensaje si no hay notificaciones -->
+    <ion-card *ngIf="!stats.nextNotification && !isLoading" class="no-notifications-card">
+      <ion-card-content class="ion-text-center">
+        <ion-icon name="notifications-off-outline" size="large" color="medium"></ion-icon>
+        <h3>No hay notificaciones programadas</h3>
+        <p>Agrega algunos animes a favoritos para recibir notificaciones de estrenos y nuevos episodios.</p>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Acciones principales -->
+  <div class="actions-container ion-padding">
+    <h3>
+      <ion-icon name="settings-outline"></ion-icon>
+      Acciones
+    </h3>
+    
+    <ion-list>
+      <ion-item button (click)="testNotifications()">
+        <ion-icon name="send-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h2>Probar Notificaciones</h2>
+          <p>Envía una notificación de prueba para verificar que funcionen</p>
+        </ion-label>
+      </ion-item>
+      
+      <ion-item button (click)="requestPermissions()">
+        <ion-icon name="shield-checkmark-outline" slot="start" color="success"></ion-icon>
+        <ion-label>
+          <h2>Solicitar Permisos</h2>
+          <p>Asegúrate de que la app tenga permisos para enviar notificaciones</p>
+        </ion-label>
+      </ion-item>
+      
+      <ion-item button (click)="clearAllNotifications()" color="danger">
+        <ion-icon name="trash-outline" slot="start" color="danger"></ion-icon>
+        <ion-label>
+          <h2>Cancelar Todas</h2>
+          <p>Elimina todas las notificaciones programadas</p>
+        </ion-label>
+      </ion-item>
+      
+      <ion-item button (click)="refreshNotifications()" color="primary">
+        <ion-icon name="refresh-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h2>Refrescar Notificaciones</h2>
+          <p>Cancela todas y vuelve a programar las notificaciones actualizadas</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Información adicional -->
+  <div class="info-container ion-padding">
+    <h3>
+      <ion-icon name="information-circle-outline"></ion-icon>
+      Cómo funcionan las notificaciones
+    </h3>
+    
+    <ion-list>
+      <ion-item>
+        <ion-icon name="checkmark-circle-outline" slot="start" color="success"></ion-icon>
+        <ion-label class="ion-text-wrap">
+          <h3>Múltiples respaldos</h3>
+          <p>Cada notificación se programa con 3 recordatorios adicionales para mayor confiabilidad</p>
+        </ion-label>
+      </ion-item>
+      
+      <ion-item>
+        <ion-icon name="time-outline" slot="start" color="warning"></ion-icon>
+        <ion-label class="ion-text-wrap">
+          <h3>Horarios chilenos</h3>
+          <p>Todos los horarios están convertidos automáticamente a la zona horaria de Chile</p>
+        </ion-label>
+      </ion-item>
+      
+      <ion-item>
+        <ion-icon name="refresh-outline" slot="start" color="primary"></ion-icon>
+        <ion-label class="ion-text-wrap">
+          <h3>Recuperación automática</h3>
+          <p>Si se pierde una notificación, se envía automáticamente cuando abres la app</p>
+        </ion-label>
+      </ion-item>
+      
+      <ion-item>
+        <ion-icon name="heart-outline" slot="start" color="danger"></ion-icon>
+        <ion-label class="ion-text-wrap">
+          <h3>Solo favoritos</h3>
+          <p>Solo recibes notificaciones de animes que hayas marcado como favoritos</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="loading-container ion-padding">
+    <ion-spinner></ion-spinner>
+    <p>Cargando información de notificaciones...</p>
+  </div>
+
+</ion-content>

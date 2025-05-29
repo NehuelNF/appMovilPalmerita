@@ -30,10 +30,86 @@
       <h2 class="anime-title">{{ anime.title }}</h2>
       <p class="anime-category">{{ getGenres() }}</p>
       
+      <!-- Información de fecha de estreno con zona horaria de Chile SOLO si es upcoming -->
+      <div class="air-date-container" *ngIf="getAirDate().type === 'upcoming'">
+        <ion-chip 
+          [color]="getAirDate().type === 'upcoming' ? 'warning' : 
+                   getAirDate().type === 'airing' ? 'success' : 
+                   getAirDate().type === 'aired' ? 'medium' : 'dark'"
+          class="air-date-chip">
+          <ion-icon 
+            [name]="getAirDate().type === 'upcoming' ? 'time-outline' : 
+                    getAirDate().type === 'airing' ? 'play-circle-outline' : 
+                    getAirDate().type === 'aired' ? 'checkmark-circle-outline' : 'help-circle-outline'"
+            slot="start">
+          </ion-icon>
+          <ion-label>{{ getAirDate().text }}</ion-label>
+        </ion-chip>
+        
+        <!-- Indicador de zona horaria chilena -->
+        <ion-chip 
+          *ngIf="getAirDate().chileInfo" 
+          color="tertiary" 
+          class="timezone-chip">
+          <ion-icon name="globe-outline" slot="start"></ion-icon>
+          <ion-label>🇨🇱 Horario Chile</ion-label>
+        </ion-chip>
+
+        <!-- Alerta para cambio de día -->
+        <ion-chip 
+          *ngIf="hasDayChanged()" 
+          color="warning" 
+          class="day-changed-chip">
+          <ion-icon name="swap-horizontal-outline" slot="start"></ion-icon>
+          <ion-label>Día diferente en Chile</ion-label>
+        </ion-chip>
+      </div>
+
+      <!-- Información detallada de broadcast si está disponible -->
+      <div class="broadcast-info" *ngIf="getBroadcastInfo()">
+        <h4>Horarios de emisión</h4>
+        <div class="broadcast-details">
+          <div *ngIf="getBroadcastInfo()?.chile" class="broadcast-row primary">
+            <ion-icon name="location-outline" color="success"></ion-icon>
+            <span><strong>Chile:</strong> {{ getBroadcastInfo()?.chile }}</span>
+          </div>
+          
+          <div *ngIf="getBroadcastInfo()?.original" class="broadcast-row secondary">
+            <ion-icon name="globe-outline" color="medium"></ion-icon>
+            <span><strong>Japón:</strong> {{ getBroadcastInfo()?.original }}</span>
+          </div>
+          
+          <div *ngIf="getBroadcastInfo()?.explanation" class="broadcast-explanation">
+            <ion-text color="medium">
+              <small>{{ getBroadcastInfo()?.explanation }}</small>
+            </ion-text>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información adicional -->
+      <div class="anime-info" *ngIf="getEpisodeInfo() || getScore()">
+        <div class="info-row" *ngIf="getEpisodeInfo()">
+          <ion-icon name="play-outline" class="info-icon"></ion-icon>
+          <span>{{ getEpisodeInfo() }}</span>
+        </div>
+        
+        <div class="info-row" *ngIf="getScore()">
+          <ion-icon name="star-outline" class="info-icon"></ion-icon>
+          <span>{{ getScore() }}</span>
+        </div>
+
+        <div class="info-row" *ngIf="anime.status">
+          <ion-icon name="information-circle-outline" class="info-icon"></ion-icon>
+          <span>{{ anime.status }}</span>
+        </div>
+      </div>
+      
       <ion-button 
         *ngIf="hasTrailer()"
         class="trailer-button"
         (click)="openTrailer()">
+        <ion-icon name="play" slot="start"></ion-icon>
         Ver Trailer
       </ion-button>
     </div>

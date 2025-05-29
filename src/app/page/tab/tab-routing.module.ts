@@ -9,8 +9,8 @@ const routes: Routes = [
     component: TabPage,
     children: [
       {
-        path: 'home',
-        redirectTo: './../../page/home/home.module',
+        path: '',
+        redirectTo: 'home',
         pathMatch: 'full'
       },
       {
@@ -31,7 +31,6 @@ const routes: Routes = [
       }
     ]
   }
-  
 ];
 
 @NgModule({

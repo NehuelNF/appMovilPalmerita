@@ -25,11 +25,129 @@
     font-family: Inter, sans-serif;
     margin-bottom: 16px;
   }
+
+  // Estilos para la información de fecha de estreno con zona horaria
+  .air-date-container {
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    
+    .air-date-chip {
+      font-weight: 500;
+      
+      ion-icon {
+        margin-right: 4px;
+      }
+    }
+
+    .timezone-chip {
+      font-size: 12px;
+      
+      ion-label {
+        font-weight: 500;
+      }
+    }
+
+    .day-changed-chip {
+      font-size: 12px;
+      animation: pulse 2s infinite;
+      
+      ion-label {
+        font-weight: 500;
+      }
+    }
+  }
+
+  // Estilos para información detallada de broadcast
+  .broadcast-info {
+    background: var(--ion-color-light);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    border-left: 4px solid var(--ion-color-primary);
+    
+    h4 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: var(--ion-color-primary);
+      font-weight: 600;
+    }
+
+    .broadcast-details {
+      .broadcast-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 6px;
+        font-size: 14px;
+        
+        ion-icon {
+          margin-right: 8px;
+          font-size: 16px;
+        }
+        
+        &.primary {
+          font-weight: 500;
+          color: var(--ion-color-success);
+        }
+        
+        &.secondary {
+          color: var(--ion-color-medium);
+        }
+        
+        &:last-of-type {
+          margin-bottom: 8px;
+        }
+      }
+      
+      .broadcast-explanation {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--ion-color-medium-tint);
+        
+        small {
+          font-style: italic;
+          line-height: 1.3;
+        }
+      }
+    }
+  }
+
+  // Estilos para la información adicional del anime
+  .anime-info {
+    margin-bottom: 16px;
+    
+    .info-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      color: var(--ion-color-medium);
+      font-size: 14px;
+      
+      .info-icon {
+        margin-right: 8px;
+        font-size: 16px;
+        color: var(--ion-color-primary);
+      }
+      
+      span {
+        font-family: Inter, sans-serif;
+      }
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
   
   .trailer-button {
     width: 100%;
     max-width: 151px;
     margin-bottom: 16px;
+    
+    ion-icon {
+      margin-right: 8px;
+    }
   }
   
   .description-title {
@@ -45,4 +163,43 @@
     color: var(--ion-text-color);
     margin: 0 16px 16px;
     border-radius: 4px;
+    line-height: 1.5;
+    text-align: justify;
+  }
+
+  // Animación para el chip de cambio de día
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  // Estilos responsivos para dispositivos móviles
+  @media (max-width: 576px) {
+    .air-date-container {
+      flex-direction: column;
+      align-items: flex-start;
+      
+      .timezone-chip,
+      .day-changed-chip {
+        align-self: flex-start;
+      }
+    }
+    
+    .broadcast-info {
+      .broadcast-row {
+        flex-wrap: wrap;
+        
+        span {
+          flex: 1;
+          min-width: 200px;
+        }
+      }
+    }
   }

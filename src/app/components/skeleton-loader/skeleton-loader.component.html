@@ -1,0 +1,22 @@
+<div class="skeleton-container" [class.animated]="animated">
+  <!-- Skeleton para cards de anime -->
+  <div *ngIf="type === 'card'" class="skeleton-card">
+    <div class="skeleton-image"></div>
+    <div class="skeleton-content">
+      <div class="skeleton-title"></div>
+      <div class="skeleton-subtitle"></div>
+      <div class="skeleton-text" *ngFor="let line of getLines()"></div>
+    </div>
+  </div>
+
+  <!-- Skeleton para texto simple -->
+  <div *ngIf="type === 'text'" class="skeleton-text-container">
+    <div class="skeleton-text" *ngFor="let line of getLines()"></div>
+  </div>
+
+  <!-- Skeleton para avatar -->
+  <div *ngIf="type === 'avatar'" class="skeleton-avatar"></div>
+
+  <!-- Skeleton para imagen -->
+  <div *ngIf="type === 'image'" class="skeleton-image-full"></div>
+</div>

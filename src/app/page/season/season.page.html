@@ -1,65 +1,346 @@
-<ion-header>
-  <ion-toolbar>
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
     <ion-title>
-      Animes de Temporada
+      <ion-icon name="calendar-outline" class="title-icon"></ion-icon>
+      Temporada Actual
     </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="forceRefresh()" [disabled]="isLoading">
+        <ion-icon name="refresh-outline" [class.spin]="isLoading"></ion-icon>
+      </ion-button>
+      <ion-button (click)="openFilterModal()">
+        <ion-icon name="filter-outline"></ion-icon>
+        <ion-badge color="secondary" *ngIf="activeFiltersCount > 0">{{activeFiltersCount}}</ion-badge>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
+  
+  <!-- Barra de progreso para carga -->
+  <ion-progress-bar 
+    *ngIf="isLoading" 
+    type="indeterminate" 
+    color="secondary">
+  </ion-progress-bar>
 </ion-header>
 
-<ion-content>
-  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-    <ion-refresher-content></ion-refresher-content>
+<ion-content [fullscreen]="true" class="season-content">
+  <!-- Pull to refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)" pullFactor="0.5" pullMin="100" pullMax="200">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Desliza para actualizar"
+      refreshingSpinner="circles"
+      refreshingText="Actualizando...">
+    </ion-refresher-content>
   </ion-refresher>
 
-  <!-- Selector de día -->
-  <ion-item>
-    <ion-label>Día</ion-label>
-    <ion-select [(ngModel)]="selectedDay" (ionChange)="filterAnimesByDay()">
-      <ion-select-option value="all">Todos</ion-select-option>
-      <ion-select-option value="monday">Lunes</ion-select-option>
-      <ion-select-option value="tuesday">Martes</ion-select-option>
-      <ion-select-option value="wednesday">Miércoles</ion-select-option>
-      <ion-select-option value="thursday">Jueves</ion-select-option>
-      <ion-select-option value="friday">Viernes</ion-select-option>
-      <ion-select-option value="saturday">Sábado</ion-select-option>
-      <ion-select-option value="sunday">Domingo</ion-select-option>
-    </ion-select>
-  </ion-item>
-
-  <!-- Loading spinner -->
-  <div *ngIf="isLoading" class="ion-padding ion-text-center">
-    <ion-spinner></ion-spinner>
+  <!-- Header con información de temporada -->
+  <div class="season-header" *ngIf="!isLoading">
+    <div class="season-info">
+      <h2>
+        <ion-icon name="tv-outline"></ion-icon>
+        Anime de {{currentSeason}} {{currentYear}}
+      </h2>
+      <p class="anime-count">
+        <ion-icon name="list-outline"></ion-icon>
+        {{filteredAnimes.length}} de {{animes.length}} animes
+      </p>
+      <p class="last-update" *ngIf="lastRefresh">
+        <ion-icon name="time-outline"></ion-icon>
+        Última actualización: {{lastRefresh | date:'short'}}
+      </p>
+      <!-- NUEVO: Indicador de zona horaria -->
+      <p class="timezone-info">
+        <ion-icon name="globe-outline"></ion-icon>
+        🇨🇱 Horarios convertidos a Chile
+      </p>
+    </div>
   </div>
 
-  <!-- Error message -->
-  <ion-item *ngIf="error" lines="none">
-    <ion-label color="danger" class="ion-text-center">
-      {{ error }}
-    </ion-label>
-  </ion-item>
+  <!-- Filtros rápidos por día - ACTUALIZADO con horarios de Chile -->
+  <div class="day-filters-container" *ngIf="!isLoading && !error">
+    <ion-segment 
+      [(ngModel)]="selectedDay" 
+      (ionChange)="filterAnimesByDay()"
+      scrollable="true"
+      mode="md"
+      class="day-segment">
+      <ion-segment-button value="all" class="day-button">
+        <ion-label>Todos</ion-label>
+        <ion-badge color="primary">{{animes.length}}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="monday" class="day-button">
+        <ion-label>Lunes</ion-label>
+        <ion-badge color="secondary" *ngIf="getDayCount('monday') > 0">{{getDayCount('monday')}}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="tuesday" class="day-button">
+        <ion-label>Martes</ion-label>
+        <ion-badge color="secondary" *ngIf="getDayCount('tuesday') > 0">{{getDayCount('tuesday')}}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="wednesday" class="day-button">
+        <ion-label>Miércoles</ion-label>
+        <ion-badge color="secondary" *ngIf="getDayCount('wednesday') > 0">{{getDayCount('wednesday')}}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="thursday" class="day-button">
+        <ion-label>Jueves</ion-label>
+        <ion-badge color="secondary" *ngIf="getDayCount('thursday') > 0">{{getDayCount('thursday')}}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="friday" class="day-button">
+        <ion-label>Viernes</ion-label>
+        <ion-badge color="secondary" *ngIf="getDayCount('friday') > 0">{{getDayCount('friday')}}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="saturday" class="day-button">
+        <ion-label>Sábado</ion-label>
+        <ion-badge color="secondary" *ngIf="getDayCount('saturday') > 0">{{getDayCount('saturday')}}</ion-badge>
+      </ion-segment-button>
+      <ion-segment-button value="sunday" class="day-button">
+        <ion-label>Domingo</ion-label>
+        <ion-badge color="secondary" *ngIf="getDayCount('sunday') > 0">{{getDayCount('sunday')}}</ion-badge>
+      </ion-segment-button>
+    </ion-segment>
+  </div>
 
-  <!-- Anime list -->
-  <div class="card-grid" *ngIf="!isLoading && !error">
-    <ion-card *ngFor="let anime of filteredAnimes">
-      <div [routerLink]="['/anime', anime.mal_id]">
-        <img [src]="anime.images.jpg.large_image_url" [alt]="anime.title"/>
-        <div class="card-info">
-          <h3>{{ anime.title }}</h3>
-          <p class="card-status">{{ anime.status }}</p>
-          <p class="card-airing-time">Release time: {{ anime.broadcast.time }}</p>
-        </div>
+  <!-- Filtros adicionales -->
+  <div class="additional-filters" *ngIf="!isLoading && !error">
+    <ion-chip 
+      *ngFor="let genre of popularGenres" 
+      [color]="selectedGenres.has(genre) ? 'primary' : 'medium'"
+      (click)="toggleGenreFilter(genre)">
+      <ion-label>{{genre}}</ion-label>
+    </ion-chip>
+    
+    <ion-item lines="none" class="sort-item">
+      <ion-label>Ordenar por:</ion-label>
+      <ion-select [(ngModel)]="sortBy" (ionChange)="applySorting()" interface="popover">
+        <ion-select-option value="popularity">Popularidad</ion-select-option>
+        <ion-select-option value="score">Puntuación</ion-select-option>
+        <ion-select-option value="title">Título A-Z</ion-select-option>
+        <ion-select-option value="members">Miembros</ion-select-option>
+        <ion-select-option value="episodes">Episodios</ion-select-option>
+      </ion-select>
+    </ion-item>
+  </div>
+
+  <!-- Loading state mejorado -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-content">
+      <ion-spinner name="dots" color="primary"></ion-spinner>
+      <h3>Cargando temporada actual...</h3>
+      <p>Obteniendo los mejores animes para ti</p>
+    </div>
+    
+    <!-- Skeleton loaders -->
+    <div class="skeleton-grid">
+      <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5,6]">
+        <ion-skeleton-text animated style="width: 100%; height: 200px; border-radius: 8px;"></ion-skeleton-text>
+        <ion-skeleton-text animated style="width: 80%; margin-top: 8px;"></ion-skeleton-text>
+        <ion-skeleton-text animated style="width: 60%; margin-top: 4px;"></ion-skeleton-text>
       </div>
+    </div>
+  </div>
+
+  <!-- Error state mejorado -->
+  <div class="error-container" *ngIf="error && !isLoading">
+    <div class="error-content">
+      <ion-icon name="warning-outline" color="danger" size="large"></ion-icon>
+      <h2>¡Oops! Algo salió mal</h2>
+      <p>{{error}}</p>
+      <ion-button 
+        expand="block" 
+        color="primary" 
+        (click)="loadAnimes()"
+        class="retry-button">
+        <ion-icon name="refresh-outline" slot="start"></ion-icon>
+        Intentar de nuevo
+      </ion-button>
+      
+      <!-- Tips para el usuario -->
+      <div class="error-tips">
+        <h4>Consejos:</h4>
+        <ul>
+          <li>Verifica tu conexión a internet</li>
+          <li>Intenta deslizar hacia abajo para actualizar</li>
+          <li>Si el problema persiste, reinicia la app</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grid de animes ACTUALIZADO con información de zona horaria chilena -->
+  <div class="anime-grid" *ngIf="!isLoading && !error && filteredAnimes.length > 0">
+    <div 
+      class="anime-card"
+      *ngFor="let anime of paginatedAnimes; trackBy: trackByAnimeId"
+      [routerLink]="['/anime', anime.mal_id]"
+      routerDirection="forward">
+      
+      <!-- Imagen con lazy loading -->
+      <div class="image-container">
+        <img 
+          [src]="anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url" 
+          [alt]="anime.title"
+          loading="lazy"
+          (error)="onImageError($event)"
+          class="anime-image"/>
+        
+        <!-- Overlay con información rápida -->
+        <div class="image-overlay">
+          <div class="rating" *ngIf="anime.score">
+            <ion-icon name="star"></ion-icon>
+            {{anime.score}}
+          </div>
+          
+          <div class="episode-count" *ngIf="anime.episodes">
+            <ion-icon name="play-outline"></ion-icon>
+            {{anime.episodes}} ep
+          </div>
+        </div>
+        
+        <!-- Botón de compartir -->
+        <ion-button 
+          fill="clear" 
+          size="small"
+          class="share-btn"
+          color="light"
+          (click)="shareAnime(anime); $event.stopPropagation()">
+          <ion-icon 
+            name="share-outline"
+            slot="icon-only">
+          </ion-icon>
+        </ion-button>
+        
+        <!-- Botón de favorito -->
+        <ion-button 
+          fill="clear" 
+          size="small"
+          class="favorite-btn"
+          [color]="isFavorite(anime) ? 'danger' : 'light'"
+          (click)="toggleFavorite(anime); $event.stopPropagation()">
+          <ion-icon 
+            [name]="isFavorite(anime) ? 'heart' : 'heart-outline'"
+            slot="icon-only">
+          </ion-icon>
+        </ion-button>
+      </div>
+      
+      <!-- Información del anime ACTUALIZADA -->
+      <div class="anime-info">
+        <h3 class="anime-title">{{anime.title}}</h3>
+        <p class="anime-title-english" *ngIf="anime.title_english && anime.title_english !== anime.title">
+          {{anime.title_english}}
+        </p>
+        
+        <div class="anime-meta">
+          <!-- INFORMACIÓN DE BROADCAST ACTUALIZADA con zona horaria chilena -->
+          <div class="broadcast-info" *ngIf="getBroadcastInfo(anime).day !== 'Desconocido'">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span class="broadcast-day">{{getBroadcastInfo(anime).day}}</span>
+            <span *ngIf="getBroadcastInfo(anime).time" class="broadcast-time">{{getBroadcastInfo(anime).time}}</span>
+            
+            <!-- Indicadores de zona horaria -->
+            <ion-chip 
+              *ngIf="getBroadcastInfo(anime).isChileTime" 
+              color="success" 
+              size="small"
+              class="timezone-chip">
+              <ion-icon name="location-outline" slot="start"></ion-icon>
+              <ion-label>Chile</ion-label>
+            </ion-chip>
+            
+            <ion-chip 
+              *ngIf="getBroadcastInfo(anime).dayChanged" 
+              color="warning" 
+              size="small"
+              class="day-changed-chip">
+              <ion-icon name="swap-horizontal-outline" slot="start"></ion-icon>
+              <ion-label>Día diferente</ion-label>
+            </ion-chip>
+          </div>
+          
+          <div class="studio-info" *ngIf="anime.studios && anime.studios.length > 0">
+            <ion-icon name="business-outline"></ion-icon>
+            <span>{{anime.studios[0].name}}</span>
+          </div>
+          
+          <div class="status-info">
+            <ion-chip 
+              [color]="getStatusColor(anime.status)"
+              size="small">
+              {{getStatusTextWithTimezone(anime)}}
+            </ion-chip>
+          </div>
+        </div>
+        
+        <!-- NUEVA información de horarios completa para tooltip -->
+        <div class="timezone-details" *ngIf="getFullTimezoneInfo(anime)" [title]="getFullTimezoneInfo(anime)">
+          <ion-icon name="information-circle-outline" color="medium"></ion-icon>
+          <small>Ver horarios detallados</small>
+        </div>
+        
+        <!-- Géneros -->
+        <div class="genres" *ngIf="anime.genres && anime.genres.length > 0">
+          <ion-chip 
+            *ngFor="let genre of anime.genres.slice(0, 3)"
+            size="small"
+            color="light">
+            {{genre.name}}
+          </ion-chip>
+        </div>
+        
+        <!-- Synopsis preview -->
+        <p class="synopsis" *ngIf="anime.synopsis">
+          {{anime.synopsis | slice:0:100}}{{anime.synopsis.length > 100 ? '...' : ''}}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination-container" *ngIf="!isLoading && !error && filteredAnimes.length > itemsPerPage">
+    <ion-button 
+      fill="clear" 
+      (click)="loadMoreAnimes()" 
+      [disabled]="isLoadingMore"
+      class="load-more-btn">
+      <ion-spinner name="crescent" *ngIf="isLoadingMore"></ion-spinner>
+      <span *ngIf="!isLoadingMore">Cargar más animes</span>
+      <span *ngIf="isLoadingMore">Cargando...</span>
+    </ion-button>
+  </div>
+
+  <!-- Estado vacío mejorado -->
+  <div class="empty-state" *ngIf="!isLoading && !error && filteredAnimes.length === 0">
+    <div class="empty-content">
+      <ion-icon name="search-outline" size="large" color="medium"></ion-icon>
+      <h2>No se encontraron animes</h2>
+      <p *ngIf="selectedDay !== 'all'">
+        No hay animes programados para {{getDayName(selectedDay)}}.
+      </p>
+      <p *ngIf="selectedGenres.size > 0">
+        Intenta ajustar tus filtros de género.
+      </p>
       <ion-button 
         fill="clear" 
-        class="favorite-button" 
-        (click)="toggleFavorite(anime)"
-        [class.is-favorite]="isFavorite(anime.mal_id)">
-        <ion-icon 
-          slot="icon-only" 
-          name="heart"
-          [class.favorite-active]="isFavorite(anime.mal_id)">
-        </ion-icon>
+        color="primary" 
+        (click)="clearAllFilters()">
+        <ion-icon name="funnel-outline" slot="start"></ion-icon>
+        Limpiar filtros
       </ion-button>
-    </ion-card>
+    </div>
   </div>
+
+  <!-- FAB para scroll to top -->
+  <ion-fab 
+    vertical="bottom" 
+    horizontal="end" 
+    slot="fixed"
+    *ngIf="showScrollTop">
+    <ion-fab-button 
+      color="primary" 
+      (click)="scrollToTop()"
+      size="small">
+      <ion-icon name="chevron-up-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
 </ion-content>

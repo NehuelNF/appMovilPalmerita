@@ -16,10 +16,11 @@ import { environment } from 'src/environments/environment';
 import { IonicStorageModule } from '@ionic/storage-angular';
 import { StorageService } from 'src/managers/StorageService'; 
 import { GoogleAuthService } from '../managers/GoogleAuthService';
+import { NotificationService } from './managers/NotificationService';
 
 @NgModule({
   declarations: [
-    AppComponent,
+    AppComponent
   ],
   imports: [
     BrowserModule, 
@@ -33,8 +34,10 @@ import { GoogleAuthService } from '../managers/GoogleAuthService';
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideHttpClient(),
-    GoogleAuthService
+    StorageService,
+    GoogleAuthService,
+    NotificationService
   ],
-  bootstrap: [AppComponent],
+  bootstrap: [AppComponent]
 })
 export class AppModule {}

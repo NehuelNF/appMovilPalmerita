@@ -1,2 +1,292 @@
-// For information on how to create your own theme, please see:
+// Ionic Variables and Theming.
+// For more info, please see:
 // http://ionicframework.com/docs/theming/
+
+/** Ionic CSS Variables **/
+:root {
+  /** Primary colors **/
+  --ion-color-primary: #6366f1;
+  --ion-color-primary-rgb: 99, 102, 241;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #5856d6;
+  --ion-color-primary-tint: #7c7ce8;
+
+  /** Secondary colors **/
+  --ion-color-secondary: #ec4899;
+  --ion-color-secondary-rgb: 236, 72, 153;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #d03f87;
+  --ion-color-secondary-tint: #ee5aa3;
+
+  /** Success colors **/
+  --ion-color-success: #10b981;
+  --ion-color-success-rgb: 16, 185, 129;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #0ea372;
+  --ion-color-success-tint: #28c494;
+
+  /** Warning colors **/
+  --ion-color-warning: #f59e0b;
+  --ion-color-warning-rgb: 245, 158, 11;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #d8870a;
+  --ion-color-warning-tint: #f6a824;
+
+  /** Danger colors **/
+  --ion-color-danger: #ef4444;
+  --ion-color-danger-rgb: 239, 68, 68;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #d23c3c;
+  --ion-color-danger-tint: #f15757;
+
+  /** Light colors **/
+  --ion-color-light: #f8fafc;
+  --ion-color-light-rgb: 248, 250, 252;
+  --ion-color-light-contrast: #1e293b;
+  --ion-color-light-contrast-rgb: 30, 41, 59;
+  --ion-color-light-shade: #dae3ea;
+  --ion-color-light-tint: #f9fbfc;
+
+  /** Medium colors **/
+  --ion-color-medium: #64748b;
+  --ion-color-medium-rgb: 100, 116, 139;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #58667a;
+  --ion-color-medium-tint: #748397;
+
+  /** Dark colors **/
+  --ion-color-dark: #1e293b;
+  --ion-color-dark-rgb: 30, 41, 59;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #1a2433;
+  --ion-color-dark-tint: #35404f;
+
+  /** Custom gradients **/
+  --anime-gradient-primary: linear-gradient(135deg, var(--ion-color-primary) 0%, var(--ion-color-secondary) 100%);
+  --anime-gradient-card: linear-gradient(145deg, #ffffff, #f8fafc);
+  --anime-card-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+  --anime-card-shadow-hover: 0 8px 32px rgba(99, 102, 241, 0.2);
+
+  /** Custom animation variables **/
+  --anime-transition-fast: 0.2s ease-in-out;
+  --anime-transition-normal: 0.3s ease-in-out;
+  --anime-transition-slow: 0.5s ease-in-out;
+}
+
+/** Dark theme **/
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-color-primary: #818cf8;
+    --ion-color-primary-rgb: 129, 140, 248;
+    --ion-color-primary-shade: #7179e6;
+    --ion-color-primary-tint: #8e9af9;
+
+    --ion-color-secondary: #f472b6;
+    --ion-color-secondary-rgb: 244, 114, 182;
+    --ion-color-secondary-shade: #d765a0;
+    --ion-color-secondary-tint: #f581c4;
+
+    --ion-background-color: #0f172a;
+    --ion-background-color-rgb: 15, 23, 42;
+
+    --ion-text-color: #f1f5f9;
+    --ion-text-color-rgb: 241, 245, 249;
+
+    --ion-card-background: #1e293b;
+    --anime-gradient-card: linear-gradient(145deg, #1e293b, #334155);
+    --anime-card-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --anime-card-shadow-hover: 0 8px 32px rgba(129, 140, 248, 0.2);
+  }
+}
+
+/** Global animation classes **/
+.animate-fade-in {
+  animation: fadeIn var(--anime-transition-normal) ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp var(--anime-transition-normal) ease-out;
+}
+
+.animate-scale {
+  animation: scale var(--anime-transition-fast) ease-in-out;
+}
+
+.animate-bounce {
+  animation: bounce 0.6s ease-in-out;
+}
+
+/** Keyframes **/
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scale {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+/** Global card improvements **/
+ion-card {
+  background: var(--anime-gradient-card);
+  box-shadow: var(--anime-card-shadow);
+  border-radius: 12px;
+  transition: all var(--anime-transition-normal);
+  overflow: hidden;
+
+  &:hover {
+    box-shadow: var(--anime-card-shadow-hover);
+    transform: translateY(-2px);
+  }
+
+  img {
+    transition: transform var(--anime-transition-slow);
+  }
+
+  &:hover img {
+    transform: scale(1.05);
+  }
+}
+
+/** Improved buttons **/
+ion-button {
+  --border-radius: 8px;
+  font-weight: 600;
+  transition: all var(--anime-transition-fast);
+
+  &:hover:not(.button-disabled) {
+    transform: translateY(-1px);
+  }
+}
+
+/** Enhanced headers **/
+ion-header {
+  background: var(--anime-gradient-primary);
+
+  ion-toolbar {
+    --background: transparent;
+    --color: white;
+  }
+
+  ion-title {
+    font-weight: 700;
+    font-size: 1.2rem;
+  }
+}
+
+/** Segment improvements **/
+ion-segment {
+  --background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  
+  ion-segment-button {
+    --color: var(--ion-color-medium);
+    --color-checked: white;
+    --background-checked: var(--ion-color-primary);
+    --border-radius: 6px;
+    font-weight: 500;
+    transition: all var(--anime-transition-fast);
+  }
+}
+
+/** Loading spinner improvements **/
+ion-spinner {
+  --color: var(--ion-color-primary);
+  width: 48px;
+  height: 48px;
+}
+
+/** Refresh info styling **/
+.refresh-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background: rgba(var(--ion-color-primary-rgb), 0.1);
+  border-radius: 20px;
+  margin: 0 auto;
+  width: fit-content;
+  
+  small {
+    font-weight: 500;
+  }
+}
+
+/** Toast improvements **/
+.toast-success {
+  --background: var(--ion-color-success);
+  --color: white;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+.toast-error {
+  --background: var(--ion-color-danger);
+  --color: white;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+.toast-warning {
+  --background: var(--ion-color-warning);
+  --color: white;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+.toast-info {
+  --background: var(--ion-color-primary);
+  --color: white;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+/** Disable animations class **/
+.no-animations * {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.01ms !important;
+}
