@@ -58,12 +58,12 @@
       <ion-button 
         fill="clear" 
         class="favorite-button animate-scale" 
-        (click)="toggleFavorite(anime)"
+        (click)="toggleFavorite(anime, $event)"
         [class.is-favorite]="isFavorite(anime.mal_id)">
         <ion-icon 
           slot="icon-only" 
           [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'"
-          [class.favorite-active]="isFavorite(anime.mal_id)">
+          [color]="isFavorite(anime.mal_id) ? 'danger' : 'medium'">
         </ion-icon>
       </ion-button>
     </ion-card>

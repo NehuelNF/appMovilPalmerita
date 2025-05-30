@@ -1,89 +1,290 @@
 ion-content {
-  --padding-start: 16px;
-  --padding-end: 16px;
+  --padding-start: 12px;
+  --padding-end: 12px;
   --padding-top: 16px;
   --padding-bottom: 16px;
 }
 
-.card-grid {
+// Grid mejorado y más compacto
+.favorites-grid {
   display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 16px;
-}
-
-ion-card {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-  overflow: hidden;
-
-  img {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
-    aspect-ratio: 16 / 9;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 8px;
+  
+  @media (min-width: 425px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 12px;
   }
-
-  .card-info {
+  
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
     padding: 16px;
-    background: var(--ion-background-color);
+  }
+  
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 24px;
+    padding: 20px;
+  }
+}
 
-    h3 {
-      margin: 0 0 8px 0;
-      font-size: 16px;
-      color: var(--ion-text-color);
+// Tarjeta de favorito más compacta
+.favorite-card {
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+  
+  // Contenedor de imagen más pequeño
+  .image-container {
+    position: relative;
+    overflow: hidden;
+    
+    img {
+      width: 100%;
+      height: 140px; // Altura fija más pequeña
+      object-fit: cover;
+      transition: transform 0.3s ease;
     }
-
-    .card-status {
-      margin: 0;
-      font-style: italic;
-      color: var(--ion-color-medium);
+    
+    &:hover img {
+      transform: scale(1.05);
+    }
+    
+    // Overlay con información
+    .image-overlay {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      
+      .rating {
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        
+        ion-icon {
+          font-size: 12px;
+          color: #ffd700;
+        }
+      }
+      
+      .status-chip {
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 500;
+        
+        &.status-currently-airing {
+          background: var(--ion-color-success);
+        }
+        
+        &.status-finished-airing {
+          background: var(--ion-color-primary);
+        }
+        
+        &.status-not-yet-aired {
+          background: var(--ion-color-warning);
+        }
+      }
+    }
+    
+    // Botón de eliminar favorito
+    .remove-favorite-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      --background: rgba(220, 53, 69, 0.9);
+      --color: white;
+      width: 32px;
+      height: 32px;
+      --border-radius: 50%;
+      --padding-start: 0;
+      --padding-end: 0;
+      
+      ion-icon {
+        font-size: 16px;
+      }
+    }
+  }
+  
+  // Contenido de la tarjeta más compacto
+  .card-content {
+    padding: 12px;
+    
+    .anime-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      line-height: 1.3;
+      color: var(--ion-text-color);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: 32px; // Altura mínima para 2 líneas
+    }
+    
+    // Sección de progreso compacta
+    .progress-section {
+      margin-bottom: 8px;
+      
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: var(--ion-color-medium-tint);
+        border-radius: 3px;
+        margin-bottom: 8px;
+        overflow: hidden;
+        
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, var(--ion-color-primary), var(--ion-color-secondary));
+          border-radius: 3px;
+          transition: width 0.4s ease;
+          position: relative;
+          
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+          }
+        }
+      }
+      
+      // Controles de episodios más pequeños
+      .episode-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        
+        .episode-btn {
+          --padding-start: 4px;
+          --padding-end: 4px;
+          --color: var(--ion-color-medium);
+          width: 28px;
+          height: 28px;
+          
+          &:not([disabled]):hover {
+            --color: var(--ion-color-primary);
+          }
+          
+          &[disabled] {
+            opacity: 0.4;
+          }
+          
+          ion-icon {
+            font-size: 16px;
+          }
+        }
+        
+        .episode-count {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--ion-color-medium);
+          min-width: 40px;
+          text-align: center;
+        }
+      }
+    }
+    
+    // Géneros más compactos
+    .genres {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      
+      ion-chip {
+        font-size: 10px;
+        height: 20px;
+        --color: var(--ion-color-medium);
+        margin: 0;
+      }
     }
   }
 }
 
-.favorite-button {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  --background: rgba(0, 0, 0, 0.5);
-}
-
-.episodes-control {
+// Estado vacío mejorado
+.empty-state {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--ion-color-light);
-
-  ion-button {
-    --padding-start: 12px;
-    --padding-end: 12px;
+  min-height: 60vh;
+  padding: 32px;
+  
+  .empty-content {
+    text-align: center;
+    max-width: 300px;
     
-    &[disabled] {
-      opacity: 0.5;
+    ion-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.6;
+    }
+    
+    h2 {
+      font-size: 20px;
+      margin: 0 0 8px 0;
+      color: var(--ion-text-color);
+    }
+    
+    p {
+      color: var(--ion-color-medium);
+      margin: 0 0 24px 0;
+      line-height: 1.4;
+    }
+    
+    ion-button {
+      --border-radius: 20px;
     }
   }
 }
 
-.episodes-text {
-  text-align: center;
-  margin: 8px 0;
-  color: var(--ion-color-medium);
-  font-size: 14px;
+// Animación shimmer para la barra de progreso
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background: var(--ion-color-light);
-  margin: 8px 0;
-
-  .progress {
-    height: 100%;
-    background: var(--ion-color-primary);
-    transition: width 0.3s ease;
+// Mejoras para modo oscuro
+@media (prefers-color-scheme: dark) {
+  .favorite-card {
+    background: var(--ion-color-step-50);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
   }
 }

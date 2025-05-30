@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { AnimeService } from '../../../managers/AnimeService';
 import { FavoritesService } from '../../../managers/FavoritesService';
 import { TimezoneService } from '../../../managers/TimezoneService';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, firstValueFrom } from 'rxjs'; // Added firstValueFrom
 import { take, takeUntil } from 'rxjs/operators';
 import { ToastController, LoadingController, ActionSheetController, Platform } from '@ionic/angular';
 
@@ -49,6 +49,10 @@ export class SeasonPage implements OnInit, OnDestroy {
     this.loadFavorites();
     this.subscribeToAnimeUpdates();
     this.setCurrentSeason();
+  }
+
+  ionViewWillEnter() { // Added ionViewWillEnter
+    this.loadFavorites();
   }
 
   ngOnDestroy() {
@@ -108,10 +112,13 @@ export class SeasonPage implements OnInit, OnDestroy {
     
     this.animeService.getSeasonalAnime().subscribe({
       next: (response: any) => {
-        this.animes = response.data;
+        // Asegurar que no hay duplicados a nivel de componente
+        this.animes = this.removeDuplicatesLocally(response.data);
         this.filteredAnimes = this.animes;
         this.isLoading = false;
         this.lastRefresh = new Date();
+        this.updatePaginatedAnimes();
+        this.updateActiveFiltersCount();
       },
       error: (err: any) => {
         this.error = err.message || 'Error al cargar los animes de temporada';
@@ -122,6 +129,30 @@ export class SeasonPage implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  /**
+   * NUEVO: Función local para eliminar duplicados como medida de seguridad adicional
+   */
+  private removeDuplicatesLocally(animeList: any[]): any[] {
+    const seen = new Set<number>();
+    const uniqueAnimes: any[] = [];
+    let localDuplicates = 0;
+    
+    animeList.forEach(anime => {
+      if (anime.mal_id && !seen.has(anime.mal_id)) {
+        seen.add(anime.mal_id);
+        uniqueAnimes.push(anime);
+      } else if (anime.mal_id) {
+        localDuplicates++;
+      }
+    });
+    
+    if (localDuplicates > 0) {
+      console.log(`🔧 SeasonPage: Eliminados ${localDuplicates} duplicados adicionales a nivel de componente`);
+    }
+    
+    return uniqueAnimes;
   }
 
   loadFavorites() {
@@ -230,8 +261,8 @@ export class SeasonPage implements OnInit, OnDestroy {
   }
 
   // Método para verificar si es favorito
-  isFavorite(anime: any): boolean {
-    return this.favorites.has(anime.mal_id);
+  isFavorite(animeId: number): boolean { // Changed parameter to animeId
+    return this.favorites.has(animeId);  // Use animeId directly
   }
 
   // MÉTODO ACTUALIZADO: Obtener conteo de animes por día usando zona horaria chilena
@@ -460,9 +491,10 @@ export class SeasonPage implements OnInit, OnDestroy {
     await actionSheet.present();
   }
 
-  async toggleFavorite(anime: any) {
+  async toggleFavorite(anime: any, event?: Event) { // Added event parameter
+    event?.stopPropagation(); // Added stopPropagation
     try {
-      const result = await this.favoritesService.toggleFavorite(anime).pipe(take(1)).toPromise();
+      const result = await firstValueFrom(this.favoritesService.toggleFavorite(anime).pipe(take(1))); // Changed toPromise() to firstValueFrom
       
       if (!result) {
         throw new Error('No se pudo procesar la solicitud');
@@ -667,5 +699,10 @@ export class SeasonPage implements OnInit, OnDestroy {
       this.updatePaginatedAnimes();
       this.isLoadingMore = false;
     }, 500);
+  }
+
+  openNotificationModal(anime: any, event?: Event) {
+    event?.stopPropagation();
+    // TODO: Implement notification modal logic here
   }
 }

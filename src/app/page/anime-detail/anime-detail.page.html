@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/season"></ion-back-button>
     </ion-buttons>
-    <ion-title>Anime</ion-title>
+    <ion-title>{{ anime?.title || 'Anime' }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -11,6 +11,7 @@
   <!-- Loading spinner -->
   <div *ngIf="isLoading" class="ion-padding ion-text-center">
     <ion-spinner></ion-spinner>
+    <p>Cargando detalles del anime...</p>
   </div>
 
   <!-- Error message -->
@@ -20,14 +21,14 @@
     </ion-text>
   </div>
 
-  <!-- Anime content -->
+  <!-- Anime content - Only show when anime is loaded and not loading -->
   <ng-container *ngIf="anime && !isLoading && !error">
     <div class="image-container">
-      <img [src]="getImageUrl()" [alt]="anime.title">
+      <img [src]="getImageUrl()" [alt]="anime?.title || 'Anime image'">
     </div>
 
     <div class="text-container">
-      <h2 class="anime-title">{{ anime.title }}</h2>
+      <h2 class="anime-title">{{ anime?.title || 'Título no disponible' }}</h2>
       <p class="anime-category">{{ getGenres() }}</p>
       
       <!-- Información de fecha de estreno con zona horaria de Chile SOLO si es upcoming -->
@@ -88,7 +89,7 @@
       </div>
 
       <!-- Información adicional -->
-      <div class="anime-info" *ngIf="getEpisodeInfo() || getScore()">
+      <div class="anime-info">
         <div class="info-row" *ngIf="getEpisodeInfo()">
           <ion-icon name="play-outline" class="info-icon"></ion-icon>
           <span>{{ getEpisodeInfo() }}</span>
@@ -99,7 +100,13 @@
           <span>{{ getScore() }}</span>
         </div>
 
-        <div class="info-row" *ngIf="anime.status">
+        <!-- NUEVO: Información del ranking del top -->
+        <div class="info-row top-rank" *ngIf="hasTopRank()">
+          <ion-icon name="trophy-outline" class="info-icon"></ion-icon>
+          <span class="rank-text">{{ getTopRankInfo() }}</span>
+        </div>
+
+        <div class="info-row" *ngIf="anime?.status">
           <ion-icon name="information-circle-outline" class="info-icon"></ion-icon>
           <span>{{ anime.status }}</span>
         </div>
@@ -116,7 +123,7 @@
 
     <h3 class="description-title">Descripción</h3>
     <div class="description-content">
-      {{ anime.synopsis }}
+      {{ anime?.synopsis || 'Descripción no disponible' }}
     </div>
   </ng-container>
 </ion-content>

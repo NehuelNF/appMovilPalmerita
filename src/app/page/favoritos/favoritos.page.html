@@ -6,55 +6,107 @@
     <ion-title>Mis Favoritos</ion-title>
   </ion-toolbar>
 </ion-header>
+
 <ion-content>
-  <div class="card-grid" *ngIf="favorites.length > 0">
-    <ion-card *ngFor="let anime of favorites">
-      <div [routerLink]="['/anime', anime.mal_id]">
-        <img [src]="anime.images.jpg.large_image_url" [alt]="anime.title"/>
-        <div class="card-info">
-          <h3>{{ anime.title }}</h3>
-          <p class="card-status">{{ anime.status }}</p>
-          
-          <!-- Barra de progreso -->
-          <div class="progress-bar">
-            <div class="progress" [style.width.%]="(anime.episodesWatched / anime.episodes) * 100"></div>
+  <!-- Grid mejorado con tarjetas más compactas -->
+  <div class="favorites-grid" *ngIf="favorites.length > 0">
+    <div class="favorite-card" *ngFor="let anime of favorites">
+      <!-- Contenedor de imagen con overlay -->
+      <div class="image-container" [routerLink]="['/anime', anime.mal_id]">
+        <img 
+          [src]="anime.images?.jpg?.image_url || anime.images?.jpg?.large_image_url" 
+          [alt]="anime.title"
+          loading="lazy"/>
+        
+        <!-- Overlay con rating y episodios -->
+        <div class="image-overlay">
+          <div class="rating" *ngIf="anime.score">
+            <ion-icon name="star"></ion-icon>
+            {{anime.score}}
           </div>
           
-          <!-- Control de episodios -->
-          <div class="episodes-control">
+          <div class="status-chip" [class]="'status-' + (anime.status || 'unknown').toLowerCase()">
+            {{getStatusText(anime.status)}}
+          </div>
+        </div>
+        
+        <!-- Botón de eliminar favorito -->
+        <ion-button 
+          fill="clear" 
+          size="small"
+          class="remove-favorite-btn"
+          (click)="removeFavorite(anime); $event.stopPropagation()"
+          color="danger">
+          <ion-icon name="heart" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+      
+      <!-- Información compacta -->
+      <div class="card-content" [routerLink]="['/anime', anime.mal_id]">
+        <h3 class="anime-title">{{ anime.title }}</h3>
+        
+        <!-- Información de episodios y progreso -->
+        <div class="progress-section">
+          <!-- Barra de progreso mejorada -->
+          <div class="progress-bar">
+            <div 
+              class="progress-fill" 
+              [style.width.%]="getProgressPercentage(anime)">
+            </div>
+          </div>
+          
+          <!-- Controles de episodios más compactos -->
+          <div class="episode-controls">
             <ion-button 
               fill="clear"
               size="small"
-              (click)="$event.stopPropagation(); decreaseEpisodesWatched(anime)" 
+              class="episode-btn"
+              (click)="decreaseEpisodesWatched(anime); $event.stopPropagation()" 
               [disabled]="!anime.episodesWatched">
-              <ion-icon name="remove"></ion-icon>
+              <ion-icon name="remove-outline" slot="icon-only"></ion-icon>
             </ion-button>
             
-            <span class="episodes-text">
-              {{ anime.episodesWatched || 0 }}/{{ anime.episodes || 'Desconocido' }}
+            <span class="episode-count">
+              {{ anime.episodesWatched || 0 }}/{{ anime.episodes || '?' }}
             </span>
             
             <ion-button 
               fill="clear"
               size="small"
-              (click)="$event.stopPropagation(); increaseEpisodesWatched(anime)"
+              class="episode-btn"
+              (click)="increaseEpisodesWatched(anime); $event.stopPropagation()"
               [disabled]="anime.episodes && anime.episodesWatched >= anime.episodes">
-              <ion-icon name="add"></ion-icon>
+              <ion-icon name="add-outline" slot="icon-only"></ion-icon>
             </ion-button>
           </div>
         </div>
+        
+        <!-- Géneros (máximo 2) -->
+        <div class="genres" *ngIf="anime.genres && anime.genres.length > 0">
+          <ion-chip 
+            *ngFor="let genre of anime.genres.slice(0, 2)"
+            size="small"
+            color="light">
+            {{genre.name}}
+          </ion-chip>
+        </div>
       </div>
-      
-      <ion-button 
-        fill="clear" 
-        class="favorite-button"
-        (click)="removeFavorite(anime)"
-        color="danger">
-        <ion-icon slot="icon-only" name="heart"></ion-icon>
-      </ion-button>
-    </ion-card>
+    </div>
   </div>
-  <div *ngIf="favorites.length === 0" class="ion-text-center ion-padding">
-    <p>No tienes animes favoritos</p>
+  
+  <!-- Estado vacío mejorado -->
+  <div class="empty-state" *ngIf="favorites.length === 0">
+    <div class="empty-content">
+      <ion-icon name="heart-outline" size="large" color="medium"></ion-icon>
+      <h2>No tienes favoritos aún</h2>
+      <p>¡Empieza a explorar animes y añade tus favoritos!</p>
+      <ion-button 
+        routerLink="/tab/season" 
+        fill="outline" 
+        color="primary">
+        <ion-icon name="search-outline" slot="start"></ion-icon>
+        Explorar Animes
+      </ion-button>
+    </div>
   </div>
 </ion-content>

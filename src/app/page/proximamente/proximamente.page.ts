@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { AnimeService } from '../../../managers/AnimeService';
 import { FavoritesService } from '../../../managers/FavoritesService';
 import { ToastController, LoadingController } from '@ionic/angular';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, firstValueFrom } from 'rxjs'; // Added firstValueFrom
 import { take, takeUntil } from 'rxjs/operators';
 
 @Component({
@@ -29,6 +29,10 @@ export class ProximamentePage implements OnInit, OnDestroy {
     this.loadUpcomingAnimes();
     this.loadFavorites();
     this.subscribeToAnimeUpdates();
+  }
+
+  ionViewWillEnter() { // Added ionViewWillEnter
+    this.loadFavorites();
   }
 
   ngOnDestroy() {
@@ -58,7 +62,8 @@ export class ProximamentePage implements OnInit, OnDestroy {
     
     this.animeService.getUpcomingAnime().subscribe({
       next: (response: any) => {
-        this.upcomingAnimes = response.data;
+        // Asegurar que no hay duplicados a nivel de componente
+        this.upcomingAnimes = this.removeDuplicatesLocally(response.data);
         this.isLoading = false;
         this.lastRefresh = new Date();
       },
@@ -71,6 +76,30 @@ export class ProximamentePage implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  /**
+   * NUEVO: Función local para eliminar duplicados como medida de seguridad adicional
+   */
+  private removeDuplicatesLocally(animeList: any[]): any[] {
+    const seen = new Set<number>();
+    const uniqueAnimes: any[] = [];
+    let localDuplicates = 0;
+    
+    animeList.forEach(anime => {
+      if (anime.mal_id && !seen.has(anime.mal_id)) {
+        seen.add(anime.mal_id);
+        uniqueAnimes.push(anime);
+      } else if (anime.mal_id) {
+        localDuplicates++;
+      }
+    });
+    
+    if (localDuplicates > 0) {
+      console.log(`🔧 ProximamentePage: Eliminados ${localDuplicates} duplicados adicionales a nivel de componente`);
+    }
+    
+    return uniqueAnimes;
   }
 
   loadFavorites() {
@@ -100,7 +129,8 @@ export class ProximamentePage implements OnInit, OnDestroy {
     await loading.present();
     
     try {
-      await this.animeService.getUpcomingAnime(true).pipe(take(1)).toPromise();
+      // Using firstValueFrom for consistency, though not strictly necessary here as it's not part of toggleFavorite logic
+      await firstValueFrom(this.animeService.getUpcomingAnime(true).pipe(take(1))); 
       await this.showSuccessToast('Datos actualizados correctamente');
     } catch (error: any) {
       this.error = error.message || 'Error al actualizar';
@@ -110,9 +140,10 @@ export class ProximamentePage implements OnInit, OnDestroy {
     }
   }
 
-  async toggleFavorite(anime: any) {
+  async toggleFavorite(anime: any, event?: Event) { // Added event parameter
+    event?.stopPropagation(); // Added stopPropagation
     try {
-      const result = await this.favoritesService.toggleFavorite(anime).pipe(take(1)).toPromise();
+      const result = await firstValueFrom(this.favoritesService.toggleFavorite(anime).pipe(take(1))); // Changed toPromise() to firstValueFrom
       if (!result) {
         throw new Error('No se pudo procesar la solicitud');
       }

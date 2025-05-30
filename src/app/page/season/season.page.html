@@ -183,6 +183,19 @@
           (error)="onImageError($event)"
           class="anime-image"/>
         
+        <!-- Botón de favorito -->
+        <ion-button 
+          fill="clear" 
+          class="favorite-button animate-scale" 
+          (click)="toggleFavorite(anime, $event)"
+          [class.is-favorite]="isFavorite(anime.mal_id)">
+          <ion-icon 
+            slot="icon-only" 
+            [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'"
+            [color]="isFavorite(anime.mal_id) ? 'danger' : 'medium'">
+          </ion-icon>
+        </ion-button>
+        
         <!-- Overlay con información rápida -->
         <div class="image-overlay">
           <div class="rating" *ngIf="anime.score">
@@ -210,17 +223,16 @@
         </ion-button>
         
         <!-- Botón de favorito -->
-        <ion-button 
-          fill="clear" 
-          size="small"
-          class="favorite-btn"
-          [color]="isFavorite(anime) ? 'danger' : 'light'"
-          (click)="toggleFavorite(anime); $event.stopPropagation()">
-          <ion-icon 
-            [name]="isFavorite(anime) ? 'heart' : 'heart-outline'"
-            slot="icon-only">
-          </ion-icon>
-        </ion-button>
+        <div class="anime-actions">
+          <ion-button fill="clear" (click)="toggleFavorite(anime, $event)" class="favorite-button">
+            <ion-icon [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'" 
+                      slot="icon-only"
+                      [color]="isFavorite(anime.mal_id) ? 'danger' : 'medium'"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" (click)="openNotificationModal(anime, $event)" class="notification-button">
+            <ion-icon name="bell-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
       </div>
       
       <!-- Información del anime ACTUALIZADA -->

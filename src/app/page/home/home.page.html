@@ -5,8 +5,17 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Desliza para recargar"
+      refreshingSpinner="circles"
+      refreshingText="Recargando datos...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <!-- Loading spinner -->
-  <div *ngIf="isLoading" class="ion-padding ion-text-center">
+  <div *ngIf="isLoading && !searchTerm" class="ion-padding ion-text-center">
     <ion-spinner></ion-spinner>
   </div>
 
@@ -17,18 +26,48 @@
     </ion-text>
   </div>
 
-  <!-- Top 3 Anime Title -->
+  <!-- Top Anime Title with Search -->
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Top 3 Anime</ion-card-title>
+      <ion-card-title>Top Anime</ion-card-title>
     </ion-card-header>
+    <ion-card-content>
+      <!-- Search bar -->
+      <ion-searchbar 
+        placeholder="Buscar anime..."
+        debounce="500"
+        (ionInput)="onSearchInput($event)"
+        show-clear-button="focus">
+      </ion-searchbar>
+      
+      <!-- Search loading indicator -->
+      <div *ngIf="isSearching" class="search-loading">
+        <ion-spinner name="dots"></ion-spinner>
+        <ion-text color="medium">Buscando anime...</ion-text>
+      </div>
+    </ion-card-content>
   </ion-card>
+
   <!-- Top Anime List -->
   <ion-list lines="full" *ngIf="!isLoading && !error">
-    <ion-item *ngFor="let anime of topAnimes; let i = index" [routerLink]="['/anime', anime.mal_id]">
+    <ion-item *ngFor="let anime of filteredAnimes; let i = index" [routerLink]="['/anime', anime.mal_id]">
       <div class="container">
         <div class="container-logo">
-          <div class="rank-indicator">#{{i + 1}}</div>
+          <!-- Indicador de ranking mejorado para top anime -->
+          <div class="rank-indicator" 
+               *ngIf="!searchTerm && anime.topRank"
+               [class.top-1]="anime.topRank === 1"
+               [class.top-2]="anime.topRank === 2"
+               [class.top-3]="anime.topRank === 3">
+            #{{anime.topRank}}
+          </div>
+          
+          <!-- Indicador de ranking para resultados de búsqueda -->
+          <div class="rank-indicator search-result" 
+               *ngIf="searchTerm">
+            #{{i + 1}}
+          </div>
+          
           <img class="circular-icon" [src]="anime.images.jpg.image_url">
           <ion-label class="item-text">{{ anime.title }}</ion-label>
         </div>
@@ -40,12 +79,27 @@
       </div>
     </ion-item>
   </ion-list>
+
+  <!-- No results message -->
+  <div *ngIf="!isLoading && !error && !isSearching && searchTerm && filteredAnimes.length === 0" class="ion-padding ion-text-center">
+    <ion-text color="medium">
+      <p>No se encontraron animes que coincidan con "{{ searchTerm }}"</p>
+    </ion-text>
+  </div>
   
   <!-- Favorites Button -->
   <div class="ion-padding">
     <ion-button expand="block" routerLink="/favoritos">
       <ion-icon name="heart" slot="start"></ion-icon>
       Ver Mis Animes Favoritos
+    </ion-button>
+  </div>
+
+  <!-- News Button -->
+  <div class="ion-padding">
+    <ion-button expand="block" routerLink="/noticias" color="secondary">
+      <ion-icon name="newspaper" slot="start"></ion-icon>
+      Noticias de Anime
     </ion-button>
   </div>
 

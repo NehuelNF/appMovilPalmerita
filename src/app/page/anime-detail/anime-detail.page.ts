@@ -28,14 +28,42 @@ export class AnimeDetailPage implements OnInit {
 
   loadAnimeDetails(id: number) {
     this.isLoading = true;
+    this.error = null;
+    this.anime = null; 
+    
     this.animeService.getAnimeById(id).subscribe({
       next: (response: any) => {
-        this.anime = response.data;
+        // Add null checks before accessing properties
+        if (response && (response.data || response.mal_id)) {
+          // Handle both direct anime object and wrapped response
+          this.anime = response.data || response;
+          
+          // Asignar el ranking directamente desde el campo 'rank' del anime.
+          // El campo 'rank' de la API Jikan es el ranking global.
+          // Si 'rank' es null, 0, o no es un número, hasTopRank() lo manejará y no se mostrará.
+          if (this.anime && typeof this.anime.rank === 'number' && this.anime.rank > 0) {
+            this.anime.topRank = this.anime.rank;
+            console.log('🏆 Ranking asignado directamente del anime:', this.anime.topRank, 'para:', this.anime.title);
+          } else {
+            // Si no hay un 'rank' válido (e.g., null, 0, o no es un número),
+            // asegurar que topRank no tenga un valor residual de una carga anterior.
+            if (this.anime) this.anime.topRank = null;
+            console.log('ℹ️ Anime sin ranking directo o ranking no válido. Título:', this.anime?.title, 'Rank API:', this.anime?.rank);
+          }
+          // El console.log original de anime cargado se puede mantener o ajustar si es necesario.
+          // console.log('🎯 Anime cargado:', this.anime?.title || 'Sin título', 'Ranking actual:', this.anime?.topRank);
+
+        } else {
+          console.error('❌ Respuesta inválida del anime:', response);
+          this.error = 'No se pudieron cargar los detalles del anime';
+        }
+        
         this.isLoading = false;
       },
       error: (err: any) => {
         this.error = 'Error al cargar los detalles del anime';
         this.isLoading = false;
+        this.anime = null; // Clear anime data on error
         console.error('Error:', err);
       }
     });
@@ -196,5 +224,20 @@ export class AnimeDetailPage implements OnInit {
       return `★ ${this.anime.score}/10`;
     }
     return '';
+  }
+
+  // NUEVO: Método para obtener información del ranking
+  getTopRankInfo(): string {
+    if (this.anime?.topRank && this.anime.topRank > 0) {
+      return `#${this.anime.topRank}`; // Texto simplificado para mostrar solo el número del ranking
+    }
+    return '';
+  }
+
+  // NUEVO: Método para verificar si tiene ranking
+  hasTopRank(): boolean {
+    const hasRank = !!(this.anime?.topRank && this.anime.topRank > 0); // Asegura que topRank sea un número positivo
+    console.log('🏆 ¿Tiene ranking?', hasRank, 'Anime:', this.anime?.title, 'Rank:', this.anime?.topRank);
+    return hasRank;
   }
 }

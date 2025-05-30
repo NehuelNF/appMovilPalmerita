@@ -221,7 +221,7 @@ ion-content {
     }
   }
   
-  .favorite-btn {
+  .favorite-button {
     position: absolute;
     top: 12px;
     right: 12px;
@@ -232,14 +232,14 @@ ion-content {
     transition: all 0.3s ease;
     z-index: 10;
     backdrop-filter: blur(10px);
-    
+
     &:hover {
       background: rgba(255, 255, 255, 1);
       transform: scale(1.1);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
-    
-    &[color="danger"] {
+
+    &.is-favorite {
       background: rgba(var(--ion-color-danger-rgb), 0.95);
       
       &:hover {
@@ -251,7 +251,7 @@ ion-content {
         animation: heartBeat 0.6s ease-in-out;
       }
     }
-    
+
     ion-icon {
       font-size: 20px;
       transition: all 0.3s ease;

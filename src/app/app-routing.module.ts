@@ -42,7 +42,11 @@ const routes: Routes = [
   {
     path: 'notifications-settings',
     loadChildren: () => import('./page/notifications-settings/notifications-settings.module').then( m => m.NotificationsSettingsPageModule)
+  },  {
+    path: 'noticias',
+    loadChildren: () => import('./page/noticias/noticias.module').then( m => m.NoticiasPageModule)
   }
+
 
 
 ];

@@ -95,4 +95,34 @@ export class FavoritosPage implements OnInit {
       toast.present();
     }
   }
+
+  // Nuevos métodos para mejorar la UI
+  getProgressPercentage(anime: any): number {
+    if (!anime.episodes || !anime.episodesWatched) return 0;
+    return Math.min((anime.episodesWatched / anime.episodes) * 100, 100);
+  }
+
+  getStatusText(status: string): string {
+    const statusMap: { [key: string]: string } = {
+      'Currently Airing': 'En emisión',
+      'Finished Airing': 'Finalizado',
+      'Not yet aired': 'Próximamente',
+      'Unknown': 'Desconocido'
+    };
+    return statusMap[status] || status || 'Desconocido';
+  }
+
+  // Método para verificar si el anime está completo
+  isCompleted(anime: any): boolean {
+    return anime.episodes && anime.episodesWatched >= anime.episodes;
+  }
+
+  // Método para obtener el color de la barra de progreso
+  getProgressColor(anime: any): string {
+    const percentage = this.getProgressPercentage(anime);
+    if (percentage === 100) return 'success';
+    if (percentage >= 75) return 'warning';
+    if (percentage >= 50) return 'primary';
+    return 'medium';
+  }
 }

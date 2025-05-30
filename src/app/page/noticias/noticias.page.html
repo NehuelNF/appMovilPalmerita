@@ -1,0 +1,123 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tab/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      <ion-icon name="newspaper-outline" class="title-icon"></ion-icon>
+      Noticias Anime
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="forceRefresh()" [disabled]="isLoading">
+        <ion-icon name="refresh-outline" [class.spin]="isLoading"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Pull to refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="📰 Desliza para actualizar noticias"
+      refreshingSpinner="circles"
+      refreshingText="✨ Cargando últimas noticias...">
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loading spinner -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-content">
+      <ion-spinner name="crescent"></ion-spinner>
+      <h3>Cargando noticias</h3>
+      <p>Obteniendo las últimas noticias de anime...</p>
+    </div>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error && !isLoading" class="error-container ion-padding">
+    <div class="error-content">
+      <ion-icon name="alert-circle-outline" color="danger" size="large"></ion-icon>
+      <h3>Error al cargar noticias</h3>
+      <p>{{ error }}</p>
+      <ion-button expand="block" fill="outline" (click)="cargarNoticias()" color="primary">
+        <ion-icon name="refresh" slot="start"></ion-icon>
+        Reintentar
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- News list -->
+  <div class="noticias-container" *ngIf="!isLoading && !error && noticias.length > 0">
+    <div class="noticias-grid">
+      <ion-card 
+        *ngFor="let noticia of noticias; let i = index"
+        class="noticia-card animate-slide-up"
+        [style.animation-delay]="(i * 0.1) + 's'"
+        (click)="abrirNoticia(noticia.url)">
+        
+        <div class="card-image-container">
+          <img 
+            [src]="noticia.imagen" 
+            [alt]="noticia.titulo"
+            loading="lazy"
+            onerror="this.src='assets/images/palmeritachan.png'"/>
+          
+          <!-- Category badge -->
+          <ion-chip class="category-chip" color="primary" *ngIf="noticia.categoria">
+            {{ noticia.categoria }}
+          </ion-chip>
+        </div>
+
+        <ion-card-content>
+          <div class="card-header">
+            <h2 class="noticia-title">{{ noticia.titulo }}</h2>
+            <div class="noticia-meta">
+              <span class="fecha">
+                <ion-icon name="calendar-outline"></ion-icon>
+                {{ noticia.fecha | date:'short' }}
+              </span>
+              <span class="autor" *ngIf="noticia.autor">
+                <ion-icon name="person-outline"></ion-icon>
+                {{ noticia.autor }}
+              </span>
+            </div>
+          </div>
+          
+          <p class="noticia-descripcion">{{ noticia.descripcion }}</p>
+          
+          <div class="card-actions">
+            <ion-button fill="clear" size="small" color="primary">
+              <ion-icon name="open-outline" slot="start"></ion-icon>
+              Leer más
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!isLoading && !error && noticias.length === 0">
+    <div class="empty-content">
+      <ion-icon name="newspaper-outline" size="large" color="medium"></ion-icon>
+      <h3>No hay noticias disponibles</h3>
+      <p>No se encontraron noticias en este momento.</p>
+      <ion-button expand="block" fill="outline" (click)="cargarNoticias()">
+        <ion-icon name="refresh" slot="start"></ion-icon>
+        Actualizar
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- Footer info -->
+  <div class="footer-info ion-padding" *ngIf="!isLoading && !error">
+    <ion-text color="medium">
+      <p class="text-center">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        Noticias obtenidas de Somos Kudasai
+      </p>
+    </ion-text>
+  </div>
+</ion-content>
