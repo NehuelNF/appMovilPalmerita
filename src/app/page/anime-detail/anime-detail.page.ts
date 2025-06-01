@@ -1,7 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AnimeService } from '../../../managers/AnimeService';
 import { TimezoneService } from '../../../managers/TimezoneService';
+
+interface Episode {
+  number: number;
+  title?: string;
+  image_url?: string;
+  mal_id?: number;
+}
 
 @Component({
   selector: 'app-anime-detail',
@@ -10,11 +17,19 @@ import { TimezoneService } from '../../../managers/TimezoneService';
 })
 export class AnimeDetailPage implements OnInit {
   anime: any;
+  episodes: Episode[] = [];
+  displayedEpisodes: Episode[] = [];
   isLoading: boolean = false;
   error: string | null = null;
+  
+  // Propiedades para manejo de episodios
+  episodesPerPage: number = 12;
+  currentPage: number = 1;
+  episodesReversed: boolean = false;
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private animeService: AnimeService,
     private timezoneService: TimezoneService
   ) {}
@@ -50,8 +65,9 @@ export class AnimeDetailPage implements OnInit {
             if (this.anime) this.anime.topRank = null;
             console.log('ℹ️ Anime sin ranking directo o ranking no válido. Título:', this.anime?.title, 'Rank API:', this.anime?.rank);
           }
-          // El console.log original de anime cargado se puede mantener o ajustar si es necesario.
-          // console.log('🎯 Anime cargado:', this.anime?.title || 'Sin título', 'Ranking actual:', this.anime?.topRank);
+
+          // Cargar episodios después de cargar el anime
+          this.loadEpisodes(id);
 
         } else {
           console.error('❌ Respuesta inválida del anime:', response);
@@ -239,5 +255,90 @@ export class AnimeDetailPage implements OnInit {
     const hasRank = !!(this.anime?.topRank && this.anime.topRank > 0); // Asegura que topRank sea un número positivo
     console.log('🏆 ¿Tiene ranking?', hasRank, 'Anime:', this.anime?.title, 'Rank:', this.anime?.topRank);
     return hasRank;
+  }
+
+  // NUEVOS MÉTODOS PARA MANEJO DE EPISODIOS
+
+  loadEpisodes(animeId: number) {
+    // Crear episodios simulados basados en el número total de episodios
+    if (this.anime?.episodes) {
+      this.episodes = [];
+      const totalEpisodes = this.anime.episodes;
+      
+      for (let i = 1; i <= totalEpisodes; i++) {
+        this.episodes.push({
+          number: i,
+          title: `Episodio ${i}`,
+          image_url: this.getEpisodeImageUrl({ number: i })
+        });
+      }
+      
+      this.updateDisplayedEpisodes();
+    }
+  }
+
+  getDisplayedEpisodes(): Episode[] {
+    return this.displayedEpisodes;
+  }
+
+  updateDisplayedEpisodes() {
+    const startIndex = 0;
+    const endIndex = this.currentPage * this.episodesPerPage;
+    
+    let episodesToShow = this.episodesReversed 
+      ? [...this.episodes].reverse() 
+      : this.episodes;
+    
+    this.displayedEpisodes = episodesToShow.slice(startIndex, endIndex);
+  }
+
+  getEpisodeImageUrl(episode: Episode): string {
+    // Generar URL de imagen del episodio basada en el anime
+    if (episode.image_url) {
+      return episode.image_url;
+    }
+    
+    // URL por defecto o basada en la imagen del anime
+    const baseImage = this.anime?.images?.jpg?.large_image_url || this.anime?.images?.jpg?.image_url;
+    if (baseImage) {
+      return baseImage; // Usar la misma imagen del anime como placeholder
+    }
+    
+    return 'assets/default-episode.png';
+  }
+
+  toggleEpisodesOrder() {
+    this.episodesReversed = !this.episodesReversed;
+    this.updateDisplayedEpisodes();
+  }
+
+  searchEpisodes() {
+    // Por ahora, simplemente mostrar un mensaje
+    console.log('Función de búsqueda de episodios - por implementar');
+    // Aquí se podría implementar un modal de búsqueda
+  }
+
+  hasMoreEpisodes(): boolean {
+    const totalShown = this.currentPage * this.episodesPerPage;
+    return totalShown < this.episodes.length;
+  }
+
+  loadMoreEpisodes() {
+    if (this.hasMoreEpisodes()) {
+      this.currentPage++;
+      this.updateDisplayedEpisodes();
+    }
+  }
+
+  watchEpisode(episode: Episode) {
+    console.log('Ver episodio:', episode.number, 'del anime:', this.anime?.title);
+    
+    // Navegar a la página de visualización del episodio
+    // Usando el ID del anime y el número del episodio
+    const animeId = this.route.snapshot.paramMap.get('id');
+    if (animeId) {
+      // Por ahora, vamos a crear una ruta como /watch/animeId/episodeNumber
+      this.router.navigate(['/watch', animeId, episode.number]);
+    }
   }
 }

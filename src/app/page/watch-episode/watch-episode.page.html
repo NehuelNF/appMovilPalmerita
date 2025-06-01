@@ -1,0 +1,33 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="'/anime/' + animeId"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ animeTitle }} - Episodio {{ episodeNumber }}</ion-title>
+    <ion-buttons slot="end">
+      <!-- Botón para cambiar servidor -->
+      <ion-button fill="clear" (click)="showStreamingOptions()" [disabled]="!hasMultipleStreams()" color="primary">
+        <ion-icon name="server-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+      <!-- Botón para refrescar enlaces -->
+      <ion-button fill="clear" (click)="refreshStreamingLinks()" color="primary">
+        <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+      <!-- Botón para abrir externamente -->
+      <ion-button fill="clear" (click)="togglePlayerMode()" color="primary">
+        <ion-icon name="open-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" (click)="toggleFullscreen()">
+        <ion-icon name="expand-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content fullscreen="true" class="no-padding">
+  <iframe
+    [src]="getSafeIframeUrl(iframeUrl)"
+    style="border:0;width:100vw;height:100vh;position:fixed;top:0;left:0;"
+    allowfullscreen>
+  </iframe>
+</ion-content>

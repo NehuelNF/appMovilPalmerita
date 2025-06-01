@@ -28,6 +28,10 @@ const routes: Routes = [
     loadChildren: () => import('./page/anime-detail/anime-detail.module').then(m => m.AnimeDetailPageModule)
   },
   {
+    path: 'watch/:animeId/:episodeNumber',
+    loadChildren: () => import('./page/watch-episode/watch-episode.module').then(m => m.WatchEpisodePageModule)
+  },
+  {
     path: 'proximamente',
     loadChildren: () => import('./page/proximamente/proximamente.module').then( m => m.ProximamentePageModule)
   },
@@ -42,10 +46,16 @@ const routes: Routes = [
   {
     path: 'notifications-settings',
     loadChildren: () => import('./page/notifications-settings/notifications-settings.module').then( m => m.NotificationsSettingsPageModule)
-  },  {
+  },
+  {
     path: 'noticias',
     loadChildren: () => import('./page/noticias/noticias.module').then( m => m.NoticiasPageModule)
+  },
+  {
+    path: 'watch-episode',
+    loadChildren: () => import('./page/watch-episode/watch-episode.module').then( m => m.WatchEpisodePageModule)
   }
+
 
 
 

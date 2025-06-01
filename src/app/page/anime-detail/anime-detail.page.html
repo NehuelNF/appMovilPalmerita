@@ -125,5 +125,65 @@
     <div class="description-content">
       {{ anime?.synopsis || 'Descripción no disponible' }}
     </div>
+
+    <!-- Nueva sección de episodios -->
+    <div class="episodes-section" *ngIf="episodes && episodes.length > 0">
+      <div class="section-header">
+        <h3 class="episodes-title">Episodios</h3>
+        <div class="episodes-controls">
+          <ion-button fill="clear" size="small" (click)="toggleEpisodesOrder()">
+            <ion-icon name="swap-vertical-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" size="small" (click)="searchEpisodes()">
+            <ion-icon name="search-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+
+      <div class="episodes-grid">
+        <div 
+          *ngFor="let episode of getDisplayedEpisodes(); let i = index"
+          class="episode-card"
+          (click)="watchEpisode(episode)">
+          
+          <div class="episode-image-container">
+            <img 
+              [src]="getEpisodeImageUrl(episode)" 
+              [alt]="'Episodio ' + episode.number"
+              class="episode-image"
+              loading="lazy">
+            
+            <div class="episode-overlay">
+              <ion-icon name="play-circle" class="play-icon"></ion-icon>
+            </div>
+            
+            <div class="episode-number-badge">
+              <span>Episodio {{ episode.number }}</span>
+            </div>
+          </div>
+          
+          <div class="episode-info" *ngIf="episode.title">
+            <h4 class="episode-title">{{ episode.title }}</h4>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botón para cargar más episodios si hay muchos -->
+      <ion-button 
+        *ngIf="hasMoreEpisodes()" 
+        fill="outline" 
+        expand="block" 
+        class="load-more-btn"
+        (click)="loadMoreEpisodes()">
+        Cargar más episodios
+      </ion-button>
+    </div>
+
+    <!-- Mensaje cuando no hay episodios -->
+    <div class="no-episodes" *ngIf="!episodes || episodes.length === 0">
+      <ion-icon name="tv-outline" class="no-episodes-icon"></ion-icon>
+      <h4>No hay episodios disponibles</h4>
+      <p>Los episodios aparecerán aquí cuando estén disponibles.</p>
+    </div>
   </ng-container>
 </ion-content>
