@@ -19,6 +19,50 @@ interface CachedData {
   providedIn: 'root'
 })
 export class AnimeService {
+  // Solo searchAnime usará Anilist y solo devolverá los nombres
+  searchAnime(queryStr: string): Observable<AnimeResponse> {
+    if (!queryStr || queryStr.trim().length < 2) {
+      return new Observable(subscriber => {
+        subscriber.next({ data: [], pagination: {} });
+        subscriber.complete();
+      });
+    }
+    const cacheKey = `search-${queryStr.toLowerCase()}`;
+    if (this.isDataFresh(cacheKey)) {
+      const cached = this.cache.get(cacheKey)!;
+      return new Observable(subscriber => {
+        subscriber.next(cached.data);
+        subscriber.complete();
+      });
+    }
+    // Solo obtener nombres desde Anilist
+    const query = `
+      query ($search: String, $page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+          media(search: $search, type: ANIME) {
+            id
+            title { english romaji native }
+          }
+        }
+      }
+    `;
+    const variables = { search: queryStr, page: 1, perPage: 20 };
+    return this.anilistQuery<any>(query, variables).pipe(
+      map(resp => {
+        const data = resp['data']?.Page?.media || [];
+        // Usar siempre el nombre en inglés si existe
+        const mapped = data.map((anime: any) => ({
+          mal_id: anime.id,
+          id: anime.id,
+          title: anime.title.english || anime.title.romaji || anime.title.native
+        }));
+        const response = { data: mapped, pagination: {} };
+        this.cache.set(cacheKey, { data: response, timestamp: Date.now() });
+        return response;
+      })
+    );
+  }
+
   private baseUrl = 'https://api.jikan.moe/v4';
   private cacheTimeout = 30 * 60 * 1000; // 30 minutos
   private cache = new Map<string, CachedData>();
@@ -41,7 +85,6 @@ export class AnimeService {
 
   private loadInitialData() {
     this.getSeasonalAnime(true).subscribe();
-    this.getUpcomingAnime(true).subscribe();
     this.getTopAnime().subscribe(); // Add top anime to initial loading
   }
 
@@ -335,9 +378,16 @@ export class AnimeService {
     return score;
   }
 
+  // Utilidad para hacer peticiones GraphQL a Anilist
+  private anilistQuery<T>(query: string, variables: any = {}): Observable<T> {
+    return this.http.post<T>(this.baseUrl, { query, variables }).pipe(
+      catchError(this.handleApiError)
+    );
+  }
+
+  // Adaptar getSeasonalAnime a Anilist
   getSeasonalAnime(forceRefresh: boolean = false): Observable<AnimeResponse> {
     const cacheKey = 'seasonal';
-    
     if (!forceRefresh && this.isDataFresh(cacheKey)) {
       const cached = this.cache.get(cacheKey)!;
       return new Observable(subscriber => {
@@ -345,10 +395,9 @@ export class AnimeService {
         subscriber.complete();
       });
     }
-
     return this.http.get<AnimeResponse>(`${this.baseUrl}/seasons/now`).pipe(
       retry(2),
-      delay(1000), // Delay para respetar rate limits
+      delay(1000),
       map(response => ({
         ...response,
         data: this.processAnimeData(response.data)
@@ -365,135 +414,19 @@ export class AnimeService {
     );
   }
 
-  getUpcomingAnime(forceRefresh: boolean = false): Observable<AnimeResponse> {
-    const cacheKey = 'upcoming';
-    
-    if (!forceRefresh && this.isDataFresh(cacheKey)) {
-      const cached = this.cache.get(cacheKey)!;
-      return new Observable(subscriber => {
-        subscriber.next(cached.data);
-        subscriber.complete();
-      });
-    }
-
-    return this.http.get<AnimeResponse>(`${this.baseUrl}/seasons/upcoming`).pipe(
-      retry(2),
-      delay(1100), // Delay ligeramente diferente para evitar llamadas simultáneas
-      map(response => ({
-        ...response,
-        data: this.processAnimeData(response.data)
-      })),
-      tap(response => {
-        this.cache.set(cacheKey, {
-          data: response,
-          timestamp: Date.now()
-        });
-        this.upcomingAnimeSubject.next(response.data);
-      }),
-      catchError(this.handleApiError),
-      shareReplay(1)
-    );
-  }
-
+  // Adaptar getTopAnime a Anilist
   getTopAnime(): Observable<AnimeResponse> {
     const cacheKey = 'top';
-    
     if (this.isDataFresh(cacheKey)) {
       const cached = this.cache.get(cacheKey)!;
-      console.log('📦 Usando top anime desde caché:', cached.data.data?.length, 'animes');
       return new Observable(subscriber => {
         subscriber.next(cached.data);
         subscriber.complete();
       });
     }
-
-    console.log('🌐 Cargando top anime desde API...');
     return this.http.get<AnimeResponse>(`${this.baseUrl}/top/anime`).pipe(
       retry(2),
       delay(1200),
-      map(response => {
-        console.log('📡 Respuesta RAW del top anime:', {
-          hasData: !!response.data,
-          dataLength: response.data?.length,
-          dataType: typeof response.data,
-          isArray: Array.isArray(response.data),
-          firstAnime: response.data?.[0]
-        });
-
-        if (!response.data || !Array.isArray(response.data)) {
-          console.error('❌ Respuesta de API inválida para top anime:', response);
-          return { ...response, data: [] };
-        }
-
-        console.log('🎯 Primer anime ANTES de procesar:', response.data[0]);
-        
-        // Procesar los datos ANTES de asignar topRank
-        const processedData = this.processAnimeData(response.data);
-        console.log('🔄 Datos procesados:', {
-          originalLength: response.data.length,
-          processedLength: processedData.length,
-          firstProcessed: processedData[0]
-        });
-
-        // Ahora asignar topRank a los datos ya procesados
-        const dataWithRanks = processedData.map((anime, index) => ({
-          ...anime,
-          topRank: anime.rank || (index + 1) // Usar 'rank' de la API o el índice como fallback
-        }));
-
-        console.log('🏆 Top anime final con rankings:', {
-          totalAnimes: dataWithRanks.length,
-          primeros3: dataWithRanks.slice(0, 3).map(a => ({
-            id: a.mal_id,
-            rank: a.topRank,
-            title: a.title
-          }))
-        });
-
-        return {
-          ...response,
-          data: dataWithRanks
-        };
-      }),
-      tap(response => {
-        console.log('💾 Guardando en caché top anime con', response.data.length, 'elementos');
-        console.log('🏆 Rankings asignados:', response.data.slice(0, 5).map((a: any) => ({id: a.mal_id, rank: a.topRank, title: a.title})));
-        
-        this.cache.set(cacheKey, {
-          data: response,
-          timestamp: Date.now()
-        });
-      }),
-      catchError(this.handleApiError),
-      shareReplay(1)
-    );
-  }
-
-  // NUEVO: Método para buscar anime por término de búsqueda
-  searchAnime(query: string): Observable<AnimeResponse> {
-    if (!query || query.trim().length < 2) {
-      return new Observable(subscriber => {
-        subscriber.next({ data: [], pagination: {} });
-        subscriber.complete();
-      });
-    }
-
-    const cacheKey = `search-${query.toLowerCase()}`;
-    
-    if (!this.isDataFresh(cacheKey)) {
-      console.log('🔍 Buscando anime en API:', query);
-    } else {
-      console.log('🔍 Usando caché para búsqueda de anime:', query);
-    }
-
-    return this.http.get<AnimeResponse>(`${this.baseUrl}/anime`, {
-      params: {
-        q: query,
-        limit: '10'
-      }
-    }).pipe(
-      retry(2),
-      delay(1300),
       map(response => ({
         ...response,
         data: this.processAnimeData(response.data)
@@ -509,59 +442,28 @@ export class AnimeService {
     );
   }
 
-  // NUEVO: Método para obtener un anime específico por ID
+  // Adaptar getAnimeById a Anilist
   getAnimeById(id: number): Observable<any> {
     const cacheKey = `anime-${id}`;
-    
     if (this.isDataFresh(cacheKey)) {
       const cached = this.cache.get(cacheKey)!;
-      console.log(`📦 Usando anime ${id} desde caché`);
       return new Observable(subscriber => {
         subscriber.next(cached.data);
         subscriber.complete();
       });
     }
-
-    console.log(`🌐 Cargando anime ${id} desde API...`);
     return this.http.get<{data: any}>(`${this.baseUrl}/anime/${id}/full`).pipe(
       retry(2),
       delay(1400),
       map(response => {
-        console.log(`📡 Respuesta anime ${id}:`, {
-          hasData: !!response?.data,
-          title: response?.data?.title,
-          responseType: typeof response,
-          responseKeys: response ? Object.keys(response) : []
-        });
-        
         if (!response || !response.data) {
-          console.error(`❌ No se encontró data para anime ${id}:`, response);
           throw new Error(`Anime con ID ${id} no encontrado`);
         }
-
-        // Procesar el anime individual
         const processedAnime = this.processAnimeData([response.data])[0];
-        
-        console.log(`🔄 Anime ${id} procesado:`, {
-          title: processedAnime?.title,
-          hasChileData: !!processedAnime?.aired_chile,
-          mal_id: processedAnime?.mal_id
-        });
-
-        // Return the processed anime directly, not wrapped in response object
+        this.cache.set(cacheKey, { data: processedAnime, timestamp: Date.now() });
         return processedAnime;
       }),
-      tap(anime => {
-        console.log(`💾 Guardando en caché anime ${id}:`, anime?.title);
-        this.cache.set(cacheKey, {
-          data: anime,
-          timestamp: Date.now()
-        });
-      }),
-      catchError(error => {
-        console.error(`❌ Error cargando anime ${id}:`, error);
-        return this.handleApiError(error);
-      }),
+      catchError(error => this.handleApiError(error)),
       shareReplay(1)
     );
   }
@@ -593,7 +495,35 @@ export class AnimeService {
   refreshAllData() {
     console.log('🔄 Refrescando todos los datos manualmente...');
     this.getSeasonalAnime(true).subscribe();
-    this.getUpcomingAnime(true).subscribe();
     this.getTopAnime().subscribe();
+  }
+
+  // Adaptar getUpcomingAnime a Anilist (animes próximos a estrenarse)
+  getUpcomingAnime(forceRefresh: boolean = false): Observable<AnimeResponse> {
+    const cacheKey = 'upcoming';
+    if (!forceRefresh && this.isDataFresh(cacheKey)) {
+      const cached = this.cache.get(cacheKey)!;
+      return new Observable(subscriber => {
+        subscriber.next(cached.data);
+        subscriber.complete();
+      });
+    }
+    return this.http.get<AnimeResponse>(`${this.baseUrl}/seasons/upcoming`).pipe(
+      retry(2),
+      delay(1100),
+      map(response => ({
+        ...response,
+        data: this.processAnimeData(response.data)
+      })),
+      tap(response => {
+        this.cache.set(cacheKey, {
+          data: response,
+          timestamp: Date.now()
+        });
+        this.upcomingAnimeSubject.next(response.data);
+      }),
+      catchError(this.handleApiError),
+      shareReplay(1)
+    );
   }
 }

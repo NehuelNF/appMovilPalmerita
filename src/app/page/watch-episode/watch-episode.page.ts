@@ -98,6 +98,12 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   serverBarHtml: SafeHtml | null = null;
   iframeUrl: string | null = null;
 
+  // Nueva propiedad para el anime
+  anime: any = null;
+
+  private fallbackTried = false;
+  private iframeLoadTimeout: any;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -120,12 +126,36 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     }
     // Cargar directamente la URL de AnimeAV1 en el iframe
     this.iframeUrl = this.getAnimeAv1Url();
+    this.setIframeLoadTimeout();
+  }
+
+  setIframeLoadTimeout() {
+    this.fallbackTried = false;
+    if (this.iframeLoadTimeout) {
+      clearTimeout(this.iframeLoadTimeout);
+    }
+    this.iframeLoadTimeout = setTimeout(() => {
+      if (!this.fallbackTried && this.anime && this.anime.title_english && this.anime.title_english !== this.animeTitle) {
+        this.fallbackTried = true;
+        const slug = this.generateAnimeSlug(this.anime.title_english);
+        this.iframeUrl = `https://animeav1.com/media/${slug}/${this.episodeNumber}`;
+        this.animeTitle = this.anime.title_english;
+        this.safeIframeUrl = this.getSafeIframeUrl(this.iframeUrl);
+        // Si quieres, puedes mostrar un toast aquí
+        this.showToast('Intentando cargar con el nombre en inglés...');
+        // Reiniciar timeout por si tampoco carga
+        this.setIframeLoadTimeout();
+      } else if (!this.fallbackTried) {
+        this.streamingError = 'No se pudo cargar el episodio. Intenta más tarde o revisa si el nombre en inglés es correcto.';
+      }
+    }, 5000); // 5 segundos
   }
 
   async loadAnimeData() {
     this.animeService.getAnimeById(Number(this.animeId)).subscribe({
       next: (response: any) => {
         const anime = response.data || response;
+        this.anime = anime;
         this.animeTitle = anime.title || 'Anime';
         this.totalEpisodes = anime.episodes || 12;
         
@@ -393,6 +423,10 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval);
     }
+
+    if (this.iframeLoadTimeout) {
+      clearTimeout(this.iframeLoadTimeout);
+    }
   }
 
   private setupKeyboardShortcuts() {
@@ -598,5 +632,28 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     return `https://animeav1.com/media/${slug}/${this.episodeNumber}`;
   }
 
-  // ...existing code...
+  // Nuevo: Manejo de error 404 en el iframe de AnimeAV1
+  onIframeError(event: Event) {
+    // Solo intentar una vez con el nombre en inglés
+    if (this.anime && this.anime.title_english && this.anime.title_english !== this.animeTitle) {
+      const slug = this.generateAnimeSlug(this.anime.title_english);
+      this.iframeUrl = `https://animeav1.com/media/${slug}/${this.episodeNumber}`;
+      this.animeTitle = this.anime.title_english;
+      // Forzar recarga del iframe
+      setTimeout(() => {
+        this.safeIframeUrl = this.getSafeIframeUrl(this.iframeUrl);
+      }, 100);
+    } else {
+      this.streamingError = 'No se pudo cargar el episodio. Intenta más tarde o revisa si el nombre en inglés es correcto.';
+    }
+  }
+
+  tryEnglishTitle() {
+    if (this.anime && this.anime.title_english) {
+      const slug = this.generateAnimeSlug(this.anime.title_english);
+      this.iframeUrl = `https://animeav1.com/media/${slug}/${this.episodeNumber}`;
+      this.animeTitle = this.anime.title_english;
+      this.safeIframeUrl = this.getSafeIframeUrl(this.iframeUrl);
+    }
+  }
 }

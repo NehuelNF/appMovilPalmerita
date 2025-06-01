@@ -30,4 +30,10 @@
     style="border:0;width:100vw;height:100vh;position:fixed;top:0;left:0;"
     allowfullscreen>
   </iframe>
+
+  <div class="ion-padding ion-text-center" *ngIf="anime?.title_english && anime?.title_english !== animeTitle">
+    <ion-button color="secondary" (click)="tryEnglishTitle()">
+      Intentar con el nombre en inglés ({{ anime.title_english }})
+    </ion-button>
+  </div>
 </ion-content>
