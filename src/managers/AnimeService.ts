@@ -1,8 +1,8 @@
 // src/app/managers/AnimeService.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, BehaviorSubject, throwError, timer } from 'rxjs';
-import { catchError, retry, delay, shareReplay, tap, map } from 'rxjs/operators';
+import { Observable, BehaviorSubject, throwError, timer, of } from 'rxjs';
+import { catchError, retry, delay, shareReplay, tap, map, switchMap } from 'rxjs/operators';
 import { TimezoneService } from './TimezoneService';
 
 interface AnimeResponse {
@@ -64,6 +64,7 @@ export class AnimeService {
   }
 
   private baseUrl = 'https://api.jikan.moe/v4';
+  private anilistUrl = 'https://graphql.anilist.co';
   private cacheTimeout = 30 * 60 * 1000; // 30 minutos
   private cache = new Map<string, CachedData>();
   
@@ -380,9 +381,34 @@ export class AnimeService {
 
   // Utilidad para hacer peticiones GraphQL a Anilist
   private anilistQuery<T>(query: string, variables: any = {}): Observable<T> {
-    return this.http.post<T>(this.baseUrl, { query, variables }).pipe(
+    return this.http.post<T>(this.anilistUrl, { query, variables }).pipe(
       catchError(this.handleApiError)
     );
+  }
+
+  // NUEVO: Obtener información específica de episodios desde Anilist
+  private getAnimeEpisodesFromAnilist(malId: number): Observable<{ episodes: number | null }> {
+    const query = `
+      query ($id: Int) {
+        Media(idMal: $id, type: ANIME) {
+          episodes
+          status
+          format
+        }
+      }
+    `;
+    const variables = { id: malId };
+    return this.http.post<{ data: { Media: { episodes: number | null } } }>(this.anilistUrl, { query, variables })
+      .pipe(
+        map((response) => {
+          const media = response?.data?.Media;
+          return { episodes: media?.episodes ?? null };
+        }),
+        catchError(error => {
+          console.warn(`No se pudo obtener información de episodios desde Anilist para MAL ID ${malId}:`, error);
+          return of({ episodes: null });
+        })
+      );
   }
 
   // Adaptar getSeasonalAnime a Anilist
@@ -442,7 +468,7 @@ export class AnimeService {
     );
   }
 
-  // Adaptar getAnimeById a Anilist
+  // Adaptar getAnimeById a Anilist para obtener episodios, manteniendo Jikan para el resto
   getAnimeById(id: number): Observable<any> {
     const cacheKey = `anime-${id}`;
     if (this.isDataFresh(cacheKey)) {
@@ -452,6 +478,8 @@ export class AnimeService {
         subscriber.complete();
       });
     }
+    
+    // Primero obtener datos básicos de Jikan
     return this.http.get<{data: any}>(`${this.baseUrl}/anime/${id}/full`).pipe(
       retry(2),
       delay(1400),
@@ -459,9 +487,38 @@ export class AnimeService {
         if (!response || !response.data) {
           throw new Error(`Anime con ID ${id} no encontrado`);
         }
-        const processedAnime = this.processAnimeData([response.data])[0];
-        this.cache.set(cacheKey, { data: processedAnime, timestamp: Date.now() });
-        return processedAnime;
+        return this.processAnimeData([response.data])[0];
+      }),
+      // Luego obtener el número de episodios desde Anilist
+      switchMap(jikanAnime => {
+        return this.getAnimeEpisodesFromAnilist(id).pipe(
+          map(anilistData => {
+            // Combinar datos: usar episodios de Anilist si están disponibles
+            const finalAnime = { ...jikanAnime };
+            
+            if (anilistData.episodes !== null) {
+              finalAnime.episodes = anilistData.episodes;
+              finalAnime.episodesSource = 'anilist';
+              console.log(`📺 Usando ${anilistData.episodes} episodios desde Anilist para ${finalAnime.title}`);
+            } else {
+              finalAnime.episodesSource = 'jikan';
+              console.log(`📺 Usando ${finalAnime.episodes || 'desconocido'} episodios desde Jikan para ${finalAnime.title}`);
+            }
+            
+            return finalAnime;
+          }),
+          catchError(error => {
+            console.warn('Error al obtener episodios de Anilist, usando datos de Jikan:', error);
+            return new Observable(subscriber => {
+              jikanAnime.episodesSource = 'jikan';
+              subscriber.next(jikanAnime);
+              subscriber.complete();
+            });
+          })
+        );
+      }),
+      tap(finalAnime => {
+        this.cache.set(cacheKey, { data: finalAnime, timestamp: Date.now() });
       }),
       catchError(error => this.handleApiError(error)),
       shareReplay(1)

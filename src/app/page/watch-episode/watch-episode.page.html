@@ -1,39 +1,116 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button [defaultHref]="'/anime/' + animeId"></ion-back-button>
-    </ion-buttons>
-    <ion-title>{{ animeTitle }} - Episodio {{ episodeNumber }}</ion-title>
-    <ion-buttons slot="end">
-      <!-- Botón para cambiar servidor -->
-      <ion-button fill="clear" (click)="showStreamingOptions()" [disabled]="!hasMultipleStreams()" color="primary">
-        <ion-icon name="server-outline" slot="icon-only"></ion-icon>
-      </ion-button>
-      <!-- Botón para refrescar enlaces -->
-      <ion-button fill="clear" (click)="refreshStreamingLinks()" color="primary">
-        <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
-      </ion-button>
-      <!-- Botón para abrir externamente -->
-      <ion-button fill="clear" (click)="togglePlayerMode()" color="primary">
-        <ion-icon name="open-outline" slot="icon-only"></ion-icon>
-      </ion-button>
-      <ion-button fill="clear" (click)="toggleFullscreen()">
-        <ion-icon name="expand-outline" slot="icon-only"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
+<ion-content>
+  <!-- Botón de retroceso flotante -->
+  <ion-button 
+    fill="clear" 
+    class="back-button-floating" 
+    (click)="goBack()">
+    <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+  </ion-button>
 
-<ion-content fullscreen="true" class="no-padding">
-  <iframe
-    [src]="getSafeIframeUrl(iframeUrl)"
-    style="border:0;width:100vw;height:100vh;position:fixed;top:0;left:0;"
-    allowfullscreen>
-  </iframe>
+  <!-- Contenedor principal del reproductor -->
+  <div class="video-container">
+    
+    <!-- Error del streaming -->
+    <div class="streaming-error" *ngIf="streamingError">
+      <ion-icon name="warning-outline" color="danger"></ion-icon>
+      <h3>Error al cargar el episodio</h3>
+      <p>{{ streamingError }}</p>
+      <div class="error-actions">
+        <ion-button *ngIf="hasEnglishTitle()" 
+                    fill="solid" size="small" color="secondary" (click)="tryEnglishTitle()">
+          <ion-icon name="language-outline" slot="start"></ion-icon>
+          Buscar con nombre inglés
+        </ion-button>
+        <ion-button fill="outline" size="small" color="tertiary" (click)="openExternalLink('https://animeav1.com')">
+          <ion-icon name="open-outline" slot="start"></ion-icon>
+          Abrir sitio web
+        </ion-button>
+      </div>
+      
+      <!-- Show English title if available -->
+      <div *ngIf="hasEnglishTitle()" class="english-title-info">
+        <p class="english-title">Título en inglés: <strong>{{ anime.title_english }}</strong></p>
+        <p class="english-title" *ngIf="anime.title_romaji">Romaji: <strong>{{ anime.title_romaji }}</strong></p>
+      </div>
+    </div>
 
-  <div class="ion-padding ion-text-center" *ngIf="anime?.title_english && anime?.title_english !== animeTitle">
-    <ion-button color="secondary" (click)="tryEnglishTitle()">
-      Intentar con el nombre en inglés ({{ anime.title_english }})
+    <!-- Reproductor iframe -->
+    <div class="iframe-container" *ngIf="safeIframeUrl && !streamingError" [attr.data-episode]="episodeNumber">
+      <iframe 
+        [src]="safeIframeUrl" 
+        frameborder="0" 
+        allowfullscreen
+        allow="autoplay; fullscreen; picture-in-picture"
+        (load)="onIframeLoad()"
+        (error)="onIframeError($event)"
+        class="video-iframe"
+        [attr.id]="'iframe-' + episodeNumber">
+      </iframe>
+    </div>
+  </div>
+
+  <!-- Información del episodio -->
+  <div class="episode-info">
+    <div class="episode-header">
+      <div class="episode-title-section">
+        <h2>{{ episodeTitle }}</h2>
+        <p class="anime-title">{{ animeTitle }}</p>
+      </div>
+      <div class="episode-actions">
+        <ion-button *ngIf="hasEnglishTitle()" fill="solid" size="small" color="secondary" (click)="tryEnglishTitle()">
+          <ion-icon name="language-outline" slot="start"></ion-icon>
+          Buscar con nombre inglés
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navegación entre episodios -->
+  <div class="episode-navigation" *ngIf="episodes.length > 0">
+    <ion-button 
+      [disabled]="!hasPreviousEpisode()" 
+      fill="outline" 
+      expand="block"
+      (click)="goToPreviousEpisode()">
+      <ion-icon name="play-skip-back-outline" slot="start"></ion-icon>
+      Episodio anterior
+    </ion-button>
+    
+    <ion-button 
+      [disabled]="!hasNextEpisode()" 
+      fill="solid" 
+      expand="block"
+      (click)="goToNextEpisode()">
+      Siguiente episodio
+      <ion-icon name="play-skip-forward-outline" slot="end"></ion-icon>
+    </ion-button>
+  </div>
+
+  <!-- Lista de episodios -->
+  <div class="episodes-section" *ngIf="episodes.length > 0">
+    <div class="section-header">
+      <h3>Episodios</h3>
+    </div>
+    
+    <div class="episodes-grid">
+      <div *ngFor="let episode of episodes.slice(0, 12)" 
+           class="episode-item"
+           [class.active]="episode.number === episodeNumber"
+           (click)="selectEpisode(episode.number)">
+        <img [src]="getEpisodeThumbnail(episode)" [alt]="episode.title">
+        <div class="episode-info-item">
+          <span class="episode-number">EP {{ episode.number }}</span>
+          <span class="episode-title">{{ episode.title }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mostrar más episodios -->
+    <ion-button *ngIf="episodes.length > 12" 
+                fill="outline" 
+                expand="block" 
+                class="show-more-episodes">
+      Ver todos los episodios ({{ totalEpisodes }})
     </ion-button>
   </div>
 </ion-content>

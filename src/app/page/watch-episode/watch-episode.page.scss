@@ -1,319 +1,99 @@
 // Estilos para la página de visualización de episodios
 
-// Estilos para información de streaming
-.streaming-info {
-  padding: 16px;
+// Botón de retroceso flotante
+.back-button-floating {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  --color: white;
+  --border-radius: 50%;
+  --padding-start: 0;
+  --padding-end: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
   
-  ion-card {
-    margin: 0;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  &:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.1);
+  }
+  
+  ion-icon {
+    font-size: 24px;
+  }
+}
+
+// Contenedor principal del video
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 70vh; // Aumentado de 50vh a 70vh
+  background: #000;
+  
+  .iframe-container {
+    width: 100%;
+    height: 100%;
     
-    ion-card-content {
-      padding: 16px;
-      
-      .server-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 16px;
-        
-        ion-icon {
-          font-size: 32px;
-        }
-        
-        .server-text {
-          flex: 1;
-          
-          h3 {
-            margin: 0 0 4px 0;
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--ion-text-color);
-          }
-          
-          p {
-            margin: 0;
-            font-size: 14px;
-            color: var(--ion-color-medium);
-          }
-        }
-        
-        ion-chip {
-          height: 32px;
-        }
-      }
-      
-      .server-actions {
-        ion-button {
-          --border-radius: 8px;
-        }
-      }
+    .video-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
     }
   }
 }
 
 // Estilos para errores de streaming
 .streaming-error {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
+  text-align: center;
+  background: var(--ion-color-light);
   
-  ion-card {
-    margin: 0;
-    border-radius: 12px;
-    
-    ion-card-content {
-      padding: 16px;
-      
-      .error-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 16px;
-        
-        ion-icon {
-          font-size: 32px;
-          color: var(--ion-color-danger-contrast);
-        }
-        
-        div {
-          flex: 1;
-          
-          h3 {
-            margin: 0 0 4px 0;
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--ion-color-danger-contrast);
-          }
-          
-          p {
-            margin: 0;
-            font-size: 14px;
-            color: var(--ion-color-danger-contrast);
-            opacity: 0.9;
-          }
-        }
-      }
-      
-      ion-button {
-        --border-radius: 8px;
-      }
-    }
+  ion-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
   }
-}
-
-.video-container {
-  position: relative;
-  width: 100%;
-  background: #000;
-
-  &.fullscreen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
-    
-    .video-wrapper {
-      height: 100vh;
-    }
+  
+  h3 {
+    margin: 0 0 8px 0;
+    color: var(--ion-text-color);
   }
-
-  .video-wrapper {
-    position: relative;
+  
+  p {
+    margin: 0 0 24px 0;
+    color: var(--ion-color-medium);
+    max-width: 300px;
+  }
+  
+  .error-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  
+  .english-title-info {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--ion-color-step-50);
+    border-radius: 8px;
     width: 100%;
-    aspect-ratio: 16/9;
-    background: #000;
-    overflow: hidden;
-
-    .video-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      background: #1a1a1a;
-      
-      .loading-content {
-        text-align: center;
-        color: white;
-        
-        ion-spinner {
-          margin-bottom: 16px;
-          --color: var(--ion-color-primary);
-        }
-        
-        p {
-          margin: 0 0 8px 0;
-          font-size: 16px;
-          font-weight: 500;
-        }
-        
-        small {
-          font-size: 14px;
-          opacity: 0.7;
-        }
-      }
-    }
-
-    // Nuevo reproductor iframe
-    .iframe-player {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      
-      .streaming-iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-        background: #000;
-      }
-      
-      .iframe-controls {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-        padding: 20px 16px 16px;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-
-        &.visible {
-          opacity: 1;
-          pointer-events: all;
-        }
-
-        .controls-row {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-
-          .provider-label {
-            color: white;
-            font-size: 14px;
-            font-weight: 500;
-            padding: 4px 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            backdrop-filter: blur(4px);
-          }
-
-          ion-button {
-            --color: white;
-            --background: rgba(255, 255, 255, 0.1);
-            --background-hover: rgba(255, 255, 255, 0.2);
-            --border-radius: 6px;
-            backdrop-filter: blur(4px);
-          }
-
-          .spacer {
-            flex: 1;
-          }
-        }
-      }
-    }
-
-    .video-player {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      cursor: pointer;
-
-      .video-thumbnail {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      .external-player-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(2px);
-        transition: opacity 0.3s ease;
-
-        .overlay-content {
-          text-align: center;
-          color: white;
-          
-          .play-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
-          }
-          
-          p {
-            margin: 0 0 16px 0;
-            font-size: 16px;
-            opacity: 0.9;
-          }
-          
-          ion-button {
-            --border-radius: 8px;
-          }
-        }
-      }
-
-      .video-controls {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-        padding: 20px 16px 16px;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-
-        &.visible {
-          opacity: 1;
-        }
-
-        .progress-bar {
-          width: 100%;
-          height: 4px;
-          background: rgba(255, 255, 255, 0.3);
-          border-radius: 2px;
-          margin-bottom: 12px;
-          cursor: pointer;
-
-          .progress-fill {
-            height: 100%;
-            background: var(--ion-color-primary);
-            border-radius: 2px;
-            transition: width 0.1s ease;
-          }
-        }
-
-        .controls-row {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-
-          ion-button {
-            --color: white;
-            --background: transparent;
-            --background-hover: rgba(255, 255, 255, 0.1);
-          }
-
-          .time-display {
-            color: white;
-            font-size: 14px;
-            font-family: monospace;
-          }
-
-          .spacer {
-            flex: 1;
-          }
-        }
-      }
+    max-width: 300px;
+    
+    .english-title {
+      margin: 8px 0;
+      font-size: 14px;
+      color: var(--ion-color-medium);
     }
   }
 }
@@ -324,322 +104,129 @@
 
   .episode-header {
     margin-bottom: 24px;
+    
+    .episode-title-section {
+      margin-bottom: 16px;
+      
+      h2 {
+        margin: 0 0 8px 0;
+        font-size: 20px;
+        font-weight: bold;
+        color: var(--ion-text-color);
+      }
 
-    h2 {
-      margin: 0 0 8px 0;
-      font-size: 20px;
-      font-weight: bold;
-      color: var(--ion-text-color);
-    }
-
-    h3 {
-      margin: 0 0 16px 0;
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--ion-color-medium);
+      .anime-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--ion-color-medium);
+      }
     }
     
-    // Información de servidores disponibles
-    .servers-info {
+    .episode-actions {
       display: flex;
-      flex-wrap: wrap;
       gap: 8px;
-      margin-top: 12px;
-      
-      .server-chip {
-        cursor: pointer;
-        transition: all 0.3s ease;
-        
-        &:hover {
-          transform: translateY(-1px);
-        }
-        
-        ion-icon {
-          font-size: 16px;
-        }
-        
-        ion-label {
-          font-weight: 500;
-        }
-      }
+      flex-wrap: wrap;
     }
   }
+}
 
-  .episode-navigation {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 32px;
-
-    ion-button {
-      flex: 1;
-      --border-radius: 8px;
-    }
-
-    @media (max-width: 480px) {
-      flex-direction: column;
-      
-      ion-button {
-        flex: none;
-      }
-    }
+// Navegación entre episodios
+.episode-navigation {
+  display: flex;
+  gap: 12px;
+  padding: 0 16px 16px;
+  
+  ion-button {
+    flex: 1;
   }
+}
 
-  .episodes-list {
-    h4 {
-      margin: 0 0 16px 0;
+// Lista de episodios
+.episodes-section {
+  padding: 16px;
+  
+  .section-header {
+    margin-bottom: 16px;
+    
+    h3 {
+      margin: 0;
       font-size: 18px;
-      font-weight: bold;
+      font-weight: 600;
       color: var(--ion-text-color);
     }
-
-    .episodes-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 12px;
-
-      @media (max-width: 480px) {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 8px;
+  }
+  
+  .episodes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+    
+    .episode-item {
+      background: var(--ion-color-light);
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      
+      &:hover {
+        transform: translateY(-2px);
       }
-
-      .episode-item {
-        cursor: pointer;
-        border-radius: 8px;
-        overflow: hidden;
-        background: var(--ion-color-light);
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      
+      &.active {
+        border: 2px solid var(--ion-color-primary);
+      }
+      
+      img {
+        width: 100%;
+        height: 80px;
+        object-fit: cover;
+      }
+      
+      .episode-info-item {
+        padding: 8px;
+        
+        .episode-number {
+          display: block;
+          font-size: 12px;
+          font-weight: bold;
+          color: var(--ion-color-primary);
         }
-
-        &.current {
-          border-color: var(--ion-color-primary);
-          background: var(--ion-color-primary-tint);
-        }
-
-        .episode-thumbnail {
-          position: relative;
-          width: 100%;
-          aspect-ratio: 16/9;
+        
+        .episode-title {
+          display: block;
+          font-size: 11px;
+          color: var(--ion-color-medium);
+          white-space: nowrap;
           overflow: hidden;
-
-          img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          }
-
-          .episode-number {
-            position: absolute;
-            bottom: 4px;
-            left: 4px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-          }
-        }
-
-        .episode-details {
-          padding: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-
-          .episode-title {
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--ion-text-color);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-
-          .episode-duration {
-            font-size: 10px;
-            color: var(--ion-color-medium);
-          }
+          text-overflow: ellipsis;
         }
       }
     }
   }
   
-  // Debug info
-  .debug-info {
-    margin-top: 32px;
-    
-    ion-card {
-      margin: 0;
-      border-radius: 8px;
-      
-      ion-card-header {
-        padding-bottom: 8px;
-        
-        ion-card-title {
-          font-size: 16px;
-          color: var(--ion-color-medium);
-        }
-      }
-      
-      ion-card-content {
-        p {
-          margin: 8px 0;
-          font-size: 14px;
-          
-          strong {
-            color: var(--ion-text-color);
-          }
-          
-          small {
-            word-break: break-all;
-            opacity: 0.8;
-          }
-        }
-      }
-    }
-  }
-}
-
-// Estilos globales para fullscreen
-:global(body.fullscreen-video) {
-  ion-header,
-  ion-tab-bar {
-    display: none !important;
+  .show-more-episodes {
+    margin-top: 16px;
   }
 }
 
 // Estilos responsivos
 @media (max-width: 768px) {
-  .streaming-info,
-  .streaming-error {
-    padding: 12px;
-    
-    ion-card ion-card-content {
-      padding: 12px;
-      
-      .server-header,
-      .error-content {
-        gap: 8px;
-        margin-bottom: 12px;
-        
-        ion-icon {
-          font-size: 28px;
-        }
-        
-        .server-text h3,
-        div h3 {
-          font-size: 16px;
-        }
-      }
-    }
-  }
-
   .video-container {
-    .video-wrapper {
-      .iframe-controls,
-      .video-controls {
-        padding: 16px 12px 12px;
-
-        .progress-bar {
-          height: 6px;
-        }
-
-        .controls-row {
-          gap: 8px;
-
-          .time-display,
-          .provider-label {
-            font-size: 12px;
-          }
-        }
-      }
-    }
+    height: 60vh; // Aumentado de 40vh a 60vh para móviles
+  }
+  
+  .episode-navigation {
+    flex-direction: column;
     
-    &.fullscreen {
-      .video-wrapper {
-        .iframe-controls,
-        .video-controls {
-          padding: 20px 16px 16px;
-        }
-      }
+    ion-button {
+      flex: none;
     }
   }
   
-  .episode-info {
-    .episode-header {
-      .servers-info {
-        .server-chip {
-          font-size: 12px;
-          
-          ion-icon {
-            font-size: 14px;
-          }
-        }
-      }
-    }
+  .episodes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
   }
-}
-
-@media (orientation: landscape) and (max-height: 500px) {
-  .episode-info {
-    padding: 12px;
-
-    .episode-navigation {
-      margin-bottom: 16px;
-    }
-
-    .episodes-list {
-      .episodes-grid {
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      }
-    }
-  }
-}
-
-// Animaciones para los controles de iframe
-@keyframes fadeInControls {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.iframe-controls.visible {
-  animation: fadeInControls 0.3s ease-out;
-}
-
-// Estilos para indicador de carga de iframe
-.iframe-player::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top: 3px solid var(--ion-color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  z-index: 1;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.iframe-player.loading::before {
-  opacity: 1;
-}
-
-@keyframes spin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
