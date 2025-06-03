@@ -19,7 +19,7 @@ interface CachedData {
   providedIn: 'root'
 })
 export class AnimeService {
-  // Solo searchAnime usará Anilist y solo devolverá los nombres
+  // Cambiar searchAnime para usar Jikan y obtener datos completos incluyendo imágenes
   searchAnime(queryStr: string): Observable<AnimeResponse> {
     if (!queryStr || queryStr.trim().length < 2) {
       return new Observable(subscriber => {
@@ -27,6 +27,7 @@ export class AnimeService {
         subscriber.complete();
       });
     }
+    
     const cacheKey = `search-${queryStr.toLowerCase()}`;
     if (this.isDataFresh(cacheKey)) {
       const cached = this.cache.get(cacheKey)!;
@@ -35,31 +36,21 @@ export class AnimeService {
         subscriber.complete();
       });
     }
-    // Solo obtener nombres desde Anilist
-    const query = `
-      query ($search: String, $page: Int, $perPage: Int) {
-        Page(page: $page, perPage: $perPage) {
-          media(search: $search, type: ANIME) {
-            id
-            title { english romaji native }
-          }
-        }
-      }
-    `;
-    const variables = { search: queryStr, page: 1, perPage: 20 };
-    return this.anilistQuery<any>(query, variables).pipe(
-      map(resp => {
-        const data = resp['data']?.Page?.media || [];
-        // Usar siempre el nombre en inglés si existe
-        const mapped = data.map((anime: any) => ({
-          mal_id: anime.id,
-          id: anime.id,
-          title: anime.title.english || anime.title.romaji || anime.title.native
-        }));
-        const response = { data: mapped, pagination: {} };
-        this.cache.set(cacheKey, { data: response, timestamp: Date.now() });
-        return response;
-      })
+
+    // Usar Jikan para obtener datos completos incluyendo imágenes
+    return this.http.get<AnimeResponse>(`${this.baseUrl}/anime?q=${encodeURIComponent(queryStr)}&limit=20`).pipe(
+      retry(2),
+      delay(800),
+      map(response => {
+        const processedData = this.processAnimeData(response.data || []);
+        const finalResponse = {
+          ...response,
+          data: processedData
+        };
+        this.cache.set(cacheKey, { data: finalResponse, timestamp: Date.now() });
+        return finalResponse;
+      }),
+      catchError(this.handleApiError)
     );
   }
 
