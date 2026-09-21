@@ -9,6 +9,7 @@
 
   <!-- Contenedor principal del reproductor -->
   <div class="video-container">
+    <div class="player-loading" *ngIf="loading" role="status"><ion-spinner></ion-spinner><p>Obteniendo reproductor…</p></div>
     
     <!-- Error del streaming -->
     <div class="streaming-error" *ngIf="streamingError">
@@ -21,7 +22,7 @@
           <ion-icon name="language-outline" slot="start"></ion-icon>
           Buscar con nombre inglés
         </ion-button>
-        <ion-button fill="outline" size="small" color="tertiary" (click)="openExternalLink('https://animeav1.com')">
+        <ion-button *ngIf="sourceUrl" fill="outline" size="small" color="tertiary" (click)="openExternalLink(sourceUrl)">
           <ion-icon name="open-outline" slot="start"></ion-icon>
           Abrir sitio web
         </ion-button>
@@ -38,6 +39,9 @@
     <div class="iframe-container" *ngIf="safeIframeUrl && !streamingError" [attr.data-episode]="episodeNumber">
       <iframe 
         [src]="safeIframeUrl" 
+        [title]="animeTitle + ' · ' + episodeTitle"
+        referrerpolicy="strict-origin-when-cross-origin"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
         frameborder="0" 
         allowfullscreen
         allow="autoplay; fullscreen; picture-in-picture"
@@ -50,6 +54,11 @@
   </div>
 
   <!-- Información del episodio -->
+  <div class="player-controls">
+    <ion-button *ngFor="let player of players" [fill]="selectedPlayer === player.url ? 'solid' : 'outline'" (click)="selectPlayer(player)">{{ player.name }}</ion-button>
+    <ion-button fill="clear" [disabled]="loading" (click)="reloadCurrentEpisode()">Reintentar</ion-button>
+    <ion-button *ngIf="sourceUrl" fill="clear" (click)="openExternalLink(sourceUrl)">Abrir capítulo en origen</ion-button>
+  </div>
   <div class="episode-info">
     <div class="episode-header">
       <div class="episode-title-section">
@@ -93,7 +102,7 @@
     </div>
     
     <div class="episodes-grid">
-      <div *ngFor="let episode of episodes.slice(0, 12)" 
+      <div *ngFor="let episode of (showAllEpisodes ? episodes : episodes.slice(0, 12))" 
            class="episode-item"
            [class.active]="episode.number === episodeNumber"
            (click)="selectEpisode(episode.number)">
@@ -109,8 +118,8 @@
     <ion-button *ngIf="episodes.length > 12" 
                 fill="outline" 
                 expand="block" 
-                class="show-more-episodes">
-      Ver todos los episodios ({{ totalEpisodes }})
+                class="show-more-episodes" (click)="showAllEpisodes = !showAllEpisodes">
+      {{ showAllEpisodes ? 'Mostrar menos' : 'Ver todos los episodios (' + totalEpisodes + ')' }}
     </ion-button>
   </div>
 </ion-content>

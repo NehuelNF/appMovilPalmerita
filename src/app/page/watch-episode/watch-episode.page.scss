@@ -1,9 +1,11 @@
 // Estilos para la página de visualización de episodios
+.player-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:240px; height:100%; color:white; }
+.player-controls { display:flex; gap:8px; flex-wrap:wrap; padding:16px; }
 
 // Botón de retroceso flotante
 .back-button-floating {
   position: fixed;
-  top: 20px;
+  top: 76px;
   left: 20px;
   z-index: 1000;
   width: 44px;
@@ -32,7 +34,9 @@
 .video-container {
   position: relative;
   width: 100%;
-  height: 70vh; // Aumentado de 50vh a 70vh
+  aspect-ratio: 16 / 9;
+  min-height: 260px;
+  max-height: 75vh;
   background: #000;
   
   .iframe-container {
@@ -214,7 +218,7 @@
 // Estilos responsivos
 @media (max-width: 768px) {
   .video-container {
-    height: 60vh; // Aumentado de 40vh a 60vh para móviles
+    min-height: 240px;
   }
   
   .episode-navigation {
