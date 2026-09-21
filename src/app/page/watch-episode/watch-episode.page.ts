@@ -42,9 +42,10 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
       this.sourceUrl='https://animeav1.com/media/'+slug+'/'+episode;
       const result=await firstValueFrom(this.http.get<{players:Player[];sourceUrl:string}>('/api/player',{params:{slug,episode:String(episode)}}));
       if(generation!==this.generation) return;
-      this.players=result.players; this.sourceUrl=result.sourceUrl;
+      this.players=result.players;
+      this.sourceUrl=result.sourceUrl;
       if(!this.players.length) throw new Error('Sin reproductores disponibles.');
-      this.selectPlayer(this.players[0]);
+      this.selectPlayer(this.players.find(player => /mp4upload/i.test(player.name) || /mp4upload/i.test(player.url)) || this.players[0]);
     } catch(error:any) {
       if(generation!==this.generation) return;
       this.streamingError=error?.error?.error || 'No se pudo obtener el reproductor del capítulo.';
