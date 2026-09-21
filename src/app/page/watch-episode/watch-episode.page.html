@@ -38,6 +38,7 @@
     </div>
 
     <!-- Reproductor iframe -->
+    <video *ngIf="directVideoUrl && !streamingError" class="native-video" [src]="directVideoUrl" controls playsinline preload="metadata"></video>
     <div class="iframe-container" *ngIf="safeIframeUrl && !streamingError" [attr.data-episode]="episodeNumber">
       <iframe 
         [src]="safeIframeUrl" 

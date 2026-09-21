@@ -14,6 +14,15 @@ export function extractPlayers(html) {
   }
   return players;
 }
+export function extractDirectVideo(html) {
+  const match = html.match(/\bsrc\s*:\s*["'](https:\/\/[^"']+\/video\.mp4(?:\?[^"']*)?)["']/i);
+  if (!match) return null;
+  try {
+    const url = new URL(match[1].replaceAll('&amp;', '&'));
+    if (url.protocol !== 'https:' || !/(^|\.)mp4upload\.com$/i.test(url.hostname) || url.username || url.password) return null;
+    return url.href;
+  } catch { return null; }
+}
 const json = (body, status = 200) => Response.json(body, {status, headers: {'Cache-Control':'no-store'}});
 export async function resolvePlayer(request, fetcher = fetch) {
   const q = new URL(request.url).searchParams;
@@ -29,6 +38,16 @@ export async function resolvePlayer(request, fetcher = fetch) {
     while(true) { const {done,value}=await reader.read(); if(done) break; size+=value.length; if(size>2000000){await reader.cancel(); return json({error:'Respuesta demasiado grande.'},502);} chunks.push(value); }
     const bytes=new Uint8Array(size); let offset=0; for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
     const players=extractPlayers(new TextDecoder().decode(bytes));
+    const mp4Embed=players.find(player => /mp4upload/i.test(player.name) || /mp4upload/i.test(player.url));
+    if(mp4Embed) {
+      try {
+        const mp4Response=await fetcher(mp4Embed.url,{redirect:'follow',signal:AbortSignal.timeout(10000),headers:{Accept:'text/html',Referer:sourceUrl}});
+        if(mp4Response.ok && (mp4Response.headers.get('content-type') || '').includes('text/html')) {
+          const directUrl=extractDirectVideo(await mp4Response.text());
+          if(directUrl) players.unshift({url:directUrl,name:'Reproductor seguro',type:'direct'});
+        }
+      } catch { /* Keep iframe mirrors when direct extraction is unavailable. */ }
+    }
     return players.length ? json({sourceUrl,players}) : json({error:'No hay un reproductor compatible disponible para este capítulo.',sourceUrl},404);
   } catch { return json({error:'No se pudo consultar el reproductor. Inténtalo de nuevo.',sourceUrl},502); }
 }

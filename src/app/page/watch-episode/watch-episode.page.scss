@@ -4,6 +4,7 @@
 .video-container.player-expanded { position:fixed; inset:0; z-index:10000; }
 .fullscreen-notice { position:absolute; left:12px; right:12px; bottom:8px; z-index:5; padding:8px; background:#123d2e; color:white; font-size:14px; }
 .player-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:240px; height:100%; color:white; }
+.native-video { width:100%; height:100%; object-fit:contain; background:black; }
 .player-controls { display:flex; gap:8px; flex-wrap:wrap; padding:16px; }
 
 // Botón de retroceso flotante

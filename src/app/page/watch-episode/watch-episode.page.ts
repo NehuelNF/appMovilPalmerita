@@ -5,13 +5,14 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { firstValueFrom, Subscription } from 'rxjs';
 import { AnimeService } from '../../../managers/AnimeService';
 
-interface Player { name: string; url: string; }
+interface Player { name: string; url: string; type?: 'direct' | 'iframe'; }
 @Component({selector:'app-watch-episode',templateUrl:'./watch-episode.page.html',styleUrls:['./watch-episode.page.scss']})
 export class WatchEpisodePage implements OnInit, OnDestroy {
   animeId=''; episodeNumber=1; animeTitle=''; episodeTitle=''; episodeThumbnail='';
   anime:any=null; totalEpisodes=0; episodes:{number:number;title:string}[]=[];
   safeIframeUrl:SafeResourceUrl|null=null;
   streamingError=''; loading=true; players:Player[]=[]; selectedPlayer=''; sourceUrl='';
+  directVideoUrl='';
   showAllEpisodes=false;
   @ViewChild('playerSurface') playerSurface?:ElementRef<HTMLElement>;
   expanded=false;
@@ -42,7 +43,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   async loadEpisode(useEnglish=false) {
     const generation=++this.generation;
     const animeId=this.animeId, episode=this.episodeNumber;
-    this.safeIframeUrl=null; this.players=[]; this.streamingError=''; this.loading=true; this.sourceUrl='';
+    this.safeIframeUrl=null; this.directVideoUrl=''; this.players=[]; this.streamingError=''; this.loading=true; this.sourceUrl='';
     this.episodeTitle='Episodio '+episode;
     try {
       if(!this.anime || this.anime.mal_id!==Number(animeId)) {
@@ -70,9 +71,13 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   }
   selectPlayer(player:Player) {
     const url=new URL(player.url);
+    if(player.type==='direct') {
+      if(url.protocol!=='https:' || !/(^|\.)mp4upload\.com$/i.test(url.hostname) || url.username || url.password) return;
+      this.selectedPlayer=player.url; this.streamingError=''; this.safeIframeUrl=null; this.directVideoUrl=player.url; return;
+    }
     const hosts=['player.zilla-networks.com','animeav1.uns.bio','voe.sx','mega.nz','www.mp4upload.com','mp4upload.com'];
     if(url.protocol!=='https:' || !hosts.includes(url.hostname) || url.username || url.password || url.port) return;
-    this.selectedPlayer=player.url; this.streamingError='';
+    this.selectedPlayer=player.url; this.streamingError=''; this.directVideoUrl='';
     this.safeIframeUrl=this.sanitizer.bypassSecurityTrustResourceUrl(player.url);
   }
   onIframeLoad() { /* A loaded cross-origin frame does not confirm playback. */ }
