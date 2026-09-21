@@ -129,7 +129,7 @@ ion-content {
 }
 
 .anime-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #075b37 0%, #1c825b 100%) !important;
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -142,7 +142,7 @@ ion-content {
   &:hover {
     transform: translateY(-8px) scale(1.02);
     box-shadow: 0 12px 28px rgba(103, 126, 234, 0.25);
-    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+    background: linear-gradient(135deg, #064a2d 0%, #176b4b 100%) !important;
   }
   
   .image-container {

@@ -49,6 +49,15 @@ interface FavoriteAnime {
   styleUrls: ['app.component.scss'],
 })
 export class AppComponent {
+  darkMode = document.documentElement.classList.contains('ion-palette-dark');
+
+  toggleTheme() {
+    this.darkMode = !this.darkMode;
+    document.documentElement.classList.toggle('ion-palette-dark', this.darkMode);
+    document.documentElement.dataset['theme'] = this.darkMode ? 'dark' : 'light';
+    try { localStorage.setItem('palmerita-theme', this.darkMode ? 'dark' : 'light'); } catch {}
+  }
+
   constructor(
     private notificationService: NotificationService,
     private favoritesService: FavoritesService,

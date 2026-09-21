@@ -116,7 +116,7 @@
 }
 
 // Dark mode support
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   .skeleton-container .skeleton-element {
     background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
     background-size: 200% 100%;

@@ -29,7 +29,7 @@
   <!-- Top Anime Title with Search -->
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Top Anime</ion-card-title>
+      <ion-card-title>Descubre tu próximo anime</ion-card-title>
     </ion-card-header>
     <ion-card-content>
       <!-- Search bar -->
@@ -68,12 +68,12 @@
             #{{i + 1}}
           </div>
           
-          <img class="circular-icon" [src]="anime.images.jpg.image_url">
+          <img class="circular-icon" [src]="anime.images.jpg.image_url" [alt]="anime.title" loading="lazy">
           <ion-label class="item-text">{{ anime.title }}</ion-label>
         </div>
       </div>
       <div class="button-container">
-        <ion-button shape="round" (click)="toggleFavorite(anime, $event)">
+        <ion-button shape="round" [attr.aria-label]="isFavorite(anime.mal_id) ? 'Quitar de favoritos' : 'Añadir a favoritos'" (click)="toggleFavorite(anime, $event)">
           <ion-icon slot="icon-only" [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'"></ion-icon>
         </ion-button>
       </div>

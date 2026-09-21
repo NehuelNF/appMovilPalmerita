@@ -201,7 +201,7 @@
 }
 
 // Dark mode improvements
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   .stat-card {
     --background: var(--ion-color-step-50);
   }

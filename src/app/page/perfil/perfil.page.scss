@@ -76,7 +76,7 @@
   }
   
   // Estilos para modo oscuro
-  @media (prefers-color-scheme: dark) {
+  :host-context(.ion-palette-dark) {
     .user-info h2 {
       color: var(--ion-color-light);
     }

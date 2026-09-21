@@ -40,13 +40,13 @@ ion-content {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     
     // CAMBIO: Fondo con gradiente para contraste con texto blanco
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: linear-gradient(135deg, #075b37 0%, #1c825b 100%) !important;
     color: white !important;
     
     &:hover {
       transform: translateY(-8px) scale(1.02);
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+      background: linear-gradient(135deg, #064a2d 0%, #176b4b 100%) !important;
     }
     
     img {
@@ -277,7 +277,7 @@ ion-title {
 }
 
 // Asegurar que en modo oscuro también funcione
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   ion-title {
     color: #ffffff !important;
     --color: #ffffff !important;
@@ -290,7 +290,7 @@ ion-toolbar ion-title {
   --color: #000000 !important;
 }
 
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   ion-toolbar ion-title {
     color: #ffffff !important;
     --color: #ffffff !important;
@@ -303,7 +303,7 @@ ion-header ion-toolbar ion-title {
   --color: #000000 !important;
 }
 
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   ion-header ion-toolbar ion-title {
     color: #ffffff !important;
     --color: #ffffff !important;

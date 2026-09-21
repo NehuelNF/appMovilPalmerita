@@ -1,84 +1,69 @@
-/*
- * App Global CSS
- * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
- */
-
-/* Core CSS required for Ionic components to work properly */
 @import "@ionic/angular/css/core.css";
-
-/* Basic CSS for apps built with Ionic */
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
-
-/* Optional CSS utils that can be commented out */
 @import "@ionic/angular/css/padding.css";
-@import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
-@import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
-
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
-
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import "@ionic/angular/css/palettes/dark.system.css";
 @import "@ionic/angular/css/palettes/dark.class.css";
-
-/* 
- * SOLUCIÓN GLOBAL INFALIBLE PARA TÍTULOS BLANCOS
- * Esta regla sobrescribe cualquier estilo de Ionic con color negro directo
- */
-ion-title {
-  color: #000000 !important;
-  --color: #000000 !important;
-  font-weight: 600 !important;
+:root {
+--ion-font-family: "Segoe UI", system-ui, sans-serif;
+--ion-color-primary: #087443; --ion-color-primary-rgb: 8,116,67; --ion-color-primary-contrast: #fff; --ion-color-primary-shade: #066139; --ion-color-primary-tint: #218256;
+--ion-color-secondary: #227d69; --ion-color-secondary-rgb: 34,125,105; --ion-color-secondary-contrast: #fff; --ion-color-secondary-shade: #1b6656; --ion-color-secondary-tint: #38907c;
+--ion-color-tertiary: #507c31; --ion-color-tertiary-contrast: #fff;
+--ion-color-success: #087443; --ion-color-success-rgb: 8,116,67; --ion-color-success-contrast: #fff;
+--ion-color-warning: #edb640; --ion-color-warning-contrast: #342600;
+--ion-color-danger: #cc3e4b; --ion-color-danger-contrast: #fff;
+--ion-color-medium: #62736b; --ion-color-medium-rgb: 98,115,107;
+--ion-color-light: #eef4f0; --ion-color-light-contrast: #183429;
+--ion-color-dark: #183429; --ion-color-dark-contrast: #fff;
+--ion-background-color: #f3f7f4; --ion-background-color-rgb: 243,247,244;
+--ion-text-color: #183429; --ion-text-color-rgb: 24,52,41;
+--ion-card-background: #fff; --ion-item-background: #fff; --ion-toolbar-background: #fff; --ion-border-color: #dce7df;
+--surface: #fff; --surface-soft: #e6f1e9; --muted: #62736b;
+--anime-gradient-primary: linear-gradient(120deg,#075b37,#1c825b); --anime-gradient-card: var(--surface);
+--anime-card-shadow: 0 5px 24px #13392308; --anime-card-shadow-hover: 0 12px 32px #13392314;
+--anime-transition-fast: 180ms; --anime-transition-normal: 250ms; --anime-transition-slow: 350ms; color-scheme: light;
 }
-
-/* Para modo oscuro, usar blanco */
-@media (prefers-color-scheme: dark) {
-  ion-title {
-    color: #ffffff !important;
-    --color: #ffffff !important;
-  }
+:root.ion-palette-dark {
+--ion-color-primary: #67dfa0; --ion-color-primary-rgb: 103,223,160; --ion-color-primary-contrast: #082b1b; --ion-color-primary-shade: #52c78c; --ion-color-primary-tint: #83e5b1;
+--ion-color-secondary: #78ceba; --ion-color-secondary-rgb: 120,206,186; --ion-color-secondary-contrast: #082b1b;
+--ion-color-success: #67dfa0; --ion-color-success-rgb: 103,223,160; --ion-color-success-contrast: #082b1b;
+--ion-color-medium: #a0b5a8; --ion-color-light: #23392e; --ion-color-light-contrast: #eaf5ed; --ion-color-dark: #eaf5ed; --ion-color-dark-contrast: #102219;
+--ion-background-color: #0c1711; --ion-background-color-rgb: 12,23,17; --ion-text-color: #eaf5ed; --ion-text-color-rgb: 234,245,237;
+--ion-card-background: #15261c; --ion-item-background: #15261c; --ion-toolbar-background: #15261c; --ion-border-color: #2b4033;
+--surface: #15261c; --surface-soft: #20372a; --muted: #a0b5a8;
+--anime-card-shadow: 0 5px 24px #0002; --anime-card-shadow-hover: 0 12px 32px #0004; color-scheme: dark;
 }
-
-/* Específicamente para headers */
-ion-header ion-title {
-  color: #000000 !important;
-  --color: #000000 !important;
+body { font-size: 16px; }
+ion-app > ion-router-outlet { top: calc(64px + env(safe-area-inset-top)); }
+.appearance-bar { position: absolute; inset: 0 0 auto; height: calc(64px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) max(20px,calc((100% - 1200px)/2)) 0; display: flex; align-items: center; justify-content: space-between; background: var(--surface); border-bottom: 1px solid var(--ion-border-color); z-index: 20; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 750; text-decoration: none; letter-spacing: -.8px; color: var(--ion-color-primary); }
+.brand ion-icon { font-size: 27px; }
+.theme-switch { display: flex; align-items: center; gap: 8px; border: 1px solid var(--ion-border-color); border-radius: 24px; padding: 10px 16px; background: var(--surface-soft); color: var(--ion-text-color); font: inherit; font-size: 14px; cursor: pointer; min-height: 42px; }
+.theme-switch ion-icon { font-size: 18px; }
+:focus-visible { outline: 3px solid var(--ion-color-primary); outline-offset: 3px; }
+ion-content { --background: var(--ion-background-color); }
+ion-header { box-shadow: none !important; background: var(--surface); }
+ion-toolbar { --background: var(--surface); --color: var(--ion-text-color); --border-color: var(--ion-border-color); }
+ion-title { color: var(--ion-text-color); font-weight: 650; font-size: 18px; }
+ion-card { background: var(--surface); color: var(--ion-text-color); border: 1px solid var(--ion-border-color); border-radius: 20px; box-shadow: var(--anime-card-shadow); }
+ion-card-title, ion-card-subtitle { color: var(--ion-text-color); }
+ion-button { --border-radius: 12px; --box-shadow: none; font-weight: 650; text-transform: none; letter-spacing: 0; min-height: 42px; }
+ion-searchbar { --background: var(--surface-soft); --color: var(--ion-text-color); --placeholder-color: var(--muted); --icon-color: var(--ion-color-primary); --border-radius: 12px; --box-shadow: none; }
+ion-list { background: transparent; }
+ion-item { --background: var(--surface); --color: var(--ion-text-color); --border-color: var(--ion-border-color); }
+ion-segment { background: var(--surface-soft); border-radius: 14px; padding: 4px; }
+ion-segment-button { --color: var(--muted); --color-checked: var(--ion-color-primary); --indicator-color: var(--surface); }
+ion-tab-bar { --background: var(--surface); border-top: 1px solid var(--ion-border-color); height: 70px; padding-bottom: env(safe-area-inset-bottom); }
+ion-tab-button { --color: var(--muted); --color-selected: var(--ion-color-primary); font-size: 14px; max-width: 200px; }
+ion-tab-button.tab-selected { background: var(--surface-soft); border-radius: 14px; margin: 6px 2px; }
+ion-spinner { color: var(--ion-color-primary); }
+app-perfil .user-info h2 { color: var(--ion-text-color) !important; }
+app-perfil .update-section { background: var(--surface) !important; }
+@media(min-width:900px) {
+ion-content { --padding-start: max(24px,calc((100vw - 1200px)/2)); --padding-end: max(24px,calc((100vw - 1200px)/2)); }
+ion-toolbar { --padding-start: max(16px,calc((100vw - 1200px)/2)); --padding-end: max(16px,calc((100vw - 1200px)/2)); }
 }
-
-@media (prefers-color-scheme: dark) {
-  ion-header ion-title {
-    color: #ffffff !important;
-    --color: #ffffff !important;
-  }
-}
-
-/* Si el dispositivo tiene un tema específico aplicado */
-.ios ion-title,
-.md ion-title {
-  color: #000000 !important;
-  --color: #000000 !important;
-}
-
-@media (prefers-color-scheme: dark) {
-  .ios ion-title,
-  .md ion-title {
-    color: #ffffff !important;
-    --color: #ffffff !important;
-  }
-}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
