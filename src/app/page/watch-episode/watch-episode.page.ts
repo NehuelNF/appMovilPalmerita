@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -13,6 +13,23 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   safeIframeUrl:SafeResourceUrl|null=null;
   streamingError=''; loading=true; players:Player[]=[]; selectedPlayer=''; sourceUrl='';
   showAllEpisodes=false;
+  @ViewChild('playerSurface') playerSurface?:ElementRef<HTMLElement>;
+  expanded=false;
+  fullscreenMessage='';
+  async toggleFullscreen() {
+    const element=this.playerSurface?.nativeElement;
+    if(!element) return;
+    if(document.fullscreenElement===element) { await document.exitFullscreen(); return; }
+    if(this.expanded) { this.expanded=false; this.fullscreenMessage=''; return; }
+    try {
+      if(!document.fullscreenEnabled || !element.requestFullscreen) throw new Error('Unavailable');
+      await element.requestFullscreen();
+    } catch {
+      this.expanded=true;
+      this.fullscreenMessage='Vista ampliada: este navegador no permite pantalla completa. Pulsa Salir o Escape para volver.';
+    }
+  }
+  @HostListener('document:keydown.escape') closeExpanded() { this.expanded=false; this.fullscreenMessage=''; }
   private generation=0;
   private subscription=new Subscription();
   constructor(private route:ActivatedRoute,private router:Router,private animeService:AnimeService,private http:HttpClient,private sanitizer:DomSanitizer) {}
@@ -71,6 +88,6 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   getEpisodeThumbnail(episode:any){return episode.thumbnail || this.episodeThumbnail;}
   openExternalLink(url:string){if(url.startsWith('https://animeav1.com/')) window.open(url,'_blank','noopener,noreferrer');}
   goBack(){this.safeIframeUrl=null;this.router.navigate(['/anime',this.animeId]);}
-  ionViewWillLeave(){++this.generation;this.safeIframeUrl=null;}
+  ionViewWillLeave(){++this.generation;this.safeIframeUrl=null;this.closeExpanded();if(document.fullscreenElement===this.playerSurface?.nativeElement) void document.exitFullscreen();}
   ngOnDestroy(){++this.generation;this.safeIframeUrl=null;this.subscription.unsubscribe();}
 }
