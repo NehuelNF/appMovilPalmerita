@@ -11,6 +11,7 @@
  <!-- LOGIN -->
  <div class="container">
    <div class="login-form">
+      <p *ngIf="error" role="alert" class="login-error">{{ error }}</p>
 
       <div class="form-group">
        <ion-input label="Usuario" label-placement="floating" fill="outline" placeholder="Usuario" type="text" [(ngModel)]="identifier"></ion-input>

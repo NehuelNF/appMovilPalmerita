@@ -24,8 +24,8 @@ export class UserLoginUseCase {
 
   async loginUser(identifier: string, password: string): Promise<void> {
     try {
-      let userCredential;
-      let email = identifier;
+      let email = identifier.trim();
+      if (!email || !password) throw new Error('Ingresa tu usuario y contraseña.');
 
       // Si no es un email, buscar el email asociado al username
       if (!identifier.includes('@')) {
@@ -49,25 +49,22 @@ export class UserLoginUseCase {
       }
 
       // Autenticar con el email
-      userCredential = await this.fireAuth.signInWithEmailAndPassword(email, password);
+      const userCredential = await this.fireAuth.signInWithEmailAndPassword(email, password);
 
       if (userCredential.user) {
-        // Obtener datos del usuario
-        const userDoc = await this.firestore
-          .collection('users')
-          .doc(userCredential.user.uid)
-          .get()
-          .toPromise();
-
-        if (userDoc?.exists) {
-
-          const userData = userDoc.data() as { username?: string };
-          
-          if (userData && userData['username']) {
-            await this.storageService.set('username', userData['username']);
-            this.router.navigate(['/tab/home']);
-          }
+        // La sesión de Firebase es la fuente de verdad. Un perfil incompleto
+        // o una lectura fallida de Firestore no deben bloquear el acceso.
+        let username = userCredential.user.displayName || email.split('@')[0];
+        try {
+          const userDoc = await this.firestore.collection('users').doc(userCredential.user.uid).get().toPromise();
+          const profile = userDoc?.data() as { username?: string } | undefined;
+          username = profile?.username || username;
+        } catch (profileError) {
+          console.warn('No se pudo leer el perfil; la sesión sigue activa.', profileError);
         }
+        await this.storageService.set('username', username);
+        await this.storageService.set('userEmail', userCredential.user.email || email);
+        await this.router.navigateByUrl('/tab/home', { replaceUrl: true });
       }
     } catch (error: any) {
       console.error('Error al iniciar sesión:', error);
@@ -126,47 +123,20 @@ export class UserLoginUseCase {
       usernameToSave = user.email.split('@')[0];
     }
     
-    // Verificar si el usuario ya existe en Firestore
-    const userDoc = await this.firestore
-      .collection('users')
-      .doc(user.id)
-      .get()
-      .toPromise();
-
-    if (!userDoc?.exists) {
-      await this.firestore.collection('users').doc(user.id).set({
-        email: user.email,
-        username: usernameToSave,
-        displayName: user.name,
-        photoURL: user.imageUrl,
-        provider: 'google',
-        createdAt: new Date()
-      });
-    } else {
-      const existingData = userDoc.data() as any;
-      const updateData: any = {};
-      
-      if (!existingData.username || 
-          existingData.username.includes('@') || 
-          existingData.username !== usernameToSave) {
-        updateData.username = usernameToSave;
+    try {
+      const userDoc = await this.firestore.collection('users').doc(user.id).get().toPromise();
+      if (!userDoc?.exists) {
+        await this.firestore.collection('users').doc(user.id).set({
+          email: user.email, username: usernameToSave, displayName: user.name,
+          photoURL: user.imageUrl, provider: 'google', createdAt: new Date()
+        });
       }
-      
-      if (existingData.displayName !== user.name) {
-        updateData.displayName = user.name;
-      }
-      
-      if (existingData.photoURL !== user.imageUrl) {
-        updateData.photoURL = user.imageUrl;
-      }
-      
-      if (Object.keys(updateData).length > 0) {
-        await this.firestore.collection('users').doc(user.id).update(updateData);
-      }
+    } catch (profileError) {
+      console.warn('No se pudo guardar el perfil; la sesión sigue activa.', profileError);
     }
 
     await this.storageService.set('username', usernameToSave);
     await this.storageService.set('userEmail', user.email);
-    await this.router.navigate(['/tab/home']);
+    await this.router.navigateByUrl('/tab/home', { replaceUrl: true });
   }
 }

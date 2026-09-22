@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { Platform } from '@ionic/angular';
 import firebase from 'firebase/compat/app';
 
 @Injectable({
@@ -8,8 +7,7 @@ import firebase from 'firebase/compat/app';
 })
 export class GoogleAuthService {
   constructor(
-    private afAuth: AngularFireAuth,
-    private platform: Platform
+    private afAuth: AngularFireAuth
   ) {}
 
   async signIn() {
@@ -18,6 +16,14 @@ export class GoogleAuthService {
       provider.addScope('profile');
       provider.addScope('email');
       provider.setCustomParameters({ prompt: 'select_account' });
+
+      // iOS abre los accesos directos como una web independiente: los popups
+      // de OAuth pueden quedar fuera de esa ventana. Usar navegación completa.
+      if (window.matchMedia('(display-mode: standalone)').matches ||
+          (navigator as Navigator & { standalone?: boolean }).standalone) {
+        await this.afAuth.signInWithRedirect(provider);
+        return null;
+      }
 
       try {
         const result = await this.afAuth.signInWithPopup(provider);
@@ -57,10 +63,19 @@ export class GoogleAuthService {
           imageUrl: result.user.photoURL
         };
       }
+      const currentUser = await this.afAuth.currentUser;
+      if (currentUser) {
+        return {
+          id: currentUser.uid,
+          email: currentUser.email,
+          name: currentUser.displayName,
+          imageUrl: currentUser.photoURL
+        };
+      }
       return null;
     } catch (error) {
       console.error('Error obteniendo resultado de redirección:', error);
-      return null;
+      throw error;
     }
   }
 

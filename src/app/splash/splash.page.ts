@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { StorageService } from 'src/managers/StorageService';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-splash',
@@ -8,16 +10,11 @@ import { StorageService } from 'src/managers/StorageService';
   styleUrls: ['./splash.page.scss'],
 })
 export class SplashPage implements OnInit {
-  constructor(private router: Router, private storageService: StorageService) {}
+  constructor(private router: Router, private storageService: StorageService, private fireAuth: AngularFireAuth) {}
 
   async ionViewDidEnter() {
-    await this.storageService.init(); // Asegúrate de que el almacenamiento esté inicializado
-    const username = await this.storageService.get('username');
-    if (username) {
-      this.router.navigate(['/tab/home']);
-    } else {
-      this.router.navigate(['/login']);
-    }
+    const user = await firstValueFrom(this.fireAuth.authState);
+    await this.router.navigateByUrl(user ? '/tab/home' : '/login', { replaceUrl: true });
   }
 
   async ngOnInit() {

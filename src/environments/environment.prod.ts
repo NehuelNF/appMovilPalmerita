@@ -2,7 +2,7 @@ export const environment = {
   production: true,
   firebaseConfig : {
     apiKey: "AIzaSyB6iS9GTE4KGFX0FlORWexHwCDPV6t2MRA",
-    authDomain: "palmeritapp.firebaseapp.com",
+    authDomain: "app-movil-palmerita.patladinomvp.chatgpt.site",
     databaseURL: "https://palmeritapp-default-rtdb.firebaseio.com",
     projectId: "palmeritapp",
     storageBucket: "palmeritapp.appspot.com",

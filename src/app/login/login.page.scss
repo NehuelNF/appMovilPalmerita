@@ -5,3 +5,9 @@ ion-input { --color:var(--ion-text-color); --border-color:var(--ion-border-color
 .google-btn { --background:var(--surface); --color:var(--ion-text-color); --border-color:var(--ion-border-color); --border-style:solid; --border-width:1px; }
 .separator { display:flex; align-items:center; gap:12px; margin:24px 0; color:var(--muted); }
 .separator::before,.separator::after { content:''; flex:1; border-bottom:1px solid var(--ion-border-color); }
+.login-error {
+  color: var(--ion-color-danger);
+  padding: 0.75rem;
+  border: 1px solid var(--ion-color-danger);
+  border-radius: 8px;
+}
