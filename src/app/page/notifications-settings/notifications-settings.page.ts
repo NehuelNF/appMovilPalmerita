@@ -16,6 +16,9 @@ export class NotificationsSettingsPage implements OnInit {
 
   scheduledNotifications: ScheduledNotification[] = [];
   isLoading = false;
+  isIos = false;
+  isStandalone = false;
+  webPermission: NotificationPermission | 'unsupported' = 'unsupported';
 
   constructor(
     private notificationService: NotificationService,
@@ -24,11 +27,19 @@ export class NotificationsSettingsPage implements OnInit {
   ) { }
 
   async ngOnInit() {
+    this.refreshDeviceState();
     await this.loadNotificationData();
   }
 
   async ionViewWillEnter() {
+    this.refreshDeviceState();
     await this.loadNotificationData();
+  }
+
+  private refreshDeviceState() {
+    this.isIos = this.notificationService.isIos();
+    this.isStandalone = this.notificationService.isStandaloneWebApp();
+    this.webPermission = this.notificationService.getWebPermission();
   }
 
   private async loadNotificationData() {
@@ -73,8 +84,8 @@ export class NotificationsSettingsPage implements OnInit {
       await toast.present();
     } catch (error) {
       const toast = await this.toastCtrl.create({
-        message: 'Error al enviar notificación de prueba',
-        duration: 3000,
+        message: error instanceof Error ? error.message : 'Error al enviar notificación de prueba',
+        duration: 5000,
         color: 'danger'
       });
       await toast.present();
@@ -168,6 +179,7 @@ export class NotificationsSettingsPage implements OnInit {
   async requestPermissions() {
     try {
       await this.notificationService.requestPermission();
+      this.refreshDeviceState();
       const toast = await this.toastCtrl.create({
         message: 'Permisos de notificación otorgados',
         duration: 2000,
@@ -175,10 +187,11 @@ export class NotificationsSettingsPage implements OnInit {
       });
       await toast.present();
       await this.loadNotificationData();
+      setTimeout(() => window.location.reload(), 900);
     } catch (error) {
       const toast = await this.toastCtrl.create({
-        message: 'No se pudieron obtener los permisos de notificación',
-        duration: 3000,
+        message: error instanceof Error ? error.message : 'No se pudieron obtener los permisos de notificación',
+        duration: 6000,
         color: 'danger'
       });
       await toast.present();

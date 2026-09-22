@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 export interface ScheduledNotification {
   id: number;
@@ -18,12 +19,17 @@ export interface ScheduledNotification {
 export class NotificationService {
   private storageKey = 'scheduled_notifications';
   private maxBackupNotifications = 3;
+  private webTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   constructor() {
     this.initializeService();
   }
 
   private async initializeService() {
+    if (!this.isNativePlatform()) {
+      await this.registerWebServiceWorker();
+      await this.restoreWebTimers();
+    }
     // Verificar notificaciones perdidas al iniciar la app
     await this.checkMissedNotifications();
     // Limpiar notificaciones expiradas
@@ -32,6 +38,24 @@ export class NotificationService {
 
   async requestPermission(): Promise<void> {
     try {
+      if (!this.isNativePlatform()) {
+        if (!('Notification' in window)) {
+          throw new Error('Este navegador no admite notificaciones web.');
+        }
+        if (this.isIos() && !this.isStandaloneWebApp()) {
+          throw new Error('En iPhone, añade Palmerita a la pantalla de inicio y ábrela desde ese icono para activar las notificaciones.');
+        }
+        const permission = Notification.permission === 'default'
+          ? await Notification.requestPermission()
+          : Notification.permission;
+        if (permission !== 'granted') {
+          throw new Error(permission === 'denied'
+            ? 'Las notificaciones están bloqueadas. Actívalas en Ajustes > Notificaciones > Palmerita.'
+            : 'No se concedió permiso para enviar notificaciones.');
+        }
+        await this.registerWebServiceWorker();
+        return;
+      }
       const result = await LocalNotifications.requestPermissions();
       if (result.display === 'granted') {
         console.log('Permiso de notificación concedido');
@@ -142,6 +166,11 @@ export class NotificationService {
       // Verificar que la fecha sea futura
       if (at.getTime() <= Date.now()) {
         console.warn(`No se puede programar notificación en el pasado: ${at}`);
+        return;
+      }
+
+      if (!this.isNativePlatform()) {
+        await this.saveWebTimer(notificationId, title, body, at);
         return;
       }
 
@@ -278,6 +307,14 @@ export class NotificationService {
   }
 
   async getPending() {
+    if (!this.isNativePlatform()) {
+      const notifications = await this.getScheduledNotifications();
+      return {
+        notifications: notifications
+          .filter(notification => notification.scheduledAt.getTime() > Date.now())
+          .map(notification => ({ id: notification.id }))
+      };
+    }
     return LocalNotifications.getPending();
   }
 
@@ -313,6 +350,14 @@ export class NotificationService {
   // Nuevo método para enviar una notificación de prueba
   async sendTestNotification(): Promise<void> {
     await this.requestPermission();
+    if (!this.isNativePlatform()) {
+      await this.showWebNotification(
+        '🔔 Notificación de prueba',
+        '¡Las notificaciones de Palmerita están activadas!',
+        999999
+      );
+      return;
+    }
     const now = new Date();
     try {
       await this.scheduleNotification(
@@ -330,6 +375,12 @@ export class NotificationService {
 
   async cancelAllNotifications(): Promise<void> {
     try {
+      if (!this.isNativePlatform()) {
+        this.webTimers.forEach(timer => clearTimeout(timer));
+        this.webTimers.clear();
+        localStorage.removeItem(this.storageKey);
+        return;
+      }
       const pending = await LocalNotifications.getPending();
       if (pending.notifications.length > 0) {
         await LocalNotifications.cancel(pending);
@@ -356,7 +407,13 @@ export class NotificationService {
         const idsToCancel = [notification.id, ...notification.backupIds];
         
         for (const id of idsToCancel) {
-          await LocalNotifications.cancel({ notifications: [{ id }] });
+          if (this.isNativePlatform()) {
+            await LocalNotifications.cancel({ notifications: [{ id }] });
+          } else {
+            const timer = this.webTimers.get(id);
+            if (timer) clearTimeout(timer);
+            this.webTimers.delete(id);
+          }
         }
       }
       
@@ -367,6 +424,91 @@ export class NotificationService {
       console.log(`Canceladas notificaciones para anime ${animeId}`);
     } catch (error) {
       console.error('Error cancelando notificaciones del anime:', error);
+    }
+  }
+
+  isIos(): boolean {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  }
+
+  isStandaloneWebApp(): boolean {
+    const iosStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    return iosStandalone || window.matchMedia('(display-mode: standalone)').matches;
+  }
+
+  isWebNotificationSupported(): boolean {
+    return 'Notification' in window && (!this.isIos() || this.isStandaloneWebApp());
+  }
+
+  async canScheduleNotifications(): Promise<boolean> {
+    if (this.isNativePlatform()) {
+      const permission = await LocalNotifications.checkPermissions();
+      return permission.display === 'granted';
+    }
+    return this.isWebNotificationSupported() && Notification.permission === 'granted';
+  }
+
+  getWebPermission(): NotificationPermission | 'unsupported' {
+    return 'Notification' in window ? Notification.permission : 'unsupported';
+  }
+
+  private isNativePlatform(): boolean {
+    return Capacitor.isNativePlatform();
+  }
+
+  private async registerWebServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+    if (!('serviceWorker' in navigator)) return null;
+    try {
+      return await navigator.serviceWorker.register('/palmerita-sw.js', { scope: '/' });
+    } catch (error) {
+      console.warn('No se pudo registrar el servicio de notificaciones web:', error);
+      return null;
+    }
+  }
+
+  private async saveWebTimer(id: number, title: string, body: string, at: Date): Promise<void> {
+    const currentTimer = this.webTimers.get(id);
+    if (currentTimer) clearTimeout(currentTimer);
+
+    const remaining = at.getTime() - Date.now();
+    if (remaining <= 0) return;
+
+    // Los navegadores limitan setTimeout a unos 24,8 días. Se rearma si falta más tiempo.
+    const delay = Math.min(remaining, 2_147_000_000);
+    const timer = setTimeout(async () => {
+      this.webTimers.delete(id);
+      if (at.getTime() > Date.now() + 1000) {
+        await this.saveWebTimer(id, title, body, at);
+        return;
+      }
+      await this.showWebNotification(title, body, id);
+    }, delay);
+    this.webTimers.set(id, timer);
+  }
+
+  private async restoreWebTimers(): Promise<void> {
+    const notifications = await this.getScheduledNotifications();
+    for (const notification of notifications) {
+      if (notification.scheduledAt.getTime() > Date.now()) {
+        await this.saveWebTimer(notification.id, notification.title, notification.body, notification.scheduledAt);
+      }
+    }
+  }
+
+  private async showWebNotification(title: string, body: string, id: number): Promise<void> {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const registration = await navigator.serviceWorker?.ready.catch(() => null);
+    const options: NotificationOptions = {
+      body,
+      icon: '/assets/icons/icon-192.webp',
+      badge: '/assets/icons/icon-96.webp',
+      tag: `palmerita-${id}`,
+      data: { url: '/notifications-settings' }
+    };
+    if (registration) {
+      await registration.showNotification(title, options);
+    } else {
+      new Notification(title, options);
     }
   }
 }

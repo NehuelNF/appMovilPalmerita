@@ -86,12 +86,9 @@ export class AppComponent {
   }
 
   private async initNotifications() {
-    try {
-      await this.notificationService.requestPermission();
-    } catch (error) {
-      console.error('No se pudieron configurar las notificaciones:', error);
-      return; // Salir si no hay permisos
-    }
+    // En navegadores el permiso solo puede solicitarse desde una acción del usuario.
+    // La pantalla de ajustes se encarga de activarlo; aquí solo reprogramamos si ya existe.
+    if (!(await this.notificationService.canScheduleNotifications())) return;
 
     this.favoritesService.getFavorites().subscribe((favs: FavoriteAnime[]) => {
       if (!favs) return;

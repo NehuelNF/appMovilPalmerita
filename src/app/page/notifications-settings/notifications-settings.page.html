@@ -14,6 +14,27 @@
     </ion-toolbar>
   </ion-header>
 
+  <ion-card *ngIf="isIos && !isStandalone" color="warning" class="ios-install-card">
+    <ion-card-header>
+      <ion-card-title>Activa las notificaciones en iPhone</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p>Safari solo permite notificaciones cuando Palmerita está instalada en la pantalla de inicio.</p>
+      <ol>
+        <li>Toca el botón Compartir de Safari.</li>
+        <li>Elige <strong>Añadir a pantalla de inicio</strong>.</li>
+        <li>Abre Palmerita desde el nuevo icono y vuelve a esta pantalla.</li>
+      </ol>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card *ngIf="isIos && isStandalone" color="success" class="ios-install-card">
+    <ion-card-content>
+      <ion-icon name="phone-portrait-outline"></ion-icon>
+      Palmerita está abierta como app web. Ya puedes solicitar el permiso y probar una notificación.
+    </ion-card-content>
+  </ion-card>
+
   <!-- Estadísticas generales -->
   <div class="stats-container ion-padding">
     <h2>
@@ -74,7 +95,7 @@
     </h3>
     
     <ion-list>
-      <ion-item button (click)="testNotifications()">
+      <ion-item button (click)="testNotifications()" [disabled]="isIos && !isStandalone">
         <ion-icon name="send-outline" slot="start" color="primary"></ion-icon>
         <ion-label>
           <h2>Probar Notificaciones</h2>
@@ -82,11 +103,12 @@
         </ion-label>
       </ion-item>
       
-      <ion-item button (click)="requestPermissions()">
+      <ion-item button (click)="requestPermissions()" [disabled]="isIos && !isStandalone">
         <ion-icon name="shield-checkmark-outline" slot="start" color="success"></ion-icon>
         <ion-label>
           <h2>Solicitar Permisos</h2>
-          <p>Asegúrate de que la app tenga permisos para enviar notificaciones</p>
+          <p *ngIf="webPermission !== 'denied'">Asegúrate de que la app tenga permisos para enviar notificaciones</p>
+          <p *ngIf="webPermission === 'denied'">Permiso bloqueado: actívalo en los ajustes del dispositivo</p>
         </ion-label>
       </ion-item>
       
@@ -119,8 +141,8 @@
       <ion-item>
         <ion-icon name="checkmark-circle-outline" slot="start" color="success"></ion-icon>
         <ion-label class="ion-text-wrap">
-          <h3>Múltiples respaldos</h3>
-          <p>Cada notificación se programa con 3 recordatorios adicionales para mayor confiabilidad</p>
+          <h3>Recordatorios de respaldo</h3>
+          <p>Palmerita conserva los avisos programados y recupera los que se hayan perdido al volver a abrirla</p>
         </ion-label>
       </ion-item>
       

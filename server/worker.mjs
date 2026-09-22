@@ -8,6 +8,7 @@ export function extractPlayers(html) {
   const players = [];
   const add = (url, name, audio = 'sub') => {
     url = url.replaceAll('&amp;', '&');
+    if (/hls/i.test(name) || /zilla-networks/i.test(url)) name = 'HLS';
     if (validEmbed(url) && !players.some(p => p.url === url && p.audio === audio)) {
       players.push({ url, name, audio, provider: 'animeav1' });
     }
@@ -30,7 +31,6 @@ export function extractPlayers(html) {
 
   // 2. Fallback genérico si no hubo bloques SUB/DUB
   if (!foundStructured || players.length === 0) {
-    for (const m of html.matchAll(/<iframe\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) add(m[1], 'Principal', 'sub');
     for (const m of html.matchAll(/\{server:"([^"<>]{1,40})",url:"(https:\/\/[^"<>]+)"\}/g)) {
       if (/\/e\/|\/embed[/-]|\/play\/|uns\.bio\/#/.test(m[2])) add(m[2], m[1], 'sub');
     }
@@ -408,16 +408,6 @@ export async function fetchAnimeAv1Players(slug, episode, fetcher = fetch) {
     while(true) { const {done,value}=await reader.read(); if(done) break; size+=value.length; if(size>2000000){await reader.cancel(); return { sourceUrl, players: [] };} chunks.push(value); }
     const bytes=new Uint8Array(size); let offset=0; for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
     const players = extractPlayers(new TextDecoder().decode(bytes));
-    const mp4Embed=players.find(player => /mp4upload/i.test(player.name) || /mp4upload/i.test(player.url));
-    if(mp4Embed) {
-      try {
-        const mp4Response=await fetcher(mp4Embed.url,{redirect:'follow',signal:AbortSignal.timeout(10000),headers:{Accept:'text/html',Referer:sourceUrl}});
-        if(mp4Response.ok && (mp4Response.headers.get('content-type') || '').includes('text/html')) {
-          const directUrl=extractDirectVideo(await mp4Response.text());
-          if(directUrl) players.unshift({url:directUrl,name:'Reproductor seguro',type:'direct',audio:'sub',provider:'animeav1'});
-        }
-      } catch { /* Keep iframe mirrors */ }
-    }
     return { sourceUrl, players };
   } catch {
     return { sourceUrl, players: [] };

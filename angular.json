@@ -20,6 +20,12 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
+              "src/manifest.webmanifest",
+              {
+                "glob": "palmerita-sw.js",
+                "input": "src",
+                "output": "/"
+              },
               {
                 "glob": "**/*",
                 "input": "src/assets",
