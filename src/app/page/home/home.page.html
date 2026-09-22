@@ -39,6 +39,14 @@
       <div class="continue-card" *ngFor="let item of recentProgress" [routerLink]="['/watch', item.animeId, item.lastEpisode || 1]">
         <div class="continue-thumb-container">
           <img [src]="item.animeImage || 'assets/default-image.png'" [alt]="item.animeTitle" loading="lazy" />
+          <button 
+            type="button" 
+            class="remove-continue-btn" 
+            (click)="removeContinueWatching(item, $event)" 
+            title="Quitar de continuar viendo"
+            aria-label="Quitar de continuar viendo">
+            <ion-icon name="close-circle"></ion-icon>
+          </button>
           <div class="play-overlay-icon">
             <ion-icon name="play"></ion-icon>
           </div>

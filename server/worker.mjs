@@ -1,4 +1,4 @@
-const hosts = new Set(['player.zilla-networks.com', 'animeav1.uns.bio', 'voe.sx', 'mega.nz', 'www.mp4upload.com', 'mp4upload.com', 'byselapuix.com']);
+const hosts = new Set(['player.zilla-networks.com', 'animeav1.uns.bio', 'voe.sx', 'mega.nz', 'www.mp4upload.com', 'mp4upload.com', 'byselapuix.com', 'jkanime.net']);
 
 export function validEmbed(value) {
   try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password && !u.port && hosts.has(u.hostname); } catch { return false; }
@@ -9,27 +9,27 @@ export function extractPlayers(html) {
   const add = (url, name, audio = 'sub') => {
     url = url.replaceAll('&amp;', '&');
     if (validEmbed(url) && !players.some(p => p.url === url && p.audio === audio)) {
-      players.push({ url, name, audio });
+      players.push({ url, name, audio, provider: 'animeav1' });
     }
   };
 
   // 1. Extraer secciones estructuradas SUB y DUB si existen
-  const subMatch = html.match(/SUB\s*:\s*\[([\s\S]*?)\](?:\s*,\s*DUB|$)/i);
-  const dubMatch = html.match(/DUB\s*:\s*\[([\s\S]*?)\]/i);
+  // Se busca preferentemente dentro del bloque de embeds si existe
+  const embedsMatch = html.match(/embeds\s*:\s*\{([\s\S]*?)\}(?:,\s*[a-zA-Z0-9_]+\s*:|$)/i);
+  const searchScope = embedsMatch ? embedsMatch[1] : html;
 
-  if (subMatch || dubMatch) {
-    if (subMatch) {
-      for (const m of subMatch[1].matchAll(/\{server:"([^"<>]{1,40})",url:"(https:\/\/[^"<>]+)"\}/g)) {
-        if (/\/e\/|\/embed[/-]|\/play\/|uns\.bio\/#/.test(m[2])) add(m[2], m[1], 'sub');
-      }
+  let foundStructured = false;
+  for (const match of searchScope.matchAll(/\b(SUB|DUB)\s*:\s*\[([\s\S]*?)\]/gi)) {
+    foundStructured = true;
+    const audio = match[1].toLowerCase();
+    const content = match[2];
+    for (const m of content.matchAll(/\{server:"([^"<>]{1,40})",url:"(https:\/\/[^"<>]+)"\}/g)) {
+      if (/\/e\/|\/embed[/-]|\/play\/|uns\.bio\/#/.test(m[2])) add(m[2], m[1], audio);
     }
-    if (dubMatch) {
-      for (const m of dubMatch[1].matchAll(/\{server:"([^"<>]{1,40})",url:"(https:\/\/[^"<>]+)"\}/g)) {
-        if (/\/e\/|\/embed[/-]|\/play\/|uns\.bio\/#/.test(m[2])) add(m[2], m[1], 'dub');
-      }
-    }
-  } else {
-    // Fallback genérico si no hay bloques SUB/DUB explícitos
+  }
+
+  // 2. Fallback genérico si no hubo bloques SUB/DUB
+  if (!foundStructured || players.length === 0) {
     for (const m of html.matchAll(/<iframe\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) add(m[1], 'Principal', 'sub');
     for (const m of html.matchAll(/\{server:"([^"<>]{1,40})",url:"(https:\/\/[^"<>]+)"\}/g)) {
       if (/\/e\/|\/embed[/-]|\/play\/|uns\.bio\/#/.test(m[2])) add(m[2], m[1], 'sub');
@@ -57,20 +57,105 @@ export function extractMediaEpisodes(html, slug) {
   }
   return Array.from(episodes).sort((a, b) => a - b);
 }
+
+export function extractJkPlayers(html) {
+  const players = [];
+  const serverNames = {};
+  for (const m of html.matchAll(/<a\b[^>]*\bdata-id=["'](\d+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    const name = m[2].replace(/<[^>]*>/g, '').trim();
+    if (name) serverNames[m[1]] = name;
+  }
+  for (const m of html.matchAll(/video\[(\d+)\]\s*=\s*['"]<iframe[^>]*\bsrc=["']([^"']+)["'][^>]*><\/iframe>['"]/gi)) {
+    const id = m[1];
+    const url = m[2].replaceAll('&amp;', '&');
+    if (validEmbed(url)) {
+      const serverLabel = serverNames[id] || `Servidor ${parseInt(id, 10) + 1}`;
+      players.push({
+        name: `${serverLabel} (JK)`,
+        url,
+        type: 'iframe',
+        audio: 'sub',
+        provider: 'jkanime'
+      });
+    }
+  }
+  return players;
+}
+
+export async function fetchAnimeAv1Media(slug, fetcher = fetch) {
+  const sourceUrl = `https://animeav1.com/media/${slug}`;
+  try {
+    const response = await fetcher(sourceUrl, {redirect:'manual', signal:AbortSignal.timeout(12000), headers:{Accept:'text/html'}});
+    if (response.ok && (response.headers.get('content-type') || '').includes('text/html')) {
+      const text = await response.text();
+      const availableEpisodes = extractMediaEpisodes(text, slug);
+      if (availableEpisodes.length > 0) {
+        return { slug, availableEpisodes, count: availableEpisodes.length, exists: true, provider: 'animeav1', sourceUrl };
+      }
+    }
+  } catch { /* ignore */ }
+  return { slug, availableEpisodes: [], count: 0, exists: false, provider: 'animeav1', sourceUrl };
+}
+
+export async function fetchJkMedia(slug, fetcher = fetch) {
+  const jkUrl = `https://jkanime.net/${slug}/`;
+  try {
+    const jkRes = await fetcher(jkUrl, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(12000),
+      headers: { Accept: 'text/html', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
+    if (jkRes.ok) {
+      const jkText = await jkRes.text();
+      if (!jkText.includes('Página no encontrada') && !jkText.includes('404 Not Found')) {
+        const epMatch = jkText.match(/<span>Episodios:<\/span>\s*(\d+)/i);
+        const tipoMatch = jkText.match(/<span>Tipo:<\/span>\s*([^<\n\r]+)/i);
+        const isMovie = tipoMatch && /pelicula|movie/i.test(tipoMatch[1]);
+        let count = epMatch ? parseInt(epMatch[1], 10) : 0;
+        if (isMovie && count === 0) count = 1;
+        if (count > 0) {
+          const availableEpisodes = Array.from({length: count}, (_, i) => i + 1);
+          return { slug, availableEpisodes, count, exists: true, provider: 'jkanime', sourceUrl: jkRes.url || jkUrl };
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return { slug, availableEpisodes: [], count: 0, exists: false, provider: 'jkanime', sourceUrl: jkUrl };
+}
+
 export async function resolveMedia(request, fetcher = fetch) {
   const q = new URL(request.url).searchParams;
   const slug = q.get('slug') || '';
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 180) return json({error:'Slug no válido.'},400);
-  const sourceUrl = `https://animeav1.com/media/${slug}`;
-  try {
-    const response = await fetcher(sourceUrl, {redirect:'manual', signal:AbortSignal.timeout(12000), headers:{Accept:'text/html'}});
-    if (response.status === 404) return json({slug, availableEpisodes: [], count: 0, exists: false}, 200);
-    if (!response.ok) return json({error:'La página de origen no está disponible.',sourceUrl},502);
-    if (!(response.headers.get('content-type') || '').includes('text/html')) return json({error:'Respuesta del proveedor no válida.',sourceUrl},502);
-    const text = await response.text();
-    const availableEpisodes = extractMediaEpisodes(text, slug);
-    return json({slug, availableEpisodes, count: availableEpisodes.length, exists: true, sourceUrl});
-  } catch { return json({error:'No se pudo consultar la disponibilidad de episodios.',sourceUrl},502); }
+
+  const [av1Res, jkRes] = await Promise.allSettled([
+    fetchAnimeAv1Media(slug, fetcher),
+    fetchJkMedia(slug, fetcher)
+  ]);
+
+  const av1 = av1Res.status === 'fulfilled' ? av1Res.value : { exists: false, availableEpisodes: [] };
+  const jk = jkRes.status === 'fulfilled' ? jkRes.value : { exists: false, availableEpisodes: [] };
+
+  const providers = [];
+  if (av1.exists) providers.push('animeav1');
+  if (jk.exists) providers.push('jkanime');
+
+  if (providers.length > 0) {
+    const epSet = new Set([...(av1.availableEpisodes || []), ...(jk.availableEpisodes || [])]);
+    const availableEpisodes = Array.from(epSet).sort((a, b) => a - b);
+    const sourceUrl = av1.exists ? av1.sourceUrl : jk.sourceUrl;
+    return json({
+      slug,
+      availableEpisodes,
+      count: availableEpisodes.length,
+      exists: true,
+      provider: providers.length > 1 ? 'both' : providers[0],
+      providers,
+      sourceUrl
+    });
+  }
+
+  return json({slug, availableEpisodes: [], count: 0, exists: false, providers: []}, 200);
 }
 
 export function cleanHtmlText(text) {
@@ -309,48 +394,110 @@ export function clearPlayerCache() {
   playerCache.clear();
 }
 
-export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
-  const q = new URL(request.url).searchParams;
-  const slug = q.get('slug') || '', episode = q.get('episode') || '';
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 180 || !/^[1-9]\d{0,4}$/.test(episode)) return json({error:'Capítulo no válido.'},400);
-  const cacheKey = `${slug}:${episode}`;
-  const currentTime = now();
-  const cached = playerCache.get(cacheKey);
-  if (cached && (currentTime - cached.time) < PLAYER_CACHE_TTL) {
-    return json({ sourceUrl: cached.sourceUrl, players: cached.players, cached: true });
-  }
-
+export async function fetchAnimeAv1Players(slug, episode, fetcher = fetch) {
   const sourceUrl = `https://animeav1.com/media/${slug}/${episode}`;
   try {
-    // No arbitrary URLs or redirects: this endpoint cannot proxy internal resources.
     const response = await fetcher(sourceUrl, {redirect:'manual', signal:AbortSignal.timeout(12000), headers:{Accept:'text/html'}});
     if (!response.ok) {
-      if (response.status === 404) {
-        return json({error:'Este capítulo aún no está disponible para su reproducción.',sourceUrl,notReleased:true},404);
-      }
-      return json({error:'La página de origen no está disponible.',sourceUrl},502);
+      return { sourceUrl, players: [], errorStatus: response.status };
     }
-    if (!(response.headers.get('content-type') || '').includes('text/html')) return json({error:'Respuesta del proveedor no válida.',sourceUrl},502);
+    if (!(response.headers.get('content-type') || '').includes('text/html')) {
+      return { sourceUrl, players: [], errorStatus: 502 };
+    }
     const reader = response.body.getReader(); const chunks=[]; let size=0;
-    while(true) { const {done,value}=await reader.read(); if(done) break; size+=value.length; if(size>2000000){await reader.cancel(); return json({error:'Respuesta demasiado grande.'},502);} chunks.push(value); }
+    while(true) { const {done,value}=await reader.read(); if(done) break; size+=value.length; if(size>2000000){await reader.cancel(); return { sourceUrl, players: [] };} chunks.push(value); }
     const bytes=new Uint8Array(size); let offset=0; for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
-    const players=extractPlayers(new TextDecoder().decode(bytes));
+    const players = extractPlayers(new TextDecoder().decode(bytes));
     const mp4Embed=players.find(player => /mp4upload/i.test(player.name) || /mp4upload/i.test(player.url));
     if(mp4Embed) {
       try {
         const mp4Response=await fetcher(mp4Embed.url,{redirect:'follow',signal:AbortSignal.timeout(10000),headers:{Accept:'text/html',Referer:sourceUrl}});
         if(mp4Response.ok && (mp4Response.headers.get('content-type') || '').includes('text/html')) {
           const directUrl=extractDirectVideo(await mp4Response.text());
-          if(directUrl) players.unshift({url:directUrl,name:'Reproductor seguro',type:'direct',audio:'sub'});
+          if(directUrl) players.unshift({url:directUrl,name:'Reproductor seguro',type:'direct',audio:'sub',provider:'animeav1'});
         }
-      } catch { /* Keep iframe mirrors when direct extraction is unavailable. */ }
+      } catch { /* Keep iframe mirrors */ }
     }
-    if (players.length) {
-      playerCache.set(cacheKey, { sourceUrl, players, time: currentTime });
-      return json({sourceUrl,players});
+    return { sourceUrl, players };
+  } catch {
+    return { sourceUrl, players: [] };
+  }
+}
+
+export async function fetchJkPlayers(slug, episode, fetcher = fetch) {
+  const jkUrl = `https://jkanime.net/${slug}/${episode}/`;
+  try {
+    const jkRes = await fetcher(jkUrl, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(12000),
+      headers: { Accept: 'text/html', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
+    if (jkRes.ok) {
+      const jkHtml = await jkRes.text();
+      const jkPlayers = extractJkPlayers(jkHtml);
+      return { sourceUrl: jkRes.url || jkUrl, players: jkPlayers };
     }
-    return json({error:'No hay un reproductor compatible disponible para este capítulo.',sourceUrl},404);
-  } catch { return json({error:'No se pudo consultar el reproductor. Inténtalo de nuevo.',sourceUrl},502); }
+  } catch { /* Continue */ }
+  return { sourceUrl: jkUrl, players: [] };
+}
+
+export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
+  const q = new URL(request.url).searchParams;
+  const slug = q.get('slug') || '', episode = q.get('episode') || '';
+  const providerParam = (q.get('provider') || 'all').toLowerCase();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 180 || !/^[1-9]\d{0,4}$/.test(episode)) return json({error:'Capítulo no válido.'},400);
+
+  const cacheKey = `${slug}:${episode}:${providerParam}`;
+  const currentTime = now();
+  const cached = playerCache.get(cacheKey);
+  if (cached && (currentTime - cached.time) < PLAYER_CACHE_TTL) {
+    return json({ sourceUrl: cached.sourceUrl, players: cached.players, providers: cached.providers, cached: true });
+  }
+
+  let players = [];
+  let sourceUrl = `https://animeav1.com/media/${slug}/${episode}`;
+  const availableProviders = [];
+
+  if (providerParam === 'animeav1') {
+    const av1 = await fetchAnimeAv1Players(slug, episode, fetcher);
+    if (av1.errorStatus && av1.errorStatus !== 404) {
+      return json({error:'La página de origen no está disponible.',sourceUrl},502);
+    }
+    players = av1.players;
+    sourceUrl = av1.sourceUrl;
+    if (players.length) availableProviders.push('animeav1');
+  } else if (providerParam === 'jkanime') {
+    const jk = await fetchJkPlayers(slug, episode, fetcher);
+    players = jk.players;
+    sourceUrl = jk.sourceUrl;
+    if (players.length) availableProviders.push('jkanime');
+  } else {
+    // 'all': consultar ambos en paralelo
+    const [av1Res, jkRes] = await Promise.allSettled([
+      fetchAnimeAv1Players(slug, episode, fetcher),
+      fetchJkPlayers(slug, episode, fetcher)
+    ]);
+
+    const av1 = av1Res.status === 'fulfilled' ? av1Res.value : { players: [], sourceUrl };
+    const jk = jkRes.status === 'fulfilled' ? jkRes.value : { players: [], sourceUrl: '' };
+
+    if (av1.errorStatus && av1.errorStatus !== 404 && !jk.players?.length) {
+      return json({error:'La página de origen no está disponible.',sourceUrl},502);
+    }
+
+    if (av1.players?.length) availableProviders.push('animeav1');
+    if (jk.players?.length) availableProviders.push('jkanime');
+
+    players = [...(av1.players || []), ...(jk.players || [])];
+    sourceUrl = av1.players?.length ? av1.sourceUrl : (jk.sourceUrl || sourceUrl);
+  }
+
+  if (players.length) {
+    playerCache.set(cacheKey, { sourceUrl, players, providers: availableProviders, time: currentTime });
+    return json({ sourceUrl, players, providers: availableProviders });
+  }
+
+  return json({ error: 'Este capítulo aún no está disponible para su reproducción.', sourceUrl, notReleased: true }, 404);
 }
 
 export default {

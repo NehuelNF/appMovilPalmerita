@@ -12,6 +12,7 @@ interface Player {
   url: string;
   type?: 'direct' | 'iframe';
   audio?: 'sub' | 'dub';
+  provider?: 'animeav1' | 'jkanime' | string;
 }
 
 @Component({
@@ -36,6 +37,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   players: Player[] = [];
   selectedAudio: 'sub' | 'dub' = 'sub';
   selectedPlayer = '';
+  selectedProvider: 'all' | 'animeav1' | 'jkanime' = 'all';
   sourceUrl = '';
   directVideoUrl = '';
   showAllEpisodes = false;
@@ -286,10 +288,34 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
         return;
       }
 
-      const title = useEnglish ? this.anime.title_english : this.animeTitle;
-      const slug = (title || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s-]+/g, '-');
+      const querySlug = this.route.snapshot.queryParams['slug'];
+      let slug = querySlug;
+      if (!slug) {
+        const title = useEnglish ? this.anime.title_english : this.animeTitle;
+        slug = (title || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s-]+/g, '-');
+      }
+
       this.sourceUrl = 'https://animeav1.com/media/' + slug + '/' + episode;
-      const result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', { params: { slug, episode: String(episode) } }));
+      let result: { players: Player[]; sourceUrl: string } | null = null;
+      try {
+        result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', { params: { slug, episode: String(episode) } }));
+      } catch (err: any) {
+        // Si falló el slug principal y no se forzó inglés ni vino por queryParam, probar títulos alternativos
+        if (!querySlug && !useEnglish && this.anime) {
+          const alternateTitle = this.anime.title_english || this.anime.title_romaji;
+          if (alternateTitle && alternateTitle !== this.animeTitle) {
+            const altSlug = (alternateTitle || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s-]+/g, '-');
+            if (altSlug && altSlug !== slug) {
+              try {
+                result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', { params: { slug: altSlug, episode: String(episode) } }));
+                slug = altSlug;
+              } catch { /* proceed to throw original error */ }
+            }
+          }
+        }
+        if (!result) throw err;
+      }
+
       if (generation !== this.generation) return;
       this.players = result.players;
       this.sourceUrl = result.sourceUrl;
@@ -311,8 +337,30 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   }
 
   get displayedPlayers(): Player[] {
-    const list = this.players.filter(p => (p.audio || 'sub') === this.selectedAudio);
-    return list.length ? list : this.players;
+    let list = this.players.filter(p => (p.audio || 'sub') === this.selectedAudio);
+    if (!list.length) list = this.players;
+
+    if (this.selectedProvider !== 'all') {
+      const filtered = list.filter(p => (p.provider || 'animeav1') === this.selectedProvider);
+      if (filtered.length) return filtered;
+    }
+    return list;
+  }
+
+  hasMultipleProviders(): boolean {
+    const hasAv1 = this.players.some(p => (p.provider || 'animeav1') === 'animeav1');
+    const hasJk = this.players.some(p => p.provider === 'jkanime');
+    return hasAv1 && hasJk;
+  }
+
+  hasProviderPlayers(provider: string): boolean {
+    return this.players.some(p => (p.provider || 'animeav1') === provider);
+  }
+
+  setProvider(provider: 'all' | 'animeav1' | 'jkanime') {
+    if (this.selectedProvider === provider) return;
+    this.selectedProvider = provider;
+    this.autoSelectBestPlayerForCurrentAudio();
   }
 
   hasDubPlayers(): boolean {
@@ -352,7 +400,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
       this.directVideoUrl = player.url;
       return;
     }
-    const hosts = ['player.zilla-networks.com', 'animeav1.uns.bio', 'voe.sx', 'mega.nz', 'www.mp4upload.com', 'mp4upload.com', 'byselapuix.com'];
+    const hosts = ['player.zilla-networks.com', 'animeav1.uns.bio', 'voe.sx', 'mega.nz', 'www.mp4upload.com', 'mp4upload.com', 'byselapuix.com', 'jkanime.net', 'streamtape.com'];
     if (url.protocol !== 'https:' || !hosts.includes(url.hostname) || url.username || url.password || url.port) return;
     this.selectedPlayer = player.url;
     this.streamingError = '';
@@ -363,6 +411,11 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   onIframeLoad() { /* Cross-origin frame */ }
   onIframeError(event: Event) {
     this.streamingError = 'Este servidor no pudo abrirse. Prueba otro servidor o abre el capítulo en su página de origen.';
+  }
+
+  searchExternalWeb() {
+    const term = `ver ${this.animeTitle || ''} episodio ${this.episodeNumber} online sub espanol`;
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(term)}`, '_blank');
   }
 
   hasEnglishTitle() { return !!this.anime?.title_english && this.anime.title_english !== this.animeTitle; }
@@ -384,10 +437,13 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
       return;
     }
     this.safeIframeUrl = null;
-    this.router.navigate(['/watch', this.animeId, number]);
+    const querySlug = this.route.snapshot.queryParams['slug'];
+    this.router.navigate(['/watch', this.animeId, number], {
+      queryParams: querySlug ? { slug: querySlug } : {}
+    });
   }
   getEpisodeThumbnail(episode: any) { return episode.thumbnail || this.episodeThumbnail; }
-  openExternalLink(url: string) { if (url.startsWith('https://animeav1.com/')) window.open(url, '_blank', 'noopener,noreferrer'); }
+  openExternalLink(url: string) { if (url.startsWith('https://animeav1.com/') || url.startsWith('https://jkanime.net/')) window.open(url, '_blank', 'noopener,noreferrer'); }
   goBack() { this.safeIframeUrl = null; this.router.navigate(['/anime', this.animeId]); }
 
   ionViewWillLeave() {

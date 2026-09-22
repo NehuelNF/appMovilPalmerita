@@ -541,15 +541,17 @@ export class AnimeService {
   /**
    * Obtiene la lista de capítulos disponibles para reproducción en el servidor
    */
-  getAvailableEpisodes(slug: string): Observable<{ availableEpisodes: number[]; count: number; exists: boolean }> {
+  getAvailableEpisodes(slug: string): Observable<{ availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[] }> {
     if (!slug) return of({ availableEpisodes: [], count: 0, exists: false });
-    return this.http.get<{ slug?: string; availableEpisodes: number[]; count: number; exists: boolean }>('/api/media', {
+    return this.http.get<{ slug?: string; availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[] }>('/api/media', {
       params: { slug }
     }).pipe(
       map(res => ({
         availableEpisodes: res.availableEpisodes || [],
         count: res.count || 0,
-        exists: !!res.exists
+        exists: !!res.exists,
+        provider: res.provider,
+        providers: res.providers || (res.provider ? [res.provider] : [])
       })),
       catchError(err => {
         console.warn(`No se pudo obtener disponibilidad de episodios para ${slug}:`, err);

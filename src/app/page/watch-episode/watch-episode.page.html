@@ -37,6 +37,10 @@
           <ion-icon name="open-outline" slot="start"></ion-icon>
           Abrir sitio web
         </ion-button>
+        <ion-button fill="outline" size="small" color="light" (click)="searchExternalWeb()">
+          <ion-icon name="search-outline" slot="start"></ion-icon>
+          Buscar en la web
+        </ion-button>
       </div>
       
       <!-- Show English title if available -->
@@ -86,6 +90,21 @@
     </div>
   </div>
 
+  <!-- Selector de Proveedor / Fuente (AnimeAV1 vs JKAnime) -->
+  <div class="provider-selection-wrapper" *ngIf="hasMultipleProviders()">
+    <ion-segment [value]="selectedProvider" (ionChange)="setProvider($any($event).detail.value)" class="provider-segment">
+      <ion-segment-button value="all">
+        <ion-label>⚡ Todas las fuentes</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="animeav1">
+        <ion-label>AnimeAV1</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="jkanime">
+        <ion-label>JKAnime</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </div>
+
   <!-- Selector de idioma (Subtitulado japonés vs Doblaje latino/español) -->
   <div class="audio-selection-wrapper" *ngIf="hasDubPlayers()">
     <ion-segment [value]="selectedAudio" (ionChange)="setAudioTrack($any($event).detail.value)" class="audio-segment">
@@ -102,6 +121,7 @@
   <div class="player-controls">
     <ion-button *ngFor="let player of displayedPlayers" [fill]="selectedPlayer === player.url ? 'solid' : 'outline'" (click)="selectPlayer(player)">
       {{ player.name }}
+      <ion-badge *ngIf="selectedProvider === 'all' && player.provider === 'jkanime'" color="tertiary" class="provider-badge">JK</ion-badge>
       <ion-badge *ngIf="player.audio === 'dub'" color="warning" class="audio-badge">DUB</ion-badge>
     </ion-button>
     <ion-button fill="clear" [disabled]="loading" (click)="reloadCurrentEpisode()">Reintentar</ion-button>

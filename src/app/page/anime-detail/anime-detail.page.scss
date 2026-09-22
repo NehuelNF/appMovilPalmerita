@@ -175,6 +175,50 @@
       margin-right: 8px;
     }
   }
+
+  .unsupported-media-banner {
+    background: linear-gradient(135deg, rgba(235, 68, 90, 0.12), rgba(255, 196, 9, 0.1));
+    border: 1px solid rgba(235, 68, 90, 0.35);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 8px 0 16px 0;
+
+    .banner-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+
+      ion-icon {
+        font-size: 24px;
+      }
+
+      h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--ion-text-color);
+      }
+    }
+
+    p {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      color: var(--ion-color-medium);
+      line-height: 1.4;
+    }
+
+    .banner-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+
+      ion-button {
+        --border-radius: 8px;
+        font-weight: 600;
+      }
+    }
+  }
   
   .description-title {
     color: var(--ion-text-color);
@@ -316,6 +360,16 @@
           border: 1px dashed rgba(var(--ion-color-tertiary-rgb, 82, 96, 255), 0.4);
         }
 
+        &.episode-unavailable {
+          opacity: 0.75;
+          border: 1px dashed rgba(var(--ion-color-danger-rgb, 235, 68, 90), 0.4);
+          cursor: not-allowed;
+
+          .episode-image {
+            filter: grayscale(30%);
+          }
+        }
+
         &:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
@@ -414,6 +468,11 @@
 
               &.status-processing {
                 background: var(--ion-color-tertiary, #5260ff);
+                color: #ffffff;
+              }
+
+              &.status-unavailable {
+                background: var(--ion-color-danger, #eb445a);
                 color: #ffffff;
               }
             }

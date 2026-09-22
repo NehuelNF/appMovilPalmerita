@@ -179,38 +179,36 @@ ion-content {
         }
       }
       
-      // Controles de episodios más pequeños
-      .episode-controls {
+      // Progreso automático de episodios
+      .episode-progress-auto {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        
-        .episode-btn {
-          --padding-start: 4px;
-          --padding-end: 4px;
-          --color: var(--ion-color-medium);
-          width: 28px;
-          height: 28px;
-          
-          &:not([disabled]):hover {
-            --color: var(--ion-color-primary);
-          }
-          
-          &[disabled] {
-            opacity: 0.4;
-          }
-          
-          ion-icon {
-            font-size: 16px;
-          }
-        }
-        
+        gap: 6px;
+        flex-wrap: wrap;
+
         .episode-count {
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
           color: var(--ion-color-medium);
-          min-width: 40px;
-          text-align: center;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+
+          ion-icon {
+            font-size: 14px;
+          }
+        }
+
+        .completed-badge {
+          background: rgba(16, 185, 129, 0.15);
+          color: var(--ion-color-success, #10b981);
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
         }
       }
     }

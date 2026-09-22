@@ -12,11 +12,12 @@ import {
   resolveNoticias,
   clearNewsCache,
   extractMediaEpisodes,
-  resolveMedia
+  resolveMedia,
+  extractJkPlayers
 } from './worker.mjs';
 test('only real supported embeds are returned and deduplicated',()=>{
   const html='<iframe src="https://voe.sx/e/abc"></iframe><iframe src="https://ads.example/video"></iframe>{server:"Voe",url:"https://voe.sx/e/abc"}{server:"Mega",url:"https://mega.nz/file/abc"}';
-  assert.deepEqual(extractPlayers(html),[{url:'https://voe.sx/e/abc',name:'Principal',audio:'sub'}]);
+  assert.deepEqual(extractPlayers(html),[{url:'https://voe.sx/e/abc',name:'Principal',audio:'sub',provider:'animeav1'}]);
   assert.equal(validEmbed('https://voe.sx.evil.example/e/x'),false);
   assert.equal(validEmbed('http://voe.sx/e/x'),false);
   assert.equal(validEmbed('https://user:pass@voe.sx/e/x'),false);
@@ -104,7 +105,7 @@ test('playerCache serves cached response without refetching', async () => {
   let currentTime = 1000;
   const res1 = await resolvePlayer(req, mockFetcher, () => currentTime);
   assert.equal(res1.status, 200);
-  assert.equal(fetchCount, 1);
+  assert.equal(fetchCount, 2);
 
   // Second call within 2 hours
   currentTime += 30 * 60 * 1000;
@@ -112,7 +113,7 @@ test('playerCache serves cached response without refetching', async () => {
   assert.equal(res2.status, 200);
   const data2 = await res2.json();
   assert.equal(data2.cached, true);
-  assert.equal(fetchCount, 1);
+  assert.equal(fetchCount, 2);
 });
 
 test('cleanHtmlText cleans tags, entities, and CDATA correctly',()=>{
@@ -218,4 +219,134 @@ test('resolveNoticias returns 503 unavailable if both RSS and HTML fail and no c
   assert.equal(data.status, 'unavailable');
   assert.equal(data.noticias.length, 0);
 });
+
+test('extractJkPlayers parses video iframes and maps server labels', () => {
+  const html = `
+    <div class="bg-servers">
+      <a data-id="0" class="servers">Desu</a>
+      <a data-id="1" class="servers">Magi</a>
+    </div>
+    <script>
+      var video = [];
+      video[0] = '<iframe src="https://jkanime.net/jkplayer/um?e=token123"></iframe>';
+      video[1] = '<iframe src="https://jkanime.net/jkplayer/umv?e=token456"></iframe>';
+      video[2] = '<iframe src="https://untrusted.example/embed"></iframe>';
+    </script>
+  `;
+  const players = extractJkPlayers(html);
+  assert.equal(players.length, 2);
+  assert.equal(players[0].name, 'Desu (JK)');
+  assert.equal(players[0].url, 'https://jkanime.net/jkplayer/um?e=token123');
+  assert.equal(players[0].provider, 'jkanime');
+  assert.equal(players[1].name, 'Magi (JK)');
+  assert.equal(players[1].url, 'https://jkanime.net/jkplayer/umv?e=token456');
+});
+
+test('resolveMedia falls back to JKAnime when AnimeAV1 returns 404', async () => {
+  const mockFetcher = async (url) => {
+    if (url.includes('animeav1.com')) {
+      return new Response('Not found', { status: 404 });
+    }
+    if (url.includes('jkanime.net/gintama-aizome-kaori-hen/')) {
+      const html = `<div><span>Tipo:</span> OVA <span>Episodios:</span> 2</div>`;
+      return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    }
+    return new Response('Not found', { status: 404 });
+  };
+
+  const req = new Request('https://local/api/media?slug=gintama-aizome-kaori-hen');
+  const res = await resolveMedia(req, mockFetcher);
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.exists, true);
+  assert.equal(data.provider, 'jkanime');
+  assert.deepEqual(data.availableEpisodes, [1, 2]);
+  assert.equal(data.count, 2);
+});
+
+test('resolvePlayer falls back to JKAnime when AnimeAV1 returns 404', async () => {
+  clearPlayerCache();
+  const mockFetcher = async (url) => {
+    if (url.includes('animeav1.com')) {
+      return new Response('Not found', { status: 404 });
+    }
+    if (url.includes('jkanime.net/gintama-aizome-kaori-hen/1/')) {
+      const html = `
+        <div class="bg-servers"><a data-id="0" class="servers">Desu</a></div>
+        <script>
+          var video = [];
+          video[0] = '<iframe src="https://jkanime.net/jkplayer/um?e=abc1234"></iframe>';
+        </script>
+      `;
+      return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    }
+    return new Response('Not found', { status: 404 });
+  };
+
+  const req = new Request('https://local/api/player?slug=gintama-aizome-kaori-hen&episode=1');
+  const res = await resolvePlayer(req, mockFetcher, () => 5000000);
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.players.length, 1);
+  assert.equal(data.players[0].name, 'Desu (JK)');
+  assert.equal(data.players[0].provider, 'jkanime');
+});
+
+test('extractPlayers parses DUB before SUB correctly (Mushoku Tensei case)', () => {
+  const html = `
+    variants:{DUB:1,SUB:1},
+    embeds:{
+      DUB:[{server:"HLS",url:"https://player.zilla-networks.com/play/dub123"},{server:"Voe",url:"https://voe.sx/e/dub456"}],
+      SUB:[{server:"HLS",url:"https://player.zilla-networks.com/play/sub123"},{server:"UPNShare",url:"https://animeav1.uns.bio/#sub456"}]
+    },
+    downloads:{DUB:[],SUB:[]}
+  `;
+  const players = extractPlayers(html);
+  assert.equal(players.length, 4);
+  const subPlayers = players.filter(p => p.audio === 'sub');
+  const dubPlayers = players.filter(p => p.audio === 'dub');
+  assert.equal(subPlayers.length, 2);
+  assert.equal(dubPlayers.length, 2);
+  assert.equal(subPlayers[0].name, 'HLS');
+  assert.equal(subPlayers[1].name, 'UPNShare');
+  assert.equal(dubPlayers[0].name, 'HLS');
+  assert.equal(dubPlayers[1].name, 'Voe');
+});
+
+test('resolvePlayer supports provider parameter filtering', async () => {
+  clearPlayerCache();
+  const mockFetcher = async (url) => {
+    if (url.includes('animeav1.com')) {
+      return new Response('embeds:{SUB:[{server:"HLS",url:"https://player.zilla-networks.com/play/av1"}]}', { status: 200, headers: { 'Content-Type': 'text/html' } });
+    }
+    if (url.includes('jkanime.net')) {
+      const html = `<script>var video = []; video[0] = '<iframe src="https://jkanime.net/jkplayer/um?e=jk123"></iframe>';</script>`;
+      return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    }
+    return new Response('Not found', { status: 404 });
+  };
+
+  // Test provider=animeav1
+  const resAv1 = await resolvePlayer(new Request('https://local/api/player?slug=test&episode=1&provider=animeav1'), mockFetcher);
+  assert.equal(resAv1.status, 200);
+  const dataAv1 = await resAv1.json();
+  assert.equal(dataAv1.players.length, 1);
+  assert.equal(dataAv1.players[0].provider, 'animeav1');
+
+  // Test provider=jkanime
+  const resJk = await resolvePlayer(new Request('https://local/api/player?slug=test&episode=1&provider=jkanime'), mockFetcher);
+  assert.equal(resJk.status, 200);
+  const dataJk = await resJk.json();
+  assert.equal(dataJk.players.length, 1);
+  assert.equal(dataJk.players[0].provider, 'jkanime');
+
+  // Test provider=all (both combined)
+  const resAll = await resolvePlayer(new Request('https://local/api/player?slug=test&episode=1&provider=all'), mockFetcher);
+  assert.equal(resAll.status, 200);
+  const dataAll = await resAll.json();
+  assert.equal(dataAll.players.length, 2);
+  assert.deepEqual(dataAll.providers, ['animeav1', 'jkanime']);
+});
+
+
 

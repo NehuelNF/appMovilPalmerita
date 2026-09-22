@@ -1,24 +1,44 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FavoritesService } from '../../../managers/FavoritesService';
+import { WatchProgressService, WatchProgress } from '../../../managers/WatchProgressService';
 import { ToastController } from '@ionic/angular';
-import { Observable } from 'rxjs';
-import { take } from 'rxjs/operators';  // Añadir esta importación
+import { Observable, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-favoritos',
   templateUrl: './favoritos.page.html',
   styleUrls: ['./favoritos.page.scss'],
 })
-export class FavoritosPage implements OnInit {
+export class FavoritosPage implements OnInit, OnDestroy {
   favorites: any[] = [];
+  progressMap = new Map<number, WatchProgress>();
+  private progressSub?: Subscription;
 
   constructor(
     private favoritesService: FavoritesService,
+    private watchProgressService: WatchProgressService,
     private toastCtrl: ToastController
   ) {}
 
   ngOnInit() {
     this.loadFavorites();
+    this.subscribeToWatchProgress();
+  }
+
+  ngOnDestroy() {
+    if (this.progressSub) {
+      this.progressSub.unsubscribe();
+    }
+  }
+
+  subscribeToWatchProgress() {
+    if (this.progressSub) this.progressSub.unsubscribe();
+    this.progressSub = this.watchProgressService.getAllProgress().subscribe(list => {
+      this.progressMap.clear();
+      for (const p of list) {
+        this.progressMap.set(p.animeId, p);
+      }
+    });
   }
 
   loadFavorites() {
@@ -38,13 +58,13 @@ export class FavoritosPage implements OnInit {
       this.loadFavorites();
       
       const toast = await this.toastCtrl.create({
-        message: 'Anime removed from favorites',
+        message: 'Anime eliminado de favoritos',
         duration: 2000
       });
       toast.present();
     } catch (error) {
       const toast = await this.toastCtrl.create({
-        message: error instanceof Error ? error.message : 'Error removing favorite',
+        message: error instanceof Error ? error.message : 'Error al eliminar favorito',
         duration: 3000,
         color: 'danger'
       });
@@ -56,50 +76,21 @@ export class FavoritosPage implements OnInit {
     return this.favoritesService.isFavorite(animeId);
   }
 
-  async increaseEpisodesWatched(anime: any) {
-    const currentEpisodes = anime.episodesWatched || 0;
-    if (!anime.episodes || currentEpisodes < anime.episodes) {
-      anime.episodesWatched = currentEpisodes + 1;
-      await this.updateAnimeProgress(anime);
+  getWatchedCount(anime: any): number {
+    const id = Number(anime.mal_id || anime.id);
+    const progress = this.progressMap.get(id);
+    if (progress && Array.isArray(progress.watchedEpisodes)) {
+      return progress.watchedEpisodes.length;
     }
-  }
-
-  async decreaseEpisodesWatched(anime: any) {
-    const currentEpisodes = anime.episodesWatched || 0;
-    if (currentEpisodes > 0) {
-      anime.episodesWatched = currentEpisodes - 1;
-      await this.updateAnimeProgress(anime);
-    }
-  }
-
-  private async updateAnimeProgress(anime: any) {
-    try {
-      await this.favoritesService.updateAnimeProgress({
-        ...anime,
-        id: anime.mal_id,
-        episodesWatched: anime.episodesWatched || 0
-      }).pipe(take(1)).toPromise();
-
-      const toast = await this.toastCtrl.create({
-        message: `Progreso actualizado: ${anime.episodesWatched}/${anime.episodes || 'Desconocido'} episodios`,
-        duration: 2000,
-        color: 'success'
-      });
-      toast.present();
-    } catch (error) {
-      const toast = await this.toastCtrl.create({
-        message: 'Error al actualizar el progreso',
-        duration: 3000,
-        color: 'danger'
-      });
-      toast.present();
-    }
+    return anime.episodesWatched || 0;
   }
 
   // Nuevos métodos para mejorar la UI
   getProgressPercentage(anime: any): number {
-    if (!anime.episodes || !anime.episodesWatched) return 0;
-    return Math.min((anime.episodesWatched / anime.episodes) * 100, 100);
+    const total = anime.episodes;
+    if (!total || total <= 0) return 0;
+    const watched = this.getWatchedCount(anime);
+    return Math.min(Math.round((watched / total) * 100), 100);
   }
 
   getStatusText(status: string): string {
@@ -114,7 +105,7 @@ export class FavoritosPage implements OnInit {
 
   // Método para verificar si el anime está completo
   isCompleted(anime: any): boolean {
-    return anime.episodes && anime.episodesWatched >= anime.episodes;
+    return !!(anime.episodes && this.getWatchedCount(anime) >= anime.episodes);
   }
 
   // Método para obtener el color de la barra de progreso

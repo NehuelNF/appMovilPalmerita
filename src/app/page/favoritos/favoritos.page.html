@@ -55,29 +55,13 @@
             </div>
           </div>
           
-          <!-- Controles de episodios más compactos -->
-          <div class="episode-controls">
-            <ion-button 
-              fill="clear"
-              size="small"
-              class="episode-btn"
-              (click)="decreaseEpisodesWatched(anime); $event.stopPropagation()" 
-              [disabled]="!anime.episodesWatched">
-              <ion-icon name="remove-outline" slot="icon-only"></ion-icon>
-            </ion-button>
-            
+          <!-- Progreso automático de episodios vistos -->
+          <div class="episode-progress-auto">
             <span class="episode-count">
-              {{ anime.episodesWatched || 0 }}/{{ anime.episodes || '?' }}
+              <ion-icon name="checkmark-circle" color="success" *ngIf="getWatchedCount(anime) > 0"></ion-icon>
+              {{ getWatchedCount(anime) }}/{{ anime.episodes || '?' }} vistos
             </span>
-            
-            <ion-button 
-              fill="clear"
-              size="small"
-              class="episode-btn"
-              (click)="increaseEpisodesWatched(anime); $event.stopPropagation()"
-              [disabled]="anime.episodes && anime.episodesWatched >= anime.episodes">
-              <ion-icon name="add-outline" slot="icon-only"></ion-icon>
-            </ion-button>
+            <span class="completed-badge" *ngIf="isCompleted(anime)">✓ Completado</span>
           </div>
         </div>
         

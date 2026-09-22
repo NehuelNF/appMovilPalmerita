@@ -242,4 +242,18 @@ export class WatchProgressService {
     await ref.set(payload, { merge: true });
     return newlyCompleted;
   }
+
+  /**
+   * Elimina un anime del historial de progreso de visualización.
+   */
+  async removeProgress(animeId: number | string): Promise<void> {
+    const user = await this.auth.currentUser;
+    if (!user) return;
+    await this.firestore
+      .collection('users')
+      .doc(user.uid)
+      .collection('watchProgress')
+      .doc(String(animeId))
+      .delete();
+  }
 }

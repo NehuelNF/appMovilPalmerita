@@ -111,6 +111,12 @@
           <span>{{ anime.status }}</span>
         </div>
 
+        <!-- Proveedores disponibles -->
+        <div class="info-row providers-info-row" *ngIf="mediaChecked && isMediaAvailable && getProvidersDisplay()">
+          <ion-icon name="server-outline" class="info-icon" color="primary"></ion-icon>
+          <span>Disponible en: <strong>{{ getProvidersDisplay() }}</strong></span>
+        </div>
+
         <!-- Progreso de visualización resumen -->
         <div class="info-row progress-info-row" *ngIf="watchedEpisodesSet.size > 0">
           <ion-icon name="checkmark-done-circle-outline" color="success" class="info-icon"></ion-icon>
@@ -121,7 +127,7 @@
       <!-- Botones principales: Ver trailer y Continuar viendo -->
       <div class="detail-actions-row">
         <ion-button 
-          *ngIf="watchedEpisodesSet.size > 0 || watchProgress?.lastEpisode"
+          *ngIf="(!mediaChecked || isMediaAvailable) && (watchedEpisodesSet.size > 0 || watchProgress?.lastEpisode)"
           color="success"
           class="resume-button"
           (click)="resumeWatching()">
@@ -137,6 +143,25 @@
           <ion-icon name="play" slot="start"></ion-icon>
           Trailer
         </ion-button>
+      </div>
+
+      <!-- Banner de no disponible para reproducción directa -->
+      <div class="unsupported-media-banner" *ngIf="mediaChecked && !isMediaAvailable">
+        <div class="banner-header">
+          <ion-icon name="alert-circle-outline" color="warning"></ion-icon>
+          <h4>No disponible para reproducción</h4>
+        </div>
+        <p>Este título actualmente no se encuentra disponible para su reproducción directa en nuestros servidores.</p>
+        <div class="banner-actions">
+          <ion-button size="small" fill="outline" color="light" (click)="searchExternal()">
+            <ion-icon name="search-outline" slot="start"></ion-icon>
+            Buscar en la web
+          </ion-button>
+          <ion-button size="small" fill="outline" color="secondary" *ngIf="hasTrailer()" (click)="openTrailer()">
+            <ion-icon name="logo-youtube" slot="start"></ion-icon>
+            Ver Trailer
+          </ion-button>
+        </div>
       </div>
     </div>
 
@@ -167,7 +192,8 @@
           *ngFor="let episode of getDisplayedEpisodes(); let i = index"
           class="episode-card"
           [class.episode-unreleased]="!episode.isAired"
-          [class.episode-processing]="!episode.isAvailable && episode.isAired"
+          [class.episode-processing]="mediaChecked && isMediaAvailable && !episode.isAvailable && episode.isAired"
+          [class.episode-unavailable]="mediaChecked && !isMediaAvailable"
           [class.episode-watched]="isEpisodeWatched(episode.number)"
           (click)="watchEpisode(episode)">
           
@@ -179,14 +205,19 @@
               loading="lazy">
             
             <div class="episode-overlay">
-              <ion-icon [name]="episode.isAvailable ? 'play-circle' : (episode.isAired ? 'hourglass-outline' : 'time-outline')" class="play-icon"></ion-icon>
+              <ion-icon [name]="mediaChecked && !isMediaAvailable ? 'alert-circle-outline' : (episode.isAvailable ? 'play-circle' : (episode.isAired ? 'hourglass-outline' : 'time-outline'))" class="play-icon"></ion-icon>
             </div>
             
             <div class="episode-number-badge">
               <span>Episodio {{ episode.number }}</span>
             </div>
 
-            <div class="episode-status-tag" [ngClass]="episode.isAvailable ? 'status-available' : (episode.isAired ? 'status-processing' : 'status-upcoming')">
+            <div class="episode-status-tag" [ngClass]="{
+              'status-unavailable': mediaChecked && !isMediaAvailable,
+              'status-available': isMediaAvailable && episode.isAvailable,
+              'status-processing': isMediaAvailable && !episode.isAvailable && episode.isAired,
+              'status-upcoming': !episode.isAired
+            }">
               <span>{{ episode.statusText }}</span>
             </div>
 

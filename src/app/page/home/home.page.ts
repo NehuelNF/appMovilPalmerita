@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ToastController } from '@ionic/angular';
+import { ToastController, AlertController } from '@ionic/angular';
 import { AnimeService } from '../../../managers/AnimeService';
 import { FavoritesService } from '../../../managers/FavoritesService';
 import { WatchProgressService, WatchProgress } from '../../../managers/WatchProgressService';
@@ -27,7 +27,8 @@ export class HomePage implements OnInit, OnDestroy {
     private animeService: AnimeService,
     private favoritesService: FavoritesService,
     private watchProgressService: WatchProgressService,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private alertCtrl: AlertController
   ) {}
 
   ngOnInit() {
@@ -59,6 +60,42 @@ export class HomePage implements OnInit, OnDestroy {
   getProgressPercentage(item: WatchProgress): number {
     if (!item.totalEpisodes || !item.watchedEpisodes) return 0;
     return Math.min(Math.round((item.watchedEpisodes.length / item.totalEpisodes) * 100), 100);
+  }
+
+  async removeContinueWatching(item: WatchProgress, event: Event) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    const alert = await this.alertCtrl.create({
+      header: 'Quitar de continuar viendo',
+      message: `¿Deseas quitar "${item.animeTitle || 'este anime'}" de tu lista de continuar viendo?`,
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            this.recentProgress = this.recentProgress.filter(p => p.animeId !== item.animeId);
+            try {
+              await this.watchProgressService.removeProgress(item.animeId);
+              const toast = await this.toastCtrl.create({
+                message: 'Anime quitado de continuar viendo',
+                duration: 2000,
+                color: 'medium'
+              });
+              await toast.present();
+            } catch (err) {
+              console.error('Error removing watch progress:', err);
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
   }
 
   async handleRefresh(event: any) {

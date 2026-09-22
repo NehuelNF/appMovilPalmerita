@@ -37,6 +37,13 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
   currentPage: number = 1;
   episodesReversed: boolean = false;
 
+  // Disponibilidad en servidores de video
+  mediaChecked: boolean = false;
+  isMediaAvailable: boolean = false;
+  mediaProvider: string = '';
+  mediaProviders: string[] = [];
+  resolvedSlug: string = '';
+
   // Watch Progress
   watchProgress: WatchProgress | null = null;
   watchedEpisodesSet = new Set<number>();
@@ -188,19 +195,19 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
             if (this.anime) this.anime.topRank = null;
           }
 
+          // Reiniciar estado de disponibilidad
+          this.mediaChecked = false;
+          this.isMediaAvailable = false;
+          this.availableEpisodes = [];
+          this.mediaProvider = '';
+          this.mediaProviders = [];
+          this.resolvedSlug = '';
+
           // Cargar episodios inicialmente con la información de emisión
           this.loadEpisodes(id);
 
-          // Consultar disponibilidad en el servidor de video para mayor precisión
-          const slug = this.animeService.getSlug(this.anime.title_english || this.anime.title);
-          if (slug) {
-            this.animeService.getAvailableEpisodes(slug).subscribe(res => {
-              if (res && res.availableEpisodes && res.availableEpisodes.length > 0) {
-                this.availableEpisodes = res.availableEpisodes;
-                this.syncEpisodeAvailability();
-              }
-            });
-          }
+          // Consultar disponibilidad en servidores de video (AnimeAV1 y JKAnime)
+          this.checkMediaAvailability();
         } else {
           this.error = 'No se pudieron cargar los detalles del anime';
         }
@@ -396,15 +403,25 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
         const isAired = this.airedEpisodes !== null && this.airedEpisodes !== undefined 
           ? (i <= this.airedEpisodes) 
           : true;
-        const isAvailable = this.availableEpisodes.length > 0 
-          ? this.availableEpisodes.includes(i) 
-          : isAired;
 
-        let statusText = 'Disponible';
+        let isAvailable = false;
+        let statusText = 'Emitido';
+
         if (!isAired) {
           statusText = 'Próximamente';
-        } else if (!isAvailable) {
+          isAvailable = false;
+        } else if (this.mediaChecked) {
+          if (!this.isMediaAvailable) {
+            statusText = 'No disponible';
+            isAvailable = false;
+          } else {
+            isAvailable = this.availableEpisodes.includes(i);
+            statusText = isAvailable ? 'Disponible' : 'Emitido';
+          }
+        } else {
+          // Aún comprobando disponibilidad con los servidores
           statusText = 'Emitido';
+          isAvailable = false;
         }
 
         this.episodes.push({
@@ -420,9 +437,81 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
     }
   }
 
+  getPossibleSlugs(): string[] {
+    if (!this.anime) return [];
+    const candidates = [
+      this.anime.title_english,
+      this.anime.title,
+      this.anime.title_romaji,
+      ...(Array.isArray(this.anime.titles) ? this.anime.titles.map((t: any) => t?.title) : [])
+    ].filter(Boolean);
+
+    const slugs: string[] = [];
+    for (const title of candidates) {
+      const slug = this.animeService.getSlug(title);
+      if (slug && !slugs.includes(slug)) {
+        slugs.push(slug);
+      }
+    }
+    return slugs;
+  }
+
+  checkMediaAvailability() {
+    const slugs = this.getPossibleSlugs();
+    if (!slugs.length) {
+      this.mediaChecked = true;
+      this.isMediaAvailable = false;
+      this.syncEpisodeAvailability();
+      return;
+    }
+    this.tryNextSlugAvailability(slugs, 0);
+  }
+
+  private tryNextSlugAvailability(slugs: string[], index: number) {
+    if (index >= slugs.length) {
+      this.mediaChecked = true;
+      this.isMediaAvailable = false;
+      this.availableEpisodes = [];
+      this.syncEpisodeAvailability();
+      return;
+    }
+
+    const currentSlug = slugs[index];
+    this.animeService.getAvailableEpisodes(currentSlug).subscribe({
+      next: (res) => {
+        if (res && res.exists && res.availableEpisodes && res.availableEpisodes.length > 0) {
+          this.mediaChecked = true;
+          this.isMediaAvailable = true;
+          this.mediaProvider = res.provider || '';
+          this.mediaProviders = res.providers || (res.provider ? [res.provider] : []);
+          this.resolvedSlug = currentSlug;
+          this.availableEpisodes = res.availableEpisodes;
+          this.syncEpisodeAvailability();
+        } else {
+          this.tryNextSlugAvailability(slugs, index + 1);
+        }
+      },
+      error: () => {
+        this.tryNextSlugAvailability(slugs, index + 1);
+      }
+    });
+  }
+
+  getProvidersDisplay(): string {
+    if (!this.mediaProviders || !this.mediaProviders.length) return '';
+    return this.mediaProviders
+      .map(p => p === 'animeav1' ? 'AnimeAV1' : (p === 'jkanime' ? 'JKAnime' : p))
+      .join(' y ');
+  }
+
   syncEpisodeAvailability() {
     if (!this.episodes || !this.episodes.length) return;
     this.episodes.forEach(ep => {
+      if (this.mediaChecked && !this.isMediaAvailable) {
+        ep.isAvailable = false;
+        ep.statusText = 'No disponible';
+        return;
+      }
       if (this.availableEpisodes.length > 0) {
         ep.isAvailable = this.availableEpisodes.includes(ep.number);
       }
@@ -435,6 +524,14 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
       }
     });
     this.updateDisplayedEpisodes();
+  }
+
+  searchExternal(episodeNumber?: number) {
+    const title = this.anime?.title || this.anime?.title_english || '';
+    const query = episodeNumber 
+      ? `ver ${title} capitulo ${episodeNumber} online sub espanol`
+      : `ver ${title} online sub espanol`;
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
   }
 
   getDisplayedEpisodes(): Episode[] {
@@ -477,6 +574,16 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
   }
 
   async watchEpisode(episode: Episode) {
+    if (this.mediaChecked && !this.isMediaAvailable) {
+      const toast = await this.toastCtrl.create({
+        message: 'Este título no está disponible para reproducción en la aplicación.',
+        duration: 3000,
+        color: 'warning'
+      });
+      await toast.present();
+      return;
+    }
+
     if (!episode.isAired) {
       await this.toastService.showInfo(`El Episodio ${episode.number} aún no ha salido (Próximamente).`);
       return;
@@ -491,15 +598,23 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
     
     const animeId = this.route.snapshot.paramMap.get('id');
     if (animeId) {
-      this.router.navigate(['/watch', animeId, episode.number]);
+      this.router.navigate(['/watch', animeId, episode.number], {
+        queryParams: this.resolvedSlug ? { slug: this.resolvedSlug } : {}
+      });
     }
   }
 
   resumeWatching() {
+    if (this.mediaChecked && !this.isMediaAvailable) {
+      this.toastService.showWarning('Este título no está disponible para reproducción.');
+      return;
+    }
     const epNum = this.getResumeEpisodeNumber();
     const animeId = this.route.snapshot.paramMap.get('id');
     if (animeId) {
-      this.router.navigate(['/watch', animeId, epNum]);
+      this.router.navigate(['/watch', animeId, epNum], {
+        queryParams: this.resolvedSlug ? { slug: this.resolvedSlug } : {}
+      });
     }
   }
 }

@@ -57,6 +57,35 @@ ion-card-title { font-size: clamp(26px,4vw,38px); font-weight: 750; letter-spaci
           object-fit: cover;
         }
 
+        .remove-continue-btn {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          z-index: 5;
+          background: rgba(0, 0, 0, 0.65);
+          border: none;
+          color: rgba(255, 255, 255, 0.85);
+          border-radius: 50%;
+          width: 26px;
+          height: 26px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          padding: 0;
+          transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+
+          ion-icon {
+            font-size: 20px;
+          }
+
+          &:hover {
+            background: rgba(239, 68, 68, 0.9);
+            color: #fff;
+            transform: scale(1.1);
+          }
+        }
+
         .play-overlay-icon {
           position: absolute;
           inset: 0;
