@@ -26,6 +26,8 @@ import { StorageService } from 'src/managers/StorageService';
     }
   
     async updateUsername(newUsername: string): Promise<void> {
+      newUsername = newUsername.trim();
+      if (!newUsername) throw new Error('Escribe un nombre de usuario');
       try {
         const user = await this.fireAuth.currentUser;
         if (!user) {

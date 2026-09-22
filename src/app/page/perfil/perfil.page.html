@@ -21,20 +21,22 @@
     <div class="update-section">
       <ion-item>
         <ion-input [(ngModel)]="newUsername" 
-                   placeholder="INGRESAR NUEVO NOMBRE"
+                   placeholder="Nuevo nombre"
+                   aria-label="Nuevo nombre de usuario"
                    class="custom-input">
         </ion-input>
       </ion-item>
       <ion-button expand="block" 
                   (click)="onUpdateUsername()"
+                  [disabled]="savingUsername || !newUsername.trim()"
                   class="update-button"
                   color="success">
         <ion-icon slot="start" name="create-outline"></ion-icon>
-        Actualizar nombre
+        {{ savingUsername ? 'Guardando…' : 'Guardar nombre' }}
       </ion-button>
     </div>
 
-    <div class="link-account-section" *ngIf="!isGoogleUser">
+    <div class="link-account-section" *ngIf="providerResolved && !isGoogleUser">
       <ion-button expand="block"
                   (click)="linkWithGoogle()"
                   class="link-google-button"

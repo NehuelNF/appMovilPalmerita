@@ -37,6 +37,38 @@
 --anime-card-shadow: 0 5px 24px #0002; --anime-card-shadow-hover: 0 12px 32px #0004; color-scheme: dark;
 }
 body { font-size: 16px; }
+@media (max-width: 600px) {
+  app-home ion-card { margin: 8px 12px 12px !important; padding: 0 !important; }
+  app-home ion-card-title { font-size: 21px !important; letter-spacing: -.4px !important; }
+  app-home ion-list { margin: 0 12px !important; gap: 8px !important; grid-template-columns: minmax(0, 1fr) !important; }
+  app-home .circular-icon { width: 56px !important; height: 78px !important; }
+  app-home .container-logo { gap: 12px !important; }
+  app-home .item-text { font-size: 15px !important; line-height: 1.35 !important; }
+  app-home .rank-indicator { left: 3px !important; top: 3px !important; padding: 2px 5px !important; }
+  app-home .continue-watching-section .continue-cards-scroll .continue-card { flex-basis: 156px !important; }
+  app-home .continue-watching-section .continue-cards-scroll .continue-card .continue-thumb-container { height: 82px !important; }
+  app-perfil .profile-container { max-width: 480px !important; margin: auto !important; padding: 0 !important; gap: 12px !important; }
+  app-perfil .user-info { flex-direction: row !important; gap: 14px !important; margin-bottom: 4px !important; }
+  app-perfil .user-info ion-avatar { width: 56px !important; height: 56px !important; min-width: 56px !important; margin: 0 !important; }
+  app-perfil .user-info h2 { font-size: 19px !important; text-align: left !important; color: var(--ion-text-color) !important; overflow-wrap: anywhere !important; }
+  app-perfil .update-section { padding: 0 !important; margin: 0 !important; }
+  app-perfil .action-buttons { margin-top: 0 !important; gap: 4px !important; }
+  app-perfil .action-buttons ion-button.delete-button { margin-top: 0 !important; }
+  app-perfil ion-button { min-height: 44px !important; margin: 4px 0 !important; text-transform: none !important; letter-spacing: 0 !important; }
+  app-perfil .notifications-section { margin-top: 0 !important; }
+  app-perfil .notifications-section .ion-margin-bottom { margin-bottom: 4px !important; }
+  app-favoritos .favorites-grid { gap: 10px !important; padding: 0 !important; }
+  app-favoritos .favorite-card .image-container img { height: 112px !important; }
+  app-anime-detail .image-container { height: 170px !important; background: var(--surface-soft) !important; }
+  app-anime-detail .image-container > img { height: 100% !important; object-fit: contain !important; }
+  app-anime-detail .text-container { padding: 12px !important; }
+  app-season .anime-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; padding: 12px !important; }
+  app-season .anime-card .image-container { height: 145px !important; }
+  app-season .anime-card .anime-info { padding: 10px !important; }
+  app-season .anime-card .anime-info .anime-title { font-size: 14px !important; }
+  app-season .anime-card .synopsis { display: none !important; }
+  app-season .anime-card .anime-title-english { display: none !important; }
+}
 ion-app > ion-router-outlet { top: calc(64px + env(safe-area-inset-top)); }
 .appearance-bar { position: absolute; inset: 0 0 auto; height: calc(64px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) max(20px,calc((100% - 1200px)/2)) 0; display: flex; align-items: center; justify-content: space-between; background: var(--surface); border-bottom: 1px solid var(--ion-border-color); z-index: 20; }
 .brand { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 750; text-decoration: none; letter-spacing: -.8px; color: var(--ion-color-primary); }

@@ -125,6 +125,10 @@ export class UserLoginUseCase {
     
     try {
       const userDoc = await this.firestore.collection('users').doc(user.id).get().toPromise();
+      if (userDoc?.exists) {
+        const profile = userDoc.data() as { username?: string };
+        usernameToSave = profile?.username || usernameToSave;
+      }
       if (!userDoc?.exists) {
         await this.firestore.collection('users').doc(user.id).set({
           email: user.email, username: usernameToSave, displayName: user.name,

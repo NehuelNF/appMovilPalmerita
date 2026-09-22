@@ -1,4 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { Subscription, of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { UserGetUseCase } from 'src/app/use-cases/user-get.use-case';
 import { UserLogoutUseCase } from 'src/app/use-cases/user-logout.use-case';
 import { UserUpdateUseCase } from 'src/app/use-cases/user-update.use-case';
@@ -20,13 +23,18 @@ import { UserDeleteUseCase } from 'src/app/use-cases/user-delete.use-case'; // A
   templateUrl: './perfil.page.html',
   styleUrls: ['./perfil.page.scss'],
 })
-export class PerfilPage implements OnInit {
+export class PerfilPage implements OnInit, OnDestroy {
+  private subscriptions = new Subscription();
+  providerResolved = false;
+  savingUsername = false;
   userName: string | null = null;
   newUsername: string = '';
   avatar: string | null = null;
   isGoogleUser: boolean = false;
 
   constructor(
+    private firestore: AngularFirestore,
+    private zone: NgZone,
     private userGetUseCase: UserGetUseCase,
     private userLogoutUseCase: UserLogoutUseCase,
     private router: Router,
@@ -42,58 +50,30 @@ export class PerfilPage implements OnInit {
     private userDeleteUseCase: UserDeleteUseCase // Inyectar UserDeleteUseCase
   ) {}
 
-  async ngOnInit() {
-    try {
-      // Obtener datos iniciales
-      await this.loadUserData();
-      
-      // Suscribirse a cambios de autenticación
-      this.fireAuth.authState.subscribe(async user => {
-        if (user) {
-          await this.loadUserData();
-        } else {
-          this.router.navigate(['/login']);
-        }
+  ngOnInit() {
+    this.subscriptions.add(this.fireAuth.user.pipe(switchMap(user => {
+      this.zone.run(() => {
+        this.providerResolved = !!user;
+        this.isGoogleUser = !!user?.providerData.some(p => p?.providerId === 'google.com');
       });
-    } catch (error) {
-      console.error('Error al obtener nombre de usuario:', error);
-      this.router.navigate(['/login']);
-    }
+      if (!user) {
+        void this.router.navigate(['/login']);
+        return of(null);
+      }
+      return this.firestore.collection('users').doc(user.uid).valueChanges();
+    })).subscribe({
+      next: (profile: any) => this.zone.run(() => {
+        this.userName = profile?.username || null;
+        this.avatar = profile?.avatar || null;
+      }),
+      error: () => { void this.showErrorAlert('No se pudo actualizar el perfil. Inténtalo de nuevo.'); }
+    }));
+    this.subscriptions.add(this.updateAvatarUseCase.avatarUpdated$.subscribe(avatar => {
+      this.zone.run(() => { this.avatar = avatar; });
+    }));
   }
 
-  // Método para cargar los datos del usuario
-  private async loadUserData() {
-    this.userName = await this.userGetUseCase.getUserName();
-    if (!this.userName) {
-      this.router.navigate(['/login']);
-      return;
-    }
-    
-    const user = await this.userGetUseCase.getUser();
-    this.avatar = user?.avatar || null;
-  
-    // Check if user is authenticated or linked with Google
-    let currentUser = await this.fireAuth.currentUser;
-    if (currentUser) {
-      try {
-        await currentUser.reload();
-        currentUser = await this.fireAuth.currentUser;
-      } catch {}
-    }
-
-    const hasGoogleInProviderData = currentUser?.providerData?.some(
-      p => p?.providerId === 'google.com'
-    ) || false;
-
-    const userDocData = await this.userGetUseCase.getUserDoc();
-    const hasGoogleInFirestore = userDocData?.provider === 'google' || userDocData?.linkedProviders?.includes('google.com');
-
-    this.isGoogleUser = hasGoogleInProviderData || !!hasGoogleInFirestore;
-
-    this.updateAvatarUseCase.avatarUpdated$.subscribe(newAvatar => {
-      this.avatar = newAvatar;
-    });
-  }
+  ngOnDestroy() { this.subscriptions.unsubscribe(); }
 
   // Mostrar el actionsheet
   async showActionSheet() {
@@ -137,16 +117,21 @@ export class PerfilPage implements OnInit {
 
   //Actualizar nombre
   async onUpdateUsername() {
+    if (this.savingUsername) return;
+    const username = this.newUsername.trim();
+    if (!username) return;
+    this.savingUsername = true;
     try {
-      if (this.newUsername) { // Paréntesis añadido
-        await this.userUpdateUseCase.updateUsername(this.newUsername);
-        this.userName = this.newUsername;
-        this.newUsername = '';
+      if (username) {
+        await this.userUpdateUseCase.updateUsername(username);
+        this.zone.run(() => { this.userName = username; this.newUsername = ''; });
         await this.showSuccessAlert();
       }
     } catch (error: any) {
       console.error('Error al actualizar nombre:', error);
       await this.showErrorAlert(error.message || 'Error al actualizar nombre');
+    } finally {
+      this.zone.run(() => { this.savingUsername = false; });
     }
   }
 
@@ -189,6 +174,7 @@ export class PerfilPage implements OnInit {
       
       try {
         await currentUser.linkWithPopup(provider);
+        this.zone.run(() => { this.isGoogleUser = true; this.providerResolved = true; });
         
         const toast = await this.toastController.create({
           message: 'Cuenta vinculada exitosamente con Google',
