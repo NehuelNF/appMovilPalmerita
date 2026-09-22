@@ -228,12 +228,30 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
 
-      .episodes-title {
-        margin: 0;
-        font-size: 24px;
-        font-weight: bold;
-        color: var(--ion-text-color);
+      .episodes-title-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+
+        .episodes-title {
+          margin: 0;
+          font-size: 24px;
+          font-weight: bold;
+          color: var(--ion-text-color);
+        }
+
+        .episodes-summary-badge {
+          background: rgba(var(--ion-color-primary-rgb, 45, 211, 111), 0.15);
+          color: var(--ion-color-primary);
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 13px;
+          font-weight: 600;
+        }
       }
 
       .episodes-controls {
@@ -271,6 +289,20 @@
         background: var(--ion-color-light);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
+
+        &.episode-unreleased {
+          opacity: 0.72;
+          border: 1px dashed rgba(var(--ion-color-warning-rgb, 255, 196, 9), 0.4);
+
+          .episode-image {
+            filter: grayscale(40%);
+          }
+        }
+
+        &.episode-processing {
+          opacity: 0.85;
+          border: 1px dashed rgba(var(--ion-color-tertiary-rgb, 82, 96, 255), 0.4);
+        }
 
         &:hover {
           transform: translateY(-4px);
@@ -328,6 +360,34 @@
             border-radius: 6px;
             font-size: 12px;
             font-weight: bold;
+          }
+
+          .episode-status-tag {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+            &.status-available {
+              background: var(--ion-color-success, #2dd36f);
+              color: #ffffff;
+            }
+
+            &.status-upcoming {
+              background: var(--ion-color-warning, #ffc409);
+              color: #000000;
+            }
+
+            &.status-processing {
+              background: var(--ion-color-tertiary, #5260ff);
+              color: #ffffff;
+            }
           }
         }
 

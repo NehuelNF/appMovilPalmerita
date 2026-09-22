@@ -13,27 +13,36 @@
     <p class="fullscreen-notice" *ngIf="expanded" role="status">{{ fullscreenMessage }}</p>
     <div class="player-loading" *ngIf="loading" role="status"><ion-spinner></ion-spinner><p>Obteniendo reproductor…</p></div>
     
-    <!-- Error del streaming -->
-    <div class="streaming-error" *ngIf="streamingError">
-      <ion-icon name="warning-outline" color="danger"></ion-icon>
-      <h3>Error al cargar el episodio</h3>
+    <!-- Error del streaming o capítulo no emitido -->
+    <div class="streaming-error" *ngIf="streamingError" [class.unreleased-state]="isNotReleased">
+      <ion-icon [name]="isNotReleased ? 'time-outline' : 'warning-outline'" [color]="isNotReleased ? 'warning' : 'danger'"></ion-icon>
+      <h3>{{ isNotReleased ? 'Capítulo aún no disponible' : 'Error al cargar el episodio' }}</h3>
       <p>{{ streamingError }}</p>
       <div class="error-actions">
-        <ion-button *ngIf="hasEnglishTitle()" 
+        <ion-button *ngIf="isNotReleased && maxAiredEpisode > 0 && episodeNumber !== maxAiredEpisode" 
+                    fill="solid" size="small" color="success" (click)="goToLatestAvailableEpisode()">
+          <ion-icon name="play-outline" slot="start"></ion-icon>
+          Ver último disponible (Ep. {{ maxAiredEpisode }})
+        </ion-button>
+        <ion-button *ngIf="isNotReleased" fill="outline" size="small" (click)="goBack()">
+          <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+          Volver a la serie
+        </ion-button>
+        <ion-button *ngIf="!isNotReleased && hasEnglishTitle()" 
                     fill="solid" size="small" color="secondary" (click)="tryEnglishTitle()">
           <ion-icon name="language-outline" slot="start"></ion-icon>
           Buscar con nombre inglés
         </ion-button>
-        <ion-button *ngIf="sourceUrl" fill="outline" size="small" color="tertiary" (click)="openExternalLink(sourceUrl)">
+        <ion-button *ngIf="!isNotReleased && sourceUrl" fill="outline" size="small" color="tertiary" (click)="openExternalLink(sourceUrl)">
           <ion-icon name="open-outline" slot="start"></ion-icon>
           Abrir sitio web
         </ion-button>
       </div>
       
       <!-- Show English title if available -->
-      <div *ngIf="hasEnglishTitle()" class="english-title-info">
-        <p class="english-title">Título en inglés: <strong>{{ anime.title_english }}</strong></p>
-        <p class="english-title" *ngIf="anime.title_romaji">Romaji: <strong>{{ anime.title_romaji }}</strong></p>
+      <div *ngIf="!isNotReleased && hasEnglishTitle()" class="english-title-info">
+        <p class="english-title">Título en inglés: <strong>{{ anime?.title_english }}</strong></p>
+        <p class="english-title" *ngIf="anime?.title_romaji">Romaji: <strong>{{ anime?.title_romaji }}</strong></p>
       </div>
     </div>
 
@@ -116,11 +125,13 @@
       <div *ngFor="let episode of (showAllEpisodes ? episodes : episodes.slice(0, 12))" 
            class="episode-item"
            [class.active]="episode.number === episodeNumber"
+           [class.unreleased]="isEpisodeUnreleased(episode.number)"
            (click)="selectEpisode(episode.number)">
         <img [src]="getEpisodeThumbnail(episode)" [alt]="episode.title">
         <div class="episode-info-item">
           <span class="episode-number">EP {{ episode.number }}</span>
           <span class="episode-title">{{ episode.title }}</span>
+          <span class="unreleased-tag" *ngIf="isEpisodeUnreleased(episode.number)">Próximamente</span>
         </div>
       </div>
     </div>

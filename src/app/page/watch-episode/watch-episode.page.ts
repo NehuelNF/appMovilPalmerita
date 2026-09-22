@@ -9,9 +9,9 @@ interface Player { name: string; url: string; type?: 'direct' | 'iframe'; }
 @Component({selector:'app-watch-episode',templateUrl:'./watch-episode.page.html',styleUrls:['./watch-episode.page.scss']})
 export class WatchEpisodePage implements OnInit, OnDestroy {
   animeId=''; episodeNumber=1; animeTitle=''; episodeTitle=''; episodeThumbnail='';
-  anime:any=null; totalEpisodes=0; episodes:{number:number;title:string}[]=[];
+  anime:any=null; totalEpisodes=0; maxAiredEpisode=0; episodes:{number:number;title:string;isAired?:boolean}[]=[];
   safeIframeUrl:SafeResourceUrl|null=null;
-  streamingError=''; loading=true; players:Player[]=[]; selectedPlayer=''; sourceUrl='';
+  streamingError=''; isNotReleased=false; loading=true; players:Player[]=[]; selectedPlayer=''; sourceUrl='';
   directVideoUrl='';
   showAllEpisodes=false;
   @ViewChild('playerSurface') playerSurface?:ElementRef<HTMLElement>;
@@ -43,7 +43,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   async loadEpisode(useEnglish=false) {
     const generation=++this.generation;
     const animeId=this.animeId, episode=this.episodeNumber;
-    this.safeIframeUrl=null; this.directVideoUrl=''; this.players=[]; this.streamingError=''; this.loading=true; this.sourceUrl='';
+    this.safeIframeUrl=null; this.directVideoUrl=''; this.players=[]; this.streamingError=''; this.isNotReleased=false; this.loading=true; this.sourceUrl='';
     this.episodeTitle='Episodio '+episode;
     try {
       if(!this.anime || this.anime.mal_id!==Number(animeId)) {
@@ -52,9 +52,26 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
         this.anime=response.data || response;
       }
       this.animeTitle=this.anime.title || '';
-      this.totalEpisodes=this.anime.episodes || 0;
-      this.episodes=Array.from({length:this.totalEpisodes},(_,i)=>({number:i+1,title:'Episodio '+(i+1)}));
+      this.totalEpisodes=this.anime.totalEpisodes || this.anime.episodes || 0;
+      this.maxAiredEpisode=this.anime.airedEpisodes !== undefined && this.anime.airedEpisodes !== null 
+        ? this.anime.airedEpisodes 
+        : this.totalEpisodes;
+
+      const count = this.totalEpisodes || this.maxAiredEpisode || 0;
+      this.episodes=Array.from({length:count},(_,i)=>({
+        number:i+1,
+        title:'Episodio '+(i+1),
+        isAired: this.maxAiredEpisode > 0 ? (i+1 <= this.maxAiredEpisode) : true
+      }));
       this.episodeThumbnail=this.anime.images?.jpg?.large_image_url || 'assets/icon/favicon.png';
+
+      // Verificar si el capítulo solicitado aún no se ha emitido
+      if (this.maxAiredEpisode > 0 && episode > this.maxAiredEpisode) {
+        this.isNotReleased = true;
+        this.streamingError = `El episodio ${episode} aún no ha salido. Actualmente hay ${this.maxAiredEpisode} capítulos emitidos.`;
+        return;
+      }
+
       const title=useEnglish ? this.anime.title_english : this.animeTitle;
       const slug=(title || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/[\s-]+/g,'-');
       this.sourceUrl='https://animeav1.com/media/'+slug+'/'+episode;
@@ -66,7 +83,12 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
       this.selectPlayer(this.players.find(player => player.type !== 'direct' && /^(www\.)?mp4upload\.com$/i.test(new URL(player.url).hostname)) || this.players[0]);
     } catch(error:any) {
       if(generation!==this.generation) return;
-      this.streamingError=error?.error?.error || 'No se pudo obtener el reproductor del capítulo.';
+      if (error?.status === 404 || error?.error?.notReleased) {
+        this.isNotReleased = true;
+        this.streamingError = error?.error?.error || `El episodio ${episode} aún no está disponible para su reproducción.`;
+      } else {
+        this.streamingError=error?.error?.error || 'No se pudo obtener el reproductor del capítulo.';
+      }
     } finally {if(generation===this.generation) this.loading=false;}
   }
   selectPlayer(player:Player) {
@@ -86,10 +108,23 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   tryEnglishTitle(){void this.loadEpisode(true);}
   reloadCurrentEpisode(){void this.loadEpisode();}
   hasPreviousEpisode(){return this.episodeNumber>1;}
-  hasNextEpisode(){return this.episodeNumber<this.totalEpisodes;}
+  hasNextEpisode(){
+    const limit = this.maxAiredEpisode > 0 ? this.maxAiredEpisode : this.totalEpisodes;
+    return this.episodeNumber < limit;
+  }
   goToPreviousEpisode(){if(this.hasPreviousEpisode()) this.selectEpisode(this.episodeNumber-1);}
   goToNextEpisode(){if(this.hasNextEpisode()) this.selectEpisode(this.episodeNumber+1);}
-  selectEpisode(number:number){this.safeIframeUrl=null;this.router.navigate(['/watch',this.animeId,number]);}
+  goToLatestAvailableEpisode(){if(this.maxAiredEpisode>0) this.selectEpisode(this.maxAiredEpisode);}
+  isEpisodeUnreleased(number:number):boolean{return this.maxAiredEpisode>0 && number>this.maxAiredEpisode;}
+  selectEpisode(number:number){
+    if (this.isEpisodeUnreleased(number)) {
+      this.isNotReleased = true;
+      this.streamingError = `El episodio ${number} aún no ha salido.`;
+      return;
+    }
+    this.safeIframeUrl=null;
+    this.router.navigate(['/watch',this.animeId,number]);
+  }
   getEpisodeThumbnail(episode:any){return episode.thumbnail || this.episodeThumbnail;}
   openExternalLink(url:string){if(url.startsWith('https://animeav1.com/')) window.open(url,'_blank','noopener,noreferrer');}
   goBack(){this.safeIframeUrl=null;this.router.navigate(['/anime',this.animeId]);}

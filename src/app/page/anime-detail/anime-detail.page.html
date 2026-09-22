@@ -129,7 +129,10 @@
     <!-- Nueva sección de episodios -->
     <div class="episodes-section" *ngIf="episodes && episodes.length > 0">
       <div class="section-header">
-        <h3 class="episodes-title">Episodios</h3>
+        <div class="episodes-title-container">
+          <h3 class="episodes-title">Episodios</h3>
+          <span class="episodes-summary-badge" *ngIf="getEpisodeSummary()">{{ getEpisodeSummary() }}</span>
+        </div>
         <div class="episodes-controls">
           <ion-button fill="clear" size="small" (click)="toggleEpisodesOrder()">
             <ion-icon name="swap-vertical-outline" slot="icon-only"></ion-icon>
@@ -144,6 +147,8 @@
         <div 
           *ngFor="let episode of getDisplayedEpisodes(); let i = index"
           class="episode-card"
+          [class.episode-unreleased]="!episode.isAired"
+          [class.episode-processing]="!episode.isAvailable && episode.isAired"
           (click)="watchEpisode(episode)">
           
           <div class="episode-image-container">
@@ -154,11 +159,15 @@
               loading="lazy">
             
             <div class="episode-overlay">
-              <ion-icon name="play-circle" class="play-icon"></ion-icon>
+              <ion-icon [name]="episode.isAvailable ? 'play-circle' : (episode.isAired ? 'hourglass-outline' : 'time-outline')" class="play-icon"></ion-icon>
             </div>
             
             <div class="episode-number-badge">
               <span>Episodio {{ episode.number }}</span>
+            </div>
+
+            <div class="episode-status-tag" [ngClass]="episode.isAvailable ? 'status-available' : (episode.isAired ? 'status-processing' : 'status-upcoming')">
+              <span>{{ episode.statusText }}</span>
             </div>
           </div>
           

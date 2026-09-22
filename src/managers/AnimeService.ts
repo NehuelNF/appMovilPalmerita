@@ -377,29 +377,77 @@ export class AnimeService {
     );
   }
 
-  // NUEVO: Obtener información específica de episodios desde Anilist
-  private getAnimeEpisodesFromAnilist(malId: number): Observable<{ episodes: number | null }> {
+  // NUEVO: Obtener información específica de episodios y emisión desde Anilist
+  private getAnimeEpisodesFromAnilist(malId: number): Observable<{
+    episodes: number | null;
+    status: string | null;
+    format: string | null;
+    nextAiringEpisode: { episode: number; airingAt: number; timeUntilAiring: number } | null;
+  }> {
     const query = `
       query ($id: Int) {
         Media(idMal: $id, type: ANIME) {
           episodes
           status
           format
+          nextAiringEpisode {
+            episode
+            airingAt
+            timeUntilAiring
+          }
         }
       }
     `;
     const variables = { id: malId };
-    return this.http.post<{ data: { Media: { episodes: number | null } } }>(this.anilistUrl, { query, variables })
+    return this.http.post<{ data: { Media: any } }>(this.anilistUrl, { query, variables })
       .pipe(
         map((response) => {
           const media = response?.data?.Media;
-          return { episodes: media?.episodes ?? null };
+          return {
+            episodes: media?.episodes ?? null,
+            status: media?.status ?? null,
+            format: media?.format ?? null,
+            nextAiringEpisode: media?.nextAiringEpisode ?? null
+          };
         }),
         catchError(error => {
           console.warn(`No se pudo obtener información de episodios desde Anilist para MAL ID ${malId}:`, error);
-          return of({ episodes: null });
+          return of({ episodes: null, status: null, format: null, nextAiringEpisode: null });
         })
       );
+  }
+
+  /**
+   * Genera el slug estandarizado a partir del título para el proveedor de streaming
+   */
+  getSlug(title: string): string {
+    return (title || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/[\s-]+/g, '-');
+  }
+
+  /**
+   * Obtiene la lista de capítulos disponibles para reproducción en el servidor
+   */
+  getAvailableEpisodes(slug: string): Observable<{ availableEpisodes: number[]; count: number; exists: boolean }> {
+    if (!slug) return of({ availableEpisodes: [], count: 0, exists: false });
+    return this.http.get<{ slug?: string; availableEpisodes: number[]; count: number; exists: boolean }>('/api/media', {
+      params: { slug }
+    }).pipe(
+      map(res => ({
+        availableEpisodes: res.availableEpisodes || [],
+        count: res.count || 0,
+        exists: !!res.exists
+      })),
+      catchError(err => {
+        console.warn(`No se pudo obtener disponibilidad de episodios para ${slug}:`, err);
+        return of({ availableEpisodes: [], count: 0, exists: false });
+      })
+    );
   }
 
   // Adaptar getSeasonalAnime a Anilist
@@ -487,14 +535,31 @@ export class AnimeService {
             // Combinar datos: usar episodios de Anilist si están disponibles
             const finalAnime = { ...jikanAnime };
             
-            if (anilistData.episodes !== null) {
-              finalAnime.episodes = anilistData.episodes;
-              finalAnime.episodesSource = 'anilist';
-              console.log(`📺 Usando ${anilistData.episodes} episodios desde Anilist para ${finalAnime.title}`);
+            const totalPlanned = anilistData.episodes !== null ? anilistData.episodes : (jikanAnime.episodes || null);
+            finalAnime.totalEpisodes = totalPlanned;
+            finalAnime.episodes = totalPlanned; // Mantener retrocompatibilidad
+            finalAnime.anilistStatus = anilistData.status;
+            finalAnime.nextAiringEpisode = anilistData.nextAiringEpisode;
+
+            const isFinished = anilistData.status === 'FINISHED' || 
+              (jikanAnime.status && jikanAnime.status.toLowerCase().includes('finished'));
+            const isNotYetAired = anilistData.status === 'NOT_YET_RELEASED' || 
+              (jikanAnime.status && jikanAnime.status.toLowerCase().includes('not yet'));
+
+            if (isFinished) {
+              finalAnime.airedEpisodes = totalPlanned;
+            } else if (isNotYetAired) {
+              finalAnime.airedEpisodes = 0;
+            } else if (anilistData.nextAiringEpisode && typeof anilistData.nextAiringEpisode.episode === 'number') {
+              finalAnime.airedEpisodes = Math.max(0, anilistData.nextAiringEpisode.episode - 1);
+            } else if (totalPlanned !== null && !jikanAnime.airing) {
+              finalAnime.airedEpisodes = totalPlanned;
             } else {
-              finalAnime.episodesSource = 'jikan';
-              console.log(`📺 Usando ${finalAnime.episodes || 'desconocido'} episodios desde Jikan para ${finalAnime.title}`);
+              finalAnime.airedEpisodes = jikanAnime.episodes || null;
             }
+
+            finalAnime.episodesSource = anilistData.episodes !== null ? 'anilist' : 'jikan';
+            console.log(`📺 Anime ${finalAnime.title}: total=${finalAnime.totalEpisodes}, emitidos=${finalAnime.airedEpisodes}, status=${finalAnime.anilistStatus}`);
             
             return finalAnime;
           }),
@@ -502,6 +567,8 @@ export class AnimeService {
             console.warn('Error al obtener episodios de Anilist, usando datos de Jikan:', error);
             return new Observable(subscriber => {
               jikanAnime.episodesSource = 'jikan';
+              jikanAnime.totalEpisodes = jikanAnime.episodes || null;
+              jikanAnime.airedEpisodes = jikanAnime.episodes || null;
               subscriber.next(jikanAnime);
               subscriber.complete();
             });

@@ -80,7 +80,17 @@
   p {
     margin: 0 0 24px 0;
     color: var(--ion-color-medium);
-    max-width: 300px;
+    max-width: 320px;
+    line-height: 1.4;
+  }
+
+  &.unreleased-state {
+    background: rgba(var(--ion-color-warning-rgb, 255, 196, 9), 0.08);
+    border: 1px dashed rgba(var(--ion-color-warning-rgb, 255, 196, 9), 0.4);
+    border-radius: 12px;
+    padding: 24px 16px;
+    margin: 16px auto;
+    max-width: 450px;
   }
   
   .error-actions {
@@ -186,6 +196,15 @@
       &.active {
         border: 2px solid var(--ion-color-primary);
       }
+
+      &.unreleased {
+        opacity: 0.6;
+        border: 1px dashed rgba(var(--ion-color-warning-rgb, 255, 196, 9), 0.4);
+
+        img {
+          filter: grayscale(40%);
+        }
+      }
       
       img {
         width: 100%;
@@ -195,6 +214,7 @@
       
       .episode-info-item {
         padding: 8px;
+        position: relative;
         
         .episode-number {
           display: block;
@@ -210,6 +230,18 @@
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+
+        .unreleased-tag {
+          display: inline-block;
+          margin-top: 4px;
+          font-size: 9px;
+          font-weight: 700;
+          color: #000;
+          background: var(--ion-color-warning, #ffc409);
+          padding: 1px 5px;
+          border-radius: 4px;
+          text-transform: uppercase;
         }
       }
     }

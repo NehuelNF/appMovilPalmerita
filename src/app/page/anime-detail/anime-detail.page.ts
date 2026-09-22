@@ -2,12 +2,16 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AnimeService } from '../../../managers/AnimeService';
 import { TimezoneService } from '../../../managers/TimezoneService';
+import { ToastServiceService } from '../../managers/toast-service.service';
 
 interface Episode {
   number: number;
   title?: string;
   image_url?: string;
   mal_id?: number;
+  isAired?: boolean;
+  isAvailable?: boolean;
+  statusText?: string;
 }
 
 @Component({
@@ -22,7 +26,10 @@ export class AnimeDetailPage implements OnInit {
   isLoading: boolean = false;
   error: string | null = null;
   
-  // Propiedades para manejo de episodios
+  // Propiedades para manejo y seguimiento de episodios
+  totalEpisodes: number = 0;
+  airedEpisodes: number | null = null;
+  availableEpisodes: number[] = [];
   episodesPerPage: number = 12;
   currentPage: number = 1;
   episodesReversed: boolean = false;
@@ -31,7 +38,8 @@ export class AnimeDetailPage implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private animeService: AnimeService,
-    private timezoneService: TimezoneService
+    private timezoneService: TimezoneService,
+    private toastService: ToastServiceService
   ) {}
 
   ngOnInit() {
@@ -52,22 +60,31 @@ export class AnimeDetailPage implements OnInit {
         if (response && (response.data || response.mal_id)) {
           // Handle both direct anime object and wrapped response
           this.anime = response.data || response;
+          this.totalEpisodes = this.anime.totalEpisodes || this.anime.episodes || 0;
+          this.airedEpisodes = this.anime.airedEpisodes !== undefined ? this.anime.airedEpisodes : null;
           
           // Asignar el ranking directamente desde el campo 'rank' del anime.
-          // El campo 'rank' de la API Jikan es el ranking global.
-          // Si 'rank' es null, 0, o no es un número, hasTopRank() lo manejará y no se mostrará.
           if (this.anime && typeof this.anime.rank === 'number' && this.anime.rank > 0) {
             this.anime.topRank = this.anime.rank;
             console.log('🏆 Ranking asignado directamente del anime:', this.anime.topRank, 'para:', this.anime.title);
           } else {
-            // Si no hay un 'rank' válido (e.g., null, 0, o no es un número),
-            // asegurar que topRank no tenga un valor residual de una carga anterior.
             if (this.anime) this.anime.topRank = null;
             console.log('ℹ️ Anime sin ranking directo o ranking no válido. Título:', this.anime?.title, 'Rank API:', this.anime?.rank);
           }
 
-          // Cargar episodios después de cargar el anime
+          // Cargar episodios inicialmente con la información de emisión
           this.loadEpisodes(id);
+
+          // Consultar disponibilidad en el servidor de video para mayor precisión
+          const slug = this.animeService.getSlug(this.anime.title_english || this.anime.title);
+          if (slug) {
+            this.animeService.getAvailableEpisodes(slug).subscribe(res => {
+              if (res && res.availableEpisodes && res.availableEpisodes.length > 0) {
+                this.availableEpisodes = res.availableEpisodes;
+                this.syncEpisodeAvailability();
+              }
+            });
+          }
 
         } else {
           console.error('❌ Respuesta inválida del anime:', response);
@@ -218,13 +235,18 @@ export class AnimeDetailPage implements OnInit {
   getEpisodeInfo(): string {
     if (!this.anime) return '';
     
-    const episodes = this.anime.episodes;
+    const total = this.totalEpisodes || this.anime.episodes;
+    const aired = this.airedEpisodes;
     const duration = this.anime.duration;
     
     let info = '';
     
-    if (episodes) {
-      info += `${episodes} episodios`;
+    if (aired !== null && aired !== undefined && total && aired < total) {
+      info = `${aired} emitidos de ${total} caps`;
+    } else if (total) {
+      info = `${total} episodios`;
+    } else if (aired !== null && aired !== undefined) {
+      info = `${aired} emitidos`;
     }
     
     if (duration) {
@@ -233,6 +255,22 @@ export class AnimeDetailPage implements OnInit {
     }
     
     return info;
+  }
+
+  getEpisodeSummary(): string {
+    if (!this.anime) return '';
+    const total = this.totalEpisodes;
+    const aired = this.airedEpisodes;
+    if (aired !== null && aired !== undefined && total > 0 && aired < total) {
+      return `${aired} emitidos de ${total} en total`;
+    }
+    if (total > 0) {
+      return `${total} episodios`;
+    }
+    if (aired !== null && aired > 0) {
+      return `${aired} emitidos`;
+    }
+    return '';
   }
 
   getScore(): string {
@@ -260,21 +298,54 @@ export class AnimeDetailPage implements OnInit {
   // NUEVOS MÉTODOS PARA MANEJO DE EPISODIOS
 
   loadEpisodes(animeId: number) {
-    // Crear episodios simulados basados en el número total de episodios
-    if (this.anime?.episodes) {
+    const totalCount = this.totalEpisodes || (this.airedEpisodes ?? (this.anime?.episodes || 0));
+    if (totalCount > 0) {
       this.episodes = [];
-      const totalEpisodes = this.anime.episodes;
       
-      for (let i = 1; i <= totalEpisodes; i++) {
+      for (let i = 1; i <= totalCount; i++) {
+        const isAired = this.airedEpisodes !== null && this.airedEpisodes !== undefined 
+          ? (i <= this.airedEpisodes) 
+          : true;
+        const isAvailable = this.availableEpisodes.length > 0 
+          ? this.availableEpisodes.includes(i) 
+          : isAired;
+
+        let statusText = 'Disponible';
+        if (!isAired) {
+          statusText = 'Próximamente';
+        } else if (!isAvailable) {
+          statusText = 'Emitido';
+        }
+
         this.episodes.push({
           number: i,
           title: `Episodio ${i}`,
-          image_url: this.getEpisodeImageUrl({ number: i })
+          image_url: this.getEpisodeImageUrl({ number: i }),
+          isAired,
+          isAvailable,
+          statusText
         });
       }
       
       this.updateDisplayedEpisodes();
     }
+  }
+
+  syncEpisodeAvailability() {
+    if (!this.episodes || !this.episodes.length) return;
+    this.episodes.forEach(ep => {
+      if (this.availableEpisodes.length > 0) {
+        ep.isAvailable = this.availableEpisodes.includes(ep.number);
+      }
+      if (ep.isAvailable) {
+        ep.statusText = 'Disponible';
+      } else if (ep.isAired) {
+        ep.statusText = 'Emitido';
+      } else {
+        ep.statusText = 'Próximamente';
+      }
+    });
+    this.updateDisplayedEpisodes();
   }
 
   getDisplayedEpisodes(): Episode[] {
@@ -330,14 +401,21 @@ export class AnimeDetailPage implements OnInit {
     }
   }
 
-  watchEpisode(episode: Episode) {
+  async watchEpisode(episode: Episode) {
+    if (!episode.isAired) {
+      await this.toastService.showInfo(`El Episodio ${episode.number} aún no ha salido (Próximamente).`);
+      return;
+    }
+
+    if (!episode.isAvailable && this.availableEpisodes.length > 0) {
+      await this.toastService.showWarning(`El Episodio ${episode.number} ya fue emitido pero aún se está procesando para su reproducción.`);
+      return;
+    }
+
     console.log('Ver episodio:', episode.number, 'del anime:', this.anime?.title);
     
-    // Navegar a la página de visualización del episodio
-    // Usando el ID del anime y el número del episodio
     const animeId = this.route.snapshot.paramMap.get('id');
     if (animeId) {
-      // Por ahora, vamos a crear una ruta como /watch/animeId/episodeNumber
       this.router.navigate(['/watch', animeId, episode.number]);
     }
   }
