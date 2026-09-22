@@ -19,7 +19,7 @@ interface CachedData {
   providedIn: 'root'
 })
 export class AnimeService {
-  // Cambiar searchAnime para usar Jikan y obtener datos completos incluyendo imágenes
+  // Buscar anime usando Jikan con fallback transparente a AniList
   searchAnime(queryStr: string): Observable<AnimeResponse> {
     if (!queryStr || queryStr.trim().length < 2) {
       return new Observable(subscriber => {
@@ -37,10 +37,10 @@ export class AnimeService {
       });
     }
 
-    // Usar Jikan para obtener datos completos incluyendo imágenes
+    // Intentar primero con Jikan
     return this.http.get<AnimeResponse>(`${this.baseUrl}/anime?q=${encodeURIComponent(queryStr)}&limit=20`).pipe(
-      retry(2),
-      delay(800),
+      retry(1),
+      delay(400),
       map(response => {
         const processedData = this.processAnimeData(response.data || []);
         const finalResponse = {
@@ -50,7 +50,115 @@ export class AnimeService {
         this.cache.set(cacheKey, { data: finalResponse, timestamp: Date.now() });
         return finalResponse;
       }),
-      catchError(this.handleApiError)
+      catchError(jikanErr => {
+        console.warn(`Jikan search falló para "${queryStr}". Usando fallback a AniList...`, jikanErr);
+        return this.searchAnimeFromAnilist(queryStr).pipe(
+          tap(anilistResponse => {
+            this.cache.set(cacheKey, { data: anilistResponse, timestamp: Date.now() });
+          })
+        );
+      })
+    );
+  }
+
+  // Fallback de búsqueda directa a AniList
+  private searchAnimeFromAnilist(queryStr: string): Observable<AnimeResponse> {
+    const query = `
+      query ($search: String) {
+        Page(page: 1, perPage: 20) {
+          pageInfo {
+            total
+            hasNextPage
+          }
+          media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+            id
+            idMal
+            title {
+              romaji
+              english
+              native
+            }
+            description(asHtml: false)
+            episodes
+            duration
+            status
+            format
+            bannerImage
+            coverImage {
+              extraLarge
+              large
+              medium
+            }
+            genres
+            averageScore
+            season
+            seasonYear
+            startDate {
+              year
+              month
+              day
+            }
+          }
+        }
+      }
+    `;
+    const variables = { search: queryStr };
+    return this.http.post<any>(this.anilistUrl, { query, variables }).pipe(
+      map(response => {
+        const mediaList = response?.data?.Page?.media || [];
+        const animes = mediaList.map((media: any) => {
+          let airedDateString = null;
+          if (media.startDate?.year) {
+            const y = media.startDate.year;
+            const m = String(media.startDate.month || 1).padStart(2, '0');
+            const d = String(media.startDate.day || 1).padStart(2, '0');
+            airedDateString = `${y}-${m}-${d}T00:00:00+00:00`;
+          }
+
+          return {
+            mal_id: media.idMal || media.id,
+            id: media.id,
+            title: media.title?.english || media.title?.romaji || media.title?.native || 'Sin título',
+            title_english: media.title?.english || null,
+            title_japanese: media.title?.native || null,
+            title_romaji: media.title?.romaji || null,
+            synopsis: media.description || 'Sin descripción disponible.',
+            images: {
+              jpg: {
+                image_url: media.coverImage?.large || media.coverImage?.medium || '',
+                small_image_url: media.coverImage?.medium || '',
+                large_image_url: media.coverImage?.extraLarge || media.coverImage?.large || ''
+              }
+            },
+            episodes: media.episodes || null,
+            status: media.status === 'FINISHED' ? 'Finished Airing' :
+                    media.status === 'RELEASING' ? 'Currently Airing' :
+                    media.status === 'NOT_YET_RELEASED' ? 'Not yet aired' : media.status,
+            airing: media.status === 'RELEASING',
+            duration: media.duration ? `${media.duration} min` : null,
+            score: media.averageScore ? (media.averageScore / 10).toFixed(1) : null,
+            genres: (media.genres || []).map((g: string) => ({ name: g })),
+            aired: {
+              from: airedDateString,
+              to: null,
+              string: airedDateString ? new Date(airedDateString).toLocaleDateString() : 'Desconocido'
+            },
+            episodesSource: 'anilist'
+          };
+        });
+
+        const processed = this.processAnimeData(animes);
+        return {
+          data: processed,
+          pagination: {
+            has_next_page: response?.data?.Page?.pageInfo?.hasNextPage || false
+          }
+        };
+      }),
+      catchError(error => {
+        console.error('Error en búsqueda de AniList:', error);
+        return of({ data: [], pagination: {} });
+      })
     );
   }
 
@@ -479,7 +587,7 @@ export class AnimeService {
     );
   }
 
-  // Adaptar getTopAnime a Anilist
+  // Obtener top animes con fallback a AniList si Jikan da rate limit (429) o error
   getTopAnime(): Observable<AnimeResponse> {
     const cacheKey = 'top';
     if (this.isDataFresh(cacheKey)) {
@@ -490,12 +598,16 @@ export class AnimeService {
       });
     }
     return this.http.get<AnimeResponse>(`${this.baseUrl}/top/anime`).pipe(
-      retry(2),
-      delay(1200),
+      retry(1),
+      delay(600),
       map(response => ({
         ...response,
         data: this.processAnimeData(response.data)
       })),
+      catchError(jikanErr => {
+        console.warn('Jikan getTopAnime falló (rate limit o timeout). Usando fallback a AniList...', jikanErr);
+        return this.getTopAnimeFromAnilist();
+      }),
       tap(response => {
         this.cache.set(cacheKey, {
           data: response,
@@ -507,7 +619,195 @@ export class AnimeService {
     );
   }
 
-  // Adaptar getAnimeById a Anilist para obtener episodios, manteniendo Jikan para el resto
+  // Fallback de top animes desde AniList
+  private getTopAnimeFromAnilist(): Observable<AnimeResponse> {
+    const query = `
+      query {
+        Page(page: 1, perPage: 25) {
+          media(type: ANIME, sort: SCORE_DESC) {
+            id
+            idMal
+            title {
+              romaji
+              english
+              native
+            }
+            description(asHtml: false)
+            episodes
+            duration
+            status
+            format
+            bannerImage
+            coverImage {
+              extraLarge
+              large
+              medium
+            }
+            genres
+            averageScore
+            season
+            seasonYear
+            startDate {
+              year
+              month
+              day
+            }
+          }
+        }
+      }
+    `;
+    return this.http.post<any>(this.anilistUrl, { query }).pipe(
+      map(response => {
+        const mediaList = response?.data?.Page?.media || [];
+        const animes = mediaList.map((media: any) => {
+          let airedDateString = null;
+          if (media.startDate?.year) {
+            const y = media.startDate.year;
+            const m = String(media.startDate.month || 1).padStart(2, '0');
+            const d = String(media.startDate.day || 1).padStart(2, '0');
+            airedDateString = `${y}-${m}-${d}T00:00:00+00:00`;
+          }
+
+          return {
+            mal_id: media.idMal || media.id,
+            id: media.id,
+            title: media.title?.english || media.title?.romaji || media.title?.native || 'Sin título',
+            title_english: media.title?.english || null,
+            title_japanese: media.title?.native || null,
+            title_romaji: media.title?.romaji || null,
+            synopsis: media.description || 'Sin descripción disponible.',
+            images: {
+              jpg: {
+                image_url: media.coverImage?.large || media.coverImage?.medium || '',
+                small_image_url: media.coverImage?.medium || '',
+                large_image_url: media.coverImage?.extraLarge || media.coverImage?.large || ''
+              }
+            },
+            episodes: media.episodes || null,
+            status: media.status === 'FINISHED' ? 'Finished Airing' :
+                    media.status === 'RELEASING' ? 'Currently Airing' :
+                    media.status === 'NOT_YET_RELEASED' ? 'Not yet aired' : media.status,
+            airing: media.status === 'RELEASING',
+            duration: media.duration ? `${media.duration} min` : null,
+            score: media.averageScore ? (media.averageScore / 10).toFixed(1) : null,
+            genres: (media.genres || []).map((g: string) => ({ name: g })),
+            aired: {
+              from: airedDateString,
+              to: null,
+              string: airedDateString ? new Date(airedDateString).toLocaleDateString() : 'Desconocido'
+            },
+            episodesSource: 'anilist'
+          };
+        });
+
+        const processed = this.processAnimeData(animes);
+        return {
+          data: processed,
+          pagination: {}
+        };
+      })
+    );
+  }
+
+  // Fallback completo a AniList cuando Jikan devuelve error o timeout
+  private getAnimeFromAnilist(malId: number): Observable<any> {
+    const query = `
+      query ($id: Int) {
+        Media(idMal: $id, type: ANIME) {
+          id
+          idMal
+          title {
+            romaji
+            english
+            native
+          }
+          description(asHtml: false)
+          episodes
+          duration
+          status
+          format
+          bannerImage
+          coverImage {
+            extraLarge
+            large
+            medium
+          }
+          genres
+          averageScore
+          season
+          seasonYear
+          startDate {
+            year
+            month
+            day
+          }
+          studios {
+            nodes {
+              name
+            }
+          }
+          trailer {
+            id
+            site
+          }
+        }
+      }
+    `;
+    const variables = { id: malId };
+    return this.http.post<any>(this.anilistUrl, { query, variables }).pipe(
+      map(response => {
+        const media = response?.data?.Media;
+        if (!media) throw new Error(`Anime con ID ${malId} no encontrado en AniList.`);
+
+        let airedDateString = null;
+        if (media.startDate?.year) {
+          const y = media.startDate.year;
+          const m = String(media.startDate.month || 1).padStart(2, '0');
+          const d = String(media.startDate.day || 1).padStart(2, '0');
+          airedDateString = `${y}-${m}-${d}T00:00:00+00:00`;
+        }
+
+        const standardAnime = {
+          mal_id: media.idMal || malId,
+          id: media.id,
+          title: media.title?.english || media.title?.romaji || media.title?.native || 'Sin título',
+          title_english: media.title?.english || null,
+          title_japanese: media.title?.native || null,
+          title_romaji: media.title?.romaji || null,
+          synopsis: media.description || 'Sin descripción disponible.',
+          images: {
+            jpg: {
+              image_url: media.coverImage?.large || media.coverImage?.medium || '',
+              small_image_url: media.coverImage?.medium || '',
+              large_image_url: media.coverImage?.extraLarge || media.coverImage?.large || ''
+            }
+          },
+          trailer: media.trailer?.id && media.trailer?.site === 'youtube'
+            ? { url: `https://www.youtube.com/watch?v=${media.trailer.id}`, youtube_id: media.trailer.id }
+            : null,
+          episodes: media.episodes || null,
+          status: media.status === 'FINISHED' ? 'Finished Airing' :
+                  media.status === 'RELEASING' ? 'Currently Airing' :
+                  media.status === 'NOT_YET_RELEASED' ? 'Not yet aired' : media.status,
+          airing: media.status === 'RELEASING',
+          duration: media.duration ? `${media.duration} min` : null,
+          score: media.averageScore ? (media.averageScore / 10).toFixed(1) : null,
+          genres: (media.genres || []).map((g: string) => ({ name: g })),
+          studios: (media.studios?.nodes || []).map((s: any) => ({ name: s.name })),
+          aired: {
+            from: airedDateString,
+            to: null,
+            string: airedDateString ? new Date(airedDateString).toLocaleDateString() : 'Desconocido'
+          },
+          episodesSource: 'anilist'
+        };
+
+        return this.processAnimeData([standardAnime])[0];
+      })
+    );
+  }
+
+  // Adaptar getAnimeById a Anilist para obtener episodios, manteniendo Jikan para el resto con fallback robusto
   getAnimeById(id: number): Observable<any> {
     const cacheKey = `anime-${id}`;
     if (this.isDataFresh(cacheKey)) {
@@ -518,23 +818,21 @@ export class AnimeService {
       });
     }
     
-    // Primero obtener datos básicos de Jikan
+    // Primero intentar obtener datos desde Jikan
     return this.http.get<{data: any}>(`${this.baseUrl}/anime/${id}/full`).pipe(
-      retry(2),
-      delay(1400),
+      retry(1),
+      delay(1200),
       map(response => {
         if (!response || !response.data) {
           throw new Error(`Anime con ID ${id} no encontrado`);
         }
         return this.processAnimeData([response.data])[0];
       }),
-      // Luego obtener el número de episodios desde Anilist
+      // Luego enriquecer con número de episodios desde Anilist
       switchMap(jikanAnime => {
         return this.getAnimeEpisodesFromAnilist(id).pipe(
           map(anilistData => {
-            // Combinar datos: usar episodios de Anilist si están disponibles
             const finalAnime = { ...jikanAnime };
-            
             const totalPlanned = anilistData.episodes !== null ? anilistData.episodes : (jikanAnime.episodes || null);
             finalAnime.totalEpisodes = totalPlanned;
             finalAnime.episodes = totalPlanned; // Mantener retrocompatibilidad
@@ -565,15 +863,18 @@ export class AnimeService {
           }),
           catchError(error => {
             console.warn('Error al obtener episodios de Anilist, usando datos de Jikan:', error);
-            return new Observable(subscriber => {
-              jikanAnime.episodesSource = 'jikan';
-              jikanAnime.totalEpisodes = jikanAnime.episodes || null;
-              jikanAnime.airedEpisodes = jikanAnime.episodes || null;
-              subscriber.next(jikanAnime);
-              subscriber.complete();
-            });
+            jikanAnime.episodesSource = 'jikan';
+            jikanAnime.totalEpisodes = jikanAnime.episodes || null;
+            jikanAnime.airedEpisodes = jikanAnime.episodes || null;
+            return of(jikanAnime);
+          })
           })
         );
+      }),
+      // Fallback a AniList completo si Jikan falla (504 gateway timeout, 404 o rate limit)
+      catchError(jikanError => {
+        console.warn(`Jikan falló para anime ID ${id}. Intentando fallback a AniList...`, jikanError);
+        return this.getAnimeFromAnilist(id);
       }),
       tap(finalAnime => {
         this.cache.set(cacheKey, { data: finalAnime, timestamp: Date.now() });

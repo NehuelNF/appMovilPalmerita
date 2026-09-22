@@ -110,15 +110,34 @@
           <ion-icon name="information-circle-outline" class="info-icon"></ion-icon>
           <span>{{ anime.status }}</span>
         </div>
+
+        <!-- Progreso de visualización resumen -->
+        <div class="info-row progress-info-row" *ngIf="watchedEpisodesSet.size > 0">
+          <ion-icon name="checkmark-done-circle-outline" color="success" class="info-icon"></ion-icon>
+          <span><strong>{{ watchedEpisodesSet.size }}</strong> de {{ anime.episodes || '?' }} episodios vistos</span>
+        </div>
       </div>
       
-      <ion-button 
-        *ngIf="hasTrailer()"
-        class="trailer-button"
-        (click)="openTrailer()">
-        <ion-icon name="play" slot="start"></ion-icon>
-        Ver Trailer
-      </ion-button>
+      <!-- Botones principales: Ver trailer y Continuar viendo -->
+      <div class="detail-actions-row">
+        <ion-button 
+          *ngIf="watchedEpisodesSet.size > 0 || watchProgress?.lastEpisode"
+          color="success"
+          class="resume-button"
+          (click)="resumeWatching()">
+          <ion-icon name="play-circle" slot="start"></ion-icon>
+          Continuar (Ep. {{ getResumeEpisodeNumber() }})
+        </ion-button>
+
+        <ion-button 
+          *ngIf="hasTrailer()"
+          class="trailer-button"
+          fill="outline"
+          (click)="openTrailer()">
+          <ion-icon name="play" slot="start"></ion-icon>
+          Trailer
+        </ion-button>
+      </div>
     </div>
 
     <h3 class="description-title">Descripción</h3>
@@ -126,7 +145,7 @@
       {{ anime?.synopsis || 'Descripción no disponible' }}
     </div>
 
-    <!-- Nueva sección de episodios -->
+    <!-- Nueva sección de episodios con marca de visto -->
     <div class="episodes-section" *ngIf="episodes && episodes.length > 0">
       <div class="section-header">
         <div class="episodes-title-container">
@@ -149,6 +168,7 @@
           class="episode-card"
           [class.episode-unreleased]="!episode.isAired"
           [class.episode-processing]="!episode.isAvailable && episode.isAired"
+          [class.episode-watched]="isEpisodeWatched(episode.number)"
           (click)="watchEpisode(episode)">
           
           <div class="episode-image-container">
@@ -169,10 +189,26 @@
             <div class="episode-status-tag" [ngClass]="episode.isAvailable ? 'status-available' : (episode.isAired ? 'status-processing' : 'status-upcoming')">
               <span>{{ episode.statusText }}</span>
             </div>
+
+            <!-- Badge de Visto en la miniatura -->
+            <div class="episode-watched-badge" *ngIf="isEpisodeWatched(episode.number)">
+              <ion-icon name="checkmark-circle"></ion-icon> Visto
+            </div>
           </div>
           
-          <div class="episode-info" *ngIf="episode.title">
-            <h4 class="episode-title">{{ episode.title }}</h4>
+          <div class="episode-info-bar">
+            <div class="episode-info" *ngIf="episode.title">
+              <h4 class="episode-title">{{ episode.title }}</h4>
+            </div>
+            <!-- Botón manual para marcar/desmarcar visto -->
+            <ion-button 
+              fill="clear" 
+              size="small"
+              class="toggle-watched-btn"
+              [color]="isEpisodeWatched(episode.number) ? 'success' : 'medium'"
+              (click)="toggleEpisodeWatched(episode, $event)">
+              <ion-icon [name]="isEpisodeWatched(episode.number) ? 'checkmark-circle' : 'checkmark-circle-outline'" slot="icon-only"></ion-icon>
+            </ion-button>
           </div>
         </div>
       </div>

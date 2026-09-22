@@ -46,8 +46,21 @@
       </div>
     </div>
 
+    <!-- Reproductor nativo de video con seguimiento de reproducción automática -->
+    <video 
+      #nativeVideo
+      *ngIf="directVideoUrl && !streamingError" 
+      class="native-video" 
+      [src]="directVideoUrl" 
+      controls 
+      playsinline 
+      preload="metadata"
+      (loadedmetadata)="onVideoLoadedMetadata(nativeVideo)"
+      (timeupdate)="onVideoTimeUpdate(nativeVideo)"
+      (ended)="onVideoEnded(nativeVideo)">
+    </video>
+
     <!-- Reproductor iframe -->
-    <video *ngIf="directVideoUrl && !streamingError" class="native-video" [src]="directVideoUrl" controls playsinline preload="metadata"></video>
     <div class="iframe-container" *ngIf="safeIframeUrl && !streamingError" [attr.data-episode]="episodeNumber">
       <iframe 
         *ngIf="selectedPlayer.includes('mp4upload.com/')"
@@ -73,19 +86,46 @@
     </div>
   </div>
 
-  <!-- Información del episodio -->
+  <!-- Selector de idioma (Subtitulado japonés vs Doblaje latino/español) -->
+  <div class="audio-selection-wrapper" *ngIf="hasDubPlayers()">
+    <ion-segment [value]="selectedAudio" (ionChange)="setAudioTrack($any($event).detail.value)" class="audio-segment">
+      <ion-segment-button value="sub">
+        <ion-label>🇯🇵 Japonés (Sub)</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="dub">
+        <ion-label>🎙️ Doblaje</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </div>
+
+  <!-- Información del episodio y selector de servidores -->
   <div class="player-controls">
-    <ion-button *ngFor="let player of players" [fill]="selectedPlayer === player.url ? 'solid' : 'outline'" (click)="selectPlayer(player)">{{ player.name }}</ion-button>
+    <ion-button *ngFor="let player of displayedPlayers" [fill]="selectedPlayer === player.url ? 'solid' : 'outline'" (click)="selectPlayer(player)">
+      {{ player.name }}
+      <ion-badge *ngIf="player.audio === 'dub'" color="warning" class="audio-badge">DUB</ion-badge>
+    </ion-button>
     <ion-button fill="clear" [disabled]="loading" (click)="reloadCurrentEpisode()">Reintentar</ion-button>
     <ion-button *ngIf="sourceUrl" fill="clear" (click)="openExternalLink(sourceUrl)">Abrir capítulo en origen</ion-button>
   </div>
+
   <div class="episode-info">
     <div class="episode-header">
       <div class="episode-title-section">
         <h2>{{ episodeTitle }}</h2>
         <p class="anime-title">{{ animeTitle }}</p>
       </div>
+
+      <!-- Botones de acción del episodio: Visto manual y título alternativo -->
       <div class="episode-actions">
+        <ion-button 
+          [color]="isCurrentEpisodeWatched ? 'success' : 'medium'"
+          [fill]="isCurrentEpisodeWatched ? 'solid' : 'outline'"
+          size="small"
+          (click)="toggleCurrentWatched()">
+          <ion-icon [name]="isCurrentEpisodeWatched ? 'checkmark-circle' : 'checkmark-circle-outline'" slot="start"></ion-icon>
+          {{ isCurrentEpisodeWatched ? 'Visto' : 'Marcar como visto' }}
+        </ion-button>
+
         <ion-button *ngIf="hasEnglishTitle()" fill="solid" size="small" color="secondary" (click)="tryEnglishTitle()">
           <ion-icon name="language-outline" slot="start"></ion-icon>
           Buscar con nombre inglés
@@ -115,7 +155,7 @@
     </ion-button>
   </div>
 
-  <!-- Lista de episodios -->
+  <!-- Lista de episodios con badges de visto -->
   <div class="episodes-section" *ngIf="episodes.length > 0">
     <div class="section-header">
       <h3>Episodios</h3>
@@ -126,8 +166,14 @@
            class="episode-item"
            [class.active]="episode.number === episodeNumber"
            [class.unreleased]="isEpisodeUnreleased(episode.number)"
+           [class.watched]="isEpisodeWatched(episode.number)"
            (click)="selectEpisode(episode.number)">
-        <img [src]="getEpisodeThumbnail(episode)" [alt]="episode.title">
+        <div class="episode-img-wrapper">
+          <img [src]="getEpisodeThumbnail(episode)" [alt]="episode.title" loading="lazy">
+          <div class="watched-badge" *ngIf="isEpisodeWatched(episode.number)">
+            <ion-icon name="checkmark-circle"></ion-icon> Visto
+          </div>
+        </div>
         <div class="episode-info-item">
           <span class="episode-number">EP {{ episode.number }}</span>
           <span class="episode-title">{{ episode.title }}</span>
