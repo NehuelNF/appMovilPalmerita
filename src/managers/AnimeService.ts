@@ -868,7 +868,6 @@ export class AnimeService {
             jikanAnime.airedEpisodes = jikanAnime.episodes || null;
             return of(jikanAnime);
           })
-          })
         );
       }),
       // Fallback a AniList completo si Jikan falla (504 gateway timeout, 404 o rate limit)
