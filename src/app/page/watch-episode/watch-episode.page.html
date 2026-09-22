@@ -41,9 +41,11 @@
     <video *ngIf="directVideoUrl && !streamingError" class="native-video" [src]="directVideoUrl" controls playsinline preload="metadata"></video>
     <div class="iframe-container" *ngIf="safeIframeUrl && !streamingError" [attr.data-episode]="episodeNumber">
       <iframe 
+        *ngIf="selectedPlayer.includes('mp4upload.com/')"
         [src]="safeIframeUrl" 
         [title]="animeTitle + ' · ' + episodeTitle"
         referrerpolicy="strict-origin-when-cross-origin"
+        sandbox="allow-scripts allow-same-origin allow-presentation"
         frameborder="0" 
         allowfullscreen
         allow="autoplay; fullscreen; picture-in-picture"
@@ -51,6 +53,13 @@
         (error)="onIframeError($event)"
         class="video-iframe"
         [attr.id]="'iframe-' + episodeNumber">
+      </iframe>
+      <iframe *ngIf="!selectedPlayer.includes('mp4upload.com/')"
+        [src]="safeIframeUrl" [title]="animeTitle + ' · ' + episodeTitle"
+        referrerpolicy="strict-origin-when-cross-origin" frameborder="0"
+        allowfullscreen allow="autoplay; fullscreen; picture-in-picture"
+        (load)="onIframeLoad()" (error)="onIframeError($event)"
+        class="video-iframe" [attr.id]="'iframe-' + episodeNumber">
       </iframe>
     </div>
   </div>
