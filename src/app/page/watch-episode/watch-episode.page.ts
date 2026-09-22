@@ -328,6 +328,10 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
       this.players = result.players;
       this.sourceUrl = result.sourceUrl;
       if (!this.players.length) throw new Error('Sin reproductores disponibles.');
+      if (!this.playablePlayers.length) {
+        this.streamingError = 'Los servidores de este capítulo no son compatibles con este dispositivo. Prueba el capítulo en su página de origen.';
+        return;
+      }
 
       // Seleccionar automáticamente el mejor reproductor para el idioma actual
       this.autoSelectBestPlayerForCurrentAudio();
@@ -345,8 +349,8 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   }
 
   get displayedPlayers(): Player[] {
-    let list = this.players.filter(p => (p.audio || 'sub') === this.selectedAudio);
-    if (!list.length) list = this.players;
+    let list = this.playablePlayers.filter(p => (p.audio || 'sub') === this.selectedAudio);
+    if (!list.length) list = this.playablePlayers;
 
     if (this.selectedProvider !== 'all') {
       const filtered = list.filter(p => (p.provider || 'animeav1') === this.selectedProvider);
@@ -355,14 +359,28 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     return list;
   }
 
+  private get playablePlayers(): Player[] {
+    return this.players.filter(player => {
+      // El reproductor de Zilla rechaza los iframes y sus segmentos responden 403.
+      if (/^player\.zilla-networks\.com$/i.test(new URL(player.url).hostname)) return false;
+      // Algunos MP4Upload usan AV1; Safari en iPhone muestra un error de formato.
+      if (this.isIphone && /(^|\.)mp4upload\.com$/i.test(new URL(player.url).hostname)) return false;
+      return true;
+    });
+  }
+
+  get hasExcludedPlayers(): boolean {
+    return this.players.length > this.playablePlayers.length;
+  }
+
   hasMultipleProviders(): boolean {
-    const hasAv1 = this.players.some(p => (p.provider || 'animeav1') === 'animeav1');
-    const hasJk = this.players.some(p => p.provider === 'jkanime');
+    const hasAv1 = this.playablePlayers.some(p => (p.provider || 'animeav1') === 'animeav1');
+    const hasJk = this.playablePlayers.some(p => p.provider === 'jkanime');
     return hasAv1 && hasJk;
   }
 
   hasProviderPlayers(provider: string): boolean {
-    return this.players.some(p => (p.provider || 'animeav1') === provider);
+    return this.playablePlayers.some(p => (p.provider || 'animeav1') === provider);
   }
 
   setProvider(provider: 'all' | 'animeav1' | 'jkanime') {
@@ -372,7 +390,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   }
 
   hasDubPlayers(): boolean {
-    return this.players.some(p => p.audio === 'dub');
+    return this.playablePlayers.some(p => p.audio === 'dub');
   }
 
   setAudioTrack(audio: 'sub' | 'dub') {
@@ -387,14 +405,9 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
 
     // Preferencia inteligente de reproductores (optimizada para iOS/iPhone y compatibilidad):
     // 1. UPNShare (excelente soporte nativo en iOS con su propio botón fullscreen integrado)
-    // 2. HLS (streaming nativo de video)
-    // 3. MP4Upload iframe
-    // 4. Primer reproductor disponible del audio elegido
+    // 2. Primer reproductor disponible del audio elegido
     const upnSharePlayer = available.find(p => /upnshare/i.test(p.name) || /uns\.bio/i.test(p.url));
-    const hlsPlayer = available.find(p => /hls/i.test(p.name) || /zilla-networks/i.test(p.url));
-    const mp4UploadPlayer = available.find(p => p.type !== 'direct' && /^(www\.)?mp4upload\.com$/i.test(new URL(p.url).hostname));
-
-    const defaultChoice = upnSharePlayer || hlsPlayer || mp4UploadPlayer || available[0];
+    const defaultChoice = upnSharePlayer || available[0];
     this.selectPlayer(defaultChoice);
   }
 

@@ -122,6 +122,9 @@
   </div>
 
   <!-- Información del episodio y selector de servidores -->
+  <p *ngIf="hasExcludedPlayers && !loading" class="source-compatibility-note">
+    Se ocultaron fuentes que fallan en este dispositivo. HLS no permite reproducirse aquí; MP4Upload puede usar un formato incompatible con iPhone.
+  </p>
   <div class="player-controls">
     <ion-button *ngFor="let player of displayedPlayers" [fill]="selectedPlayer === player.url ? 'solid' : 'outline'" (click)="selectPlayer(player)">
       {{ player.name }}
