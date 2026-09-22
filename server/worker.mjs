@@ -493,32 +493,6 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    // Firebase OAuth helper must share the app origin for Safari/iOS redirect
-    // sign-in. Proxy only Firebase's fixed helper paths, without a browser redirect.
-    if (url.pathname.startsWith('/__/auth/') || url.pathname === '/__/firebase/init.json') {
-      if (!['GET', 'POST'].includes(request.method)) return new Response('Method Not Allowed', { status: 405 });
-      const upstream = new URL(url.pathname + url.search, 'https://palmeritapp.firebaseapp.com');
-      const headers = new Headers(request.headers);
-      headers.delete('host');
-      headers.delete('cookie');
-      const upstreamResponse = await fetch(upstream, {
-        method: request.method,
-        headers,
-        body: request.method === 'POST' ? request.body : undefined,
-        redirect: 'manual'
-      });
-      const responseHeaders = new Headers(upstreamResponse.headers);
-      const location = responseHeaders.get('location');
-      if (location?.startsWith('https://palmeritapp.firebaseapp.com/__/auth/')) {
-        responseHeaders.set('location', location.replace('https://palmeritapp.firebaseapp.com', url.origin));
-      }
-      responseHeaders.delete('set-cookie');
-      return new Response(upstreamResponse.body, {
-        status: upstreamResponse.status,
-        statusText: upstreamResponse.statusText,
-        headers: responseHeaders
-      });
-    }
     if (url.pathname === '/api/player') {
       if (request.method !== 'GET') return json({error:'Método no permitido.'},405);
       return resolvePlayer(request);

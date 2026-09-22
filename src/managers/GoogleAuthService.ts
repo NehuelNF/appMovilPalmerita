@@ -17,14 +17,6 @@ export class GoogleAuthService {
       provider.addScope('email');
       provider.setCustomParameters({ prompt: 'select_account' });
 
-      // iOS abre los accesos directos como una web independiente: los popups
-      // de OAuth pueden quedar fuera de esa ventana. Usar navegación completa.
-      if (window.matchMedia('(display-mode: standalone)').matches ||
-          (navigator as Navigator & { standalone?: boolean }).standalone) {
-        await this.afAuth.signInWithRedirect(provider);
-        return null;
-      }
-
       try {
         const result = await this.afAuth.signInWithPopup(provider);
         if (result.user) {
@@ -37,11 +29,6 @@ export class GoogleAuthService {
         }
       } catch (popupError: any) {
         console.warn('signInWithPopup falló o fue bloqueado, intentando con Redirect:', popupError);
-        // Si popup fue bloqueado en navegadores móviles o web, intentar signInWithRedirect
-        if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/cancelled-popup-request') {
-          await this.afAuth.signInWithRedirect(provider);
-          return null;
-        }
         throw popupError;
       }
 
