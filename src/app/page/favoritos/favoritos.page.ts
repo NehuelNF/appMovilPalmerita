@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FavoritesService } from '../../../managers/FavoritesService';
+import { AnimeService } from '../../../managers/AnimeService';
 import { WatchProgressService, WatchProgress } from '../../../managers/WatchProgressService';
 import { ToastController } from '@ionic/angular';
 import { Observable, Subscription } from 'rxjs';
@@ -13,9 +14,11 @@ export class FavoritosPage implements OnInit, OnDestroy {
   favorites: any[] = [];
   progressMap = new Map<number, WatchProgress>();
   private progressSub?: Subscription;
+  private favoritesGeneration = 0;
 
   constructor(
     private favoritesService: FavoritesService,
+    private animeService: AnimeService,
     private watchProgressService: WatchProgressService,
     private toastCtrl: ToastController
   ) {}
@@ -43,7 +46,16 @@ export class FavoritosPage implements OnInit, OnDestroy {
 
   loadFavorites() {
     this.favoritesService.getFavorites().subscribe(favorites => {
+      const generation = ++this.favoritesGeneration;
       this.favorites = favorites;
+      const ids = favorites.map(anime => Number(anime.mal_id || anime.id));
+      this.animeService.getEpisodeTotalsFromAnilist(ids).subscribe(totals => {
+        if (generation !== this.favoritesGeneration) return;
+        this.favorites = favorites.map(anime => {
+          const total = totals[Number(anime.mal_id || anime.id)];
+          return total ? { ...anime, episodes: total, totalEpisodes: total } : anime;
+        });
+      });
     });
   }
 

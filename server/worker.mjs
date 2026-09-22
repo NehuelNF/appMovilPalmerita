@@ -1,4 +1,40 @@
 const hosts = new Set(['player.zilla-networks.com', 'animeav1.uns.bio', 'voe.sx', 'mega.nz', 'www.mp4upload.com', 'mp4upload.com', 'byselapuix.com', 'jkanime.net']);
+let malTopCache = null;
+
+export function extractMalTop(html) {
+  const entries = [];
+  for (const match of html.matchAll(/<tr class="ranking-list"[\s\S]*?<\/tr>/g)) {
+    const row = match[0];
+    const id = Number(row.match(/myanimelist\.net\/anime\/(\d+)\//)?.[1]);
+    const title = row.match(/anime_ranking_h3[^>]*><a[^>]*>([^<]+)<\/a>/)?.[1];
+    const image = row.match(/data-src="(https:\/\/cdn\.myanimelist\.net\/[^" ]+)"/)?.[1];
+    if (!id || !title || !image) continue;
+    const imageUrl = image.replace(/\/r\/50x70\//, '/').replace(/\?s=.*$/, '');
+    const episodes = Number(row.match(/\((\d+) eps?\)/)?.[1]) || null;
+    const score = row.match(/score-label score-[^" ]+">([\d.]+)</)?.[1] || null;
+    entries.push({ mal_id: id, title, images: { jpg: { image_url: imageUrl, large_image_url: imageUrl } }, episodes, score, rank: entries.length + 1 });
+    if (entries.length === 3) break;
+  }
+  return entries;
+}
+
+async function resolveMalTop() {
+  if (malTopCache && Date.now() - malTopCache.time < 60 * 60 * 1000) return json({ data: malTopCache.data, source: 'myanimelist' });
+  try {
+    const response = await fetch('https://myanimelist.net/topanime.php', {
+      signal: AbortSignal.timeout(12000),
+      headers: { Accept: 'text/html', 'User-Agent': 'Mozilla/5.0 (compatible; Palmerita/1.0)' }
+    });
+    if (!response.ok) throw new Error(`MyAnimeList ${response.status}`);
+    const data = extractMalTop(await response.text());
+    if (data.length !== 3) throw new Error('Ranking incompleto');
+    malTopCache = { data, time: Date.now() };
+    return json({ data, source: 'myanimelist' });
+  } catch {
+    if (malTopCache) return json({ data: malTopCache.data, source: 'myanimelist' });
+    return json({ error: 'El ranking de MyAnimeList no está disponible temporalmente.' }, 503);
+  }
+}
 
 export function validEmbed(value) {
   try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password && !u.port && hosts.has(u.hostname); } catch { return false; }
@@ -505,6 +541,10 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/mal-top') {
+      if (request.method !== 'GET') return json({error:'Método no permitido.'},405);
+      return resolveMalTop();
+    }
     if (url.pathname === '/api/player') {
       if (request.method !== 'GET') return json({error:'Método no permitido.'},405);
       return resolvePlayer(request);

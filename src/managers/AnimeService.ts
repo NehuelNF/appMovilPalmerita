@@ -1,7 +1,7 @@
 // src/app/managers/AnimeService.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, BehaviorSubject, throwError, timer, of } from 'rxjs';
+import { Observable, BehaviorSubject, throwError, timer, of, forkJoin } from 'rxjs';
 import { catchError, retry, delay, shareReplay, tap, map, switchMap } from 'rxjs/operators';
 import { TimezoneService } from './TimezoneService';
 
@@ -589,7 +589,7 @@ export class AnimeService {
     );
   }
 
-  // Obtener top animes con fallback a AniList si Jikan da rate limit (429) o error
+  // El top es siempre el ranking de MyAnimeList, nunca el de puntuación de AniList.
   getTopAnime(): Observable<AnimeResponse> {
     const cacheKey = 'top';
     if (this.isDataFresh(cacheKey)) {
@@ -607,8 +607,8 @@ export class AnimeService {
         data: this.processAnimeData(response.data)
       })),
       catchError(jikanErr => {
-        console.warn('Jikan getTopAnime falló (rate limit o timeout). Usando fallback a AniList...', jikanErr);
-        return this.getTopAnimeFromAnilist();
+        console.warn('Jikan getTopAnime falló. Consultando el ranking de MyAnimeList...', jikanErr);
+        return this.http.get<AnimeResponse>('/api/mal-top');
       }),
       tap(response => {
         this.cache.set(cacheKey, {
@@ -619,6 +619,34 @@ export class AnimeService {
       catchError(this.handleApiError),
       shareReplay(1)
     );
+  }
+
+  getEpisodeTotalsFromAnilist(ids: number[]): Observable<Record<number, number>> {
+    const uniqueIds = [...new Set(ids.filter(id => Number.isSafeInteger(id) && id > 0))];
+    if (!uniqueIds.length) return of({});
+    const query = `query ($ids: [Int]) {
+      Page(page: 1, perPage: 50) {
+        media(idMal_in: $ids, type: ANIME) { idMal episodes }
+      }
+    }`;
+    const requests = [];
+    for (let i = 0; i < uniqueIds.length; i += 50) {
+      requests.push(this.http.post<any>(this.anilistUrl, { query, variables: { ids: uniqueIds.slice(i, i + 50) } }).pipe(
+        map(response => response?.data?.Page?.media || []),
+        catchError(() => of([]))
+      ));
+    }
+    return forkJoin(requests).pipe(map(groups => {
+      const totals: Record<number, number> = {};
+      for (const group of groups) {
+        for (const media of group) {
+          if (Number.isSafeInteger(media.idMal) && Number.isSafeInteger(media.episodes) && media.episodes > 0) {
+            totals[media.idMal] = media.episodes;
+          }
+        }
+      }
+      return totals;
+    }));
   }
 
   // Fallback de top animes desde AniList

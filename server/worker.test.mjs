@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
   extractPlayers,
+  extractMalTop,
   extractDirectVideo,
   validEmbed,
   resolvePlayer,
@@ -15,6 +16,11 @@ import {
   resolveMedia,
   extractJkPlayers
 } from './worker.mjs';
+test('MyAnimeList top keeps its own order and identifiers', () => {
+  const row = (id, title, rank) => `<tr class="ranking-list"><span class="top-anime-rank-text">${rank}</span><a href="https://myanimelist.net/anime/${id}/slug"><img data-src="https://cdn.myanimelist.net/r/50x70/images/anime/${id}/cover.jpg?s=token"></a><h3 class="anime_ranking_h3"><a href="https://myanimelist.net/anime/${id}/slug">${title}</a></h3>TV (12 eps)<span class="score-label score-9">9.00</span></tr>`;
+  const top = extractMalTop(row(1, 'Primero', 1) + row(2, 'Segundo', 2) + row(3, 'Tercero', 3));
+  assert.deepEqual(top.map(anime => [anime.mal_id, anime.title, anime.rank]), [[1, 'Primero', 1], [2, 'Segundo', 2], [3, 'Tercero', 3]]);
+});
 test('only real supported embeds are returned and deduplicated',()=>{
   const html='<iframe src="https://voe.sx/e/abc"></iframe><iframe src="https://ads.example/video"></iframe>{server:"Voe",url:"https://voe.sx/e/abc"}{server:"Mega",url:"https://mega.nz/file/abc"}';
   assert.deepEqual(extractPlayers(html),[{url:'https://voe.sx/e/abc',name:'Principal',audio:'sub',provider:'animeav1'}]);

@@ -59,7 +59,7 @@
           <div class="episode-progress-auto">
             <span class="episode-count">
               <ion-icon name="checkmark-circle" color="success" *ngIf="getWatchedCount(anime) > 0"></ion-icon>
-              {{ getWatchedCount(anime) }}/{{ anime.episodes || '?' }} vistos
+              {{ getWatchedCount(anime) }}/{{ anime.episodes || 'Total por confirmar' }} vistos
             </span>
             <span class="completed-badge" *ngIf="isCompleted(anime)">✓ Completado</span>
           </div>
