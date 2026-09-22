@@ -112,8 +112,20 @@ export async function fetchJkMedia(slug, fetcher = fetch) {
         const tipoMatch = jkText.match(/<span>Tipo:<\/span>\s*([^<\n\r]+)/i);
         const isMovie = tipoMatch && /pelicula|movie/i.test(tipoMatch[1]);
         let count = epMatch ? parseInt(epMatch[1], 10) : 0;
+        const linkedEpisodes = new Set();
+        for (const link of jkText.matchAll(/<a\b[^>]*\bhref=["']([^"']+)["'][^>]*>/gi)) {
+          try {
+            const episodeUrl = new URL(link[1], jkUrl);
+            if (episodeUrl.hostname !== 'jkanime.net') continue;
+            const episodeMatch = episodeUrl.pathname.match(new RegExp(`^/${slug}/([1-9]\\d{0,3})/?$`));
+            if (episodeMatch) linkedEpisodes.add(parseInt(episodeMatch[1], 10));
+          } catch { /* Ignore malformed links. */ }
+        }
+        // Algunas fichas muestran "Episodios: 0" durante la emisión aunque
+        // sí enlacen al último capítulo publicado.
+        if (linkedEpisodes.size) count = Math.max(...linkedEpisodes);
         if (isMovie && count === 0) count = 1;
-        if (count > 0) {
+        if (count > 0 && count < 10000) {
           const availableEpisodes = Array.from({length: count}, (_, i) => i + 1);
           return { slug, availableEpisodes, count, exists: true, provider: 'jkanime', sourceUrl: jkRes.url || jkUrl };
         }

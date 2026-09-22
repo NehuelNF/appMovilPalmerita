@@ -21,6 +21,7 @@ interface Player {
   styleUrls: ['./watch-episode.page.scss']
 })
 export class WatchEpisodePage implements OnInit, OnDestroy {
+  readonly isIphone = /iPhone/i.test(navigator.userAgent);
   animeId = '';
   episodeNumber = 1;
   animeTitle = '';
@@ -69,6 +70,13 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   ) {}
 
   async toggleFullscreen() {
+    if (this.isIphone && this.nativeVideo?.nativeElement) {
+      const video = this.nativeVideo.nativeElement as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+      if (video.webkitEnterFullscreen) {
+        video.webkitEnterFullscreen();
+        return;
+      }
+    }
     const element = this.playerSurface?.nativeElement;
     if (!element) return;
     if (document.fullscreenElement === element) { await document.exitFullscreen(); return; }

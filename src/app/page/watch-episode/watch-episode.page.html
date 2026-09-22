@@ -9,7 +9,7 @@
 
   <!-- Contenedor principal del reproductor -->
   <div class="video-container" #playerSurface [class.player-expanded]="expanded">
-    <button class="fullscreen-control" type="button" (click)="toggleFullscreen()">{{ expanded ? 'Salir de vista ampliada' : 'Pantalla completa / Salir' }}</button>
+    <button *ngIf="!isIphone || directVideoUrl" class="fullscreen-control" type="button" (click)="toggleFullscreen()">{{ expanded ? 'Salir de vista ampliada' : 'Pantalla completa / Salir' }}</button>
     <p class="fullscreen-notice" *ngIf="expanded" role="status">{{ fullscreenMessage }}</p>
     <div class="player-loading" *ngIf="loading" role="status"><ion-spinner></ion-spinner><p>Obteniendo reproductor…</p></div>
     
@@ -89,6 +89,10 @@
       </iframe>
     </div>
   </div>
+
+  <p class="iphone-fullscreen-hint" *ngIf="isIphone && safeIframeUrl">
+    Para pantalla completa en iPhone, usa el botón dentro del reproductor.
+  </p>
 
   <!-- Selector de Proveedor / Fuente (AnimeAV1 vs JKAnime) -->
   <div class="provider-selection-wrapper" *ngIf="hasMultipleProviders()">

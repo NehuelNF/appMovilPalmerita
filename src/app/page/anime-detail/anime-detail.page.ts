@@ -355,7 +355,7 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
       info = `${aired} emitidos`;
     }
     
-    if (duration) {
+    if (duration && !/^(unknown|desconocid[oa])$/i.test(String(duration).trim())) {
       if (info) info += ' • ';
       info += duration;
     }

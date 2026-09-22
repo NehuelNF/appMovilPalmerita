@@ -44,11 +44,29 @@ export class LoginPage {
 
   async googleLogin() {
     this.error = '';
+    // El popup debe iniciarse en el gesto del usuario; crear el modal antes
+    // haría que Safari lo bloquee.
+    let settled = false;
+    const signInResult = this.userLoginUseCase.loginWithGoogle().then(
+      () => ({ error: null as any }),
+      error => ({ error })
+    ).then(result => {
+      settled = true;
+      return result;
+    });
+    let loading: HTMLIonLoadingElement | undefined;
     try {
-      // Invocar el popup en el mismo gesto del botón para que Safari no lo bloquee.
-      await this.userLoginUseCase.loginWithGoogle();
+      loading = await this.loadingController.create({
+        message: 'Iniciando sesión con Google...',
+        spinner: 'crescent'
+      });
+      if (!settled) await loading.present();
+      const result = await signInResult;
+      if (result.error) throw result.error;
     } catch (error: any) {
       this.error = error?.message || 'No se pudo iniciar sesión con Google.';
+    } finally {
+      await loading?.dismiss();
     }
   }
 
