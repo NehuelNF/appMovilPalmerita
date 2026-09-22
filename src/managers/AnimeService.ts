@@ -538,6 +538,14 @@ export class AnimeService {
       .replace(/[\s-]+/g, '-');
   }
 
+  getStreamingSlugs(title: string): string[] {
+    const slug = this.getSlug(title);
+    if (!slug) return [];
+    // AniList separa los "Dai"; los proveedores los unen en sus URLs.
+    const joinedDai = slug.replace(/(?:dai-){2,}daisuki/g, match => match.replace(/-/g, ''));
+    return joinedDai === slug ? [slug] : [slug, joinedDai];
+  }
+
   /**
    * Obtiene la lista de capítulos disponibles para reproducción en el servidor
    */

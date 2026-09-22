@@ -297,32 +297,31 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
       }
 
       const querySlug = this.route.snapshot.queryParams['slug'];
-      let slug = querySlug;
-      if (!slug) {
-        const title = useEnglish ? this.anime.title_english : this.animeTitle;
-        slug = (title || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s-]+/g, '-');
+      const candidateSlugs: string[] = [];
+      if (querySlug) candidateSlugs.push(querySlug);
+      const titles = useEnglish
+        ? [this.anime.title_english, this.animeTitle, this.anime.title_romaji]
+        : [this.animeTitle, this.anime.title_romaji, this.anime.title_english];
+      for (const title of titles) {
+        for (const candidate of this.animeService.getStreamingSlugs(title || '')) {
+          if (!candidateSlugs.includes(candidate)) candidateSlugs.push(candidate);
+        }
       }
 
+      let slug = candidateSlugs[0] || '';
       this.sourceUrl = 'https://animeav1.com/media/' + slug + '/' + episode;
       let result: { players: Player[]; sourceUrl: string } | null = null;
-      try {
-        result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', { params: { slug, episode: String(episode) } }));
-      } catch (err: any) {
-        // Si falló el slug principal y no se forzó inglés ni vino por queryParam, probar títulos alternativos
-        if (!querySlug && !useEnglish && this.anime) {
-          const alternateTitle = this.anime.title_english || this.anime.title_romaji;
-          if (alternateTitle && alternateTitle !== this.animeTitle) {
-            const altSlug = (alternateTitle || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s-]+/g, '-');
-            if (altSlug && altSlug !== slug) {
-              try {
-                result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', { params: { slug: altSlug, episode: String(episode) } }));
-                slug = altSlug;
-              } catch { /* proceed to throw original error */ }
-            }
-          }
+      let lastError: any;
+      for (const candidate of candidateSlugs) {
+        try {
+          result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', { params: { slug: candidate, episode: String(episode) } }));
+          slug = candidate;
+          break;
+        } catch (error) {
+          lastError = error;
         }
-        if (!result) throw err;
       }
+      if (!result) throw lastError || new Error('Sin reproductores disponibles.');
 
       if (generation !== this.generation) return;
       this.players = result.players;

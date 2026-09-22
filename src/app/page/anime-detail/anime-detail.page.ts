@@ -448,9 +448,8 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
 
     const slugs: string[] = [];
     for (const title of candidates) {
-      const slug = this.animeService.getSlug(title);
-      if (slug && !slugs.includes(slug)) {
-        slugs.push(slug);
+      for (const slug of this.animeService.getStreamingSlugs(title)) {
+        if (!slugs.includes(slug)) slugs.push(slug);
       }
     }
     return slugs;
