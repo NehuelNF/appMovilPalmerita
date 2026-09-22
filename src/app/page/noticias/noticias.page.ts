@@ -13,6 +13,9 @@ export class NoticiasPage implements OnInit, OnDestroy {
   noticias: Noticia[] = [];
   isLoading = true;
   error: string | null = null;
+  lastUpdated: string | null = null;
+  newsSource: string = 'Servidor';
+  isSourceDown = false;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -22,8 +25,8 @@ export class NoticiasPage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.subscribeToServiceState();
     this.cargarNoticias();
-    this.subscribeToNoticiasUpdates();
   }
 
   ngOnDestroy() {
@@ -31,13 +34,31 @@ export class NoticiasPage implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private subscribeToNoticiasUpdates() {
+  private subscribeToServiceState() {
     this.kudasaiService.noticias$
       .pipe(takeUntil(this.destroy$))
       .subscribe(noticias => {
         if (noticias.length > 0) {
           this.noticias = noticias;
         }
+      });
+
+    this.kudasaiService.lastUpdated$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(updated => {
+        this.lastUpdated = updated;
+      });
+
+    this.kudasaiService.source$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(src => {
+        this.newsSource = src;
+      });
+
+    this.kudasaiService.isSourceDown$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(down => {
+        this.isSourceDown = down;
       });
   }
 
@@ -49,10 +70,11 @@ export class NoticiasPage implements OnInit, OnDestroy {
       next: (noticias) => {
         this.noticias = noticias;
         this.isLoading = false;
+        this.error = null;
       },
-      error: (error) => {
-        this.error = error.message || 'Error al cargar noticias';
+      error: (err) => {
         this.isLoading = false;
+        this.error = err?.error?.error || err.message || 'Error al conectar con el servidor de noticias.';
         if (this.error) {
           this.showErrorToast(this.error);
         }
@@ -70,22 +92,31 @@ export class NoticiasPage implements OnInit, OnDestroy {
 
   async forceRefresh() {
     const loading = await this.loadingCtrl.create({
-      message: 'Actualizando noticias...'
+      message: 'Actualizando noticias desde Somos Kudasai...'
     });
     await loading.present();
 
-    try {
-      this.kudasaiService.refreshNoticias();
-      await this.showSuccessToast('¡Noticias actualizadas!');
-    } catch (error: any) {
-      await this.showErrorToast('Error al actualizar: ' + error.message);
-    } finally {
-      await loading.dismiss();
-    }
+    this.kudasaiService.obtenerNoticias(true).subscribe({
+      next: (noticias) => {
+        this.noticias = noticias;
+        this.isLoading = false;
+        this.error = null;
+        loading.dismiss();
+        this.showSuccessToast('¡Noticias actualizadas con éxito!');
+      },
+      error: (err) => {
+        this.isLoading = false;
+        loading.dismiss();
+        const msg = err?.error?.error || err.message || 'No se pudo actualizar.';
+        this.showErrorToast(msg);
+      }
+    });
   }
 
   abrirNoticia(url: string) {
-    window.open(url, '_blank');
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   }
 
   private async showErrorToast(message: string) {

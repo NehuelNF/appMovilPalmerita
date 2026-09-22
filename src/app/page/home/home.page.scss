@@ -1,6 +1,127 @@
 ion-content { --padding-top: 18px; --padding-bottom: 24px; }
 ion-card { margin: 8px 16px 24px; padding: 12px; box-shadow: none; }
 ion-card-title { font-size: clamp(26px,4vw,38px); font-weight: 750; letter-spacing: -1px; }
+
+// Sección Continuar Viendo
+.continue-watching-section {
+  margin-bottom: 20px;
+
+  .section-title-row {
+    h3 {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 12px 0;
+      color: var(--ion-text-color);
+    }
+  }
+
+  .continue-cards-scroll {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 4px 16px 16px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .continue-card {
+      flex: 0 0 200px;
+      scroll-snap-align: start;
+      background: var(--ion-card-background, var(--ion-color-step-50, #1e1e1e));
+      border: 1px solid var(--ion-border-color, rgba(255, 255, 255, 0.08));
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+      }
+
+      .continue-thumb-container {
+        position: relative;
+        width: 100%;
+        height: 115px;
+        background: #000;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .play-overlay-icon {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0, 0, 0, 0.35);
+
+          ion-icon {
+            font-size: 32px;
+            color: white;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+          }
+        }
+
+        .episode-pill {
+          position: absolute;
+          bottom: 6px;
+          left: 6px;
+          background: rgba(0, 0, 0, 0.85);
+          color: white;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 600;
+        }
+      }
+
+      .continue-details {
+        padding: 10px 12px;
+
+        .continue-title {
+          margin: 0 0 6px 0;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--ion-text-color);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .continue-progress-bar {
+          width: 100%;
+          height: 4px;
+          background: var(--ion-color-step-150, #333);
+          border-radius: 2px;
+          overflow: hidden;
+          margin-bottom: 4px;
+
+          .continue-progress-fill {
+            height: 100%;
+            background: var(--ion-color-primary, #10b981);
+            transition: width 0.3s ease;
+          }
+        }
+
+        .continue-meta {
+          font-size: 11px;
+          color: var(--ion-color-medium);
+        }
+      }
+    }
+  }
+}
+
 ion-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 16px; margin: 0 16px; padding: 0; }
 ion-item { --padding-start: 0; --inner-padding-end: 12px; --inner-border-width: 0; --border-width: 0; border: 1px solid var(--ion-border-color); border-radius: 18px; overflow: hidden; transition: box-shadow 180ms,transform 180ms; }
 ion-item:hover { box-shadow: var(--anime-card-shadow-hover); transform: translateY(-2px); }

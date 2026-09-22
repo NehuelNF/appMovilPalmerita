@@ -459,7 +459,105 @@ export class AnimeService {
     );
   }
 
-  // Adaptar getAnimeById a Anilist para obtener episodios, manteniendo Jikan para el resto
+  // Fallback completo a AniList cuando Jikan devuelve error o timeout
+  private getAnimeFromAnilist(malId: number): Observable<any> {
+    const query = `
+      query ($id: Int) {
+        Media(idMal: $id, type: ANIME) {
+          id
+          idMal
+          title {
+            romaji
+            english
+            native
+          }
+          description(asHtml: false)
+          episodes
+          duration
+          status
+          format
+          bannerImage
+          coverImage {
+            extraLarge
+            large
+            medium
+          }
+          genres
+          averageScore
+          season
+          seasonYear
+          startDate {
+            year
+            month
+            day
+          }
+          studios {
+            nodes {
+              name
+            }
+          }
+          trailer {
+            id
+            site
+          }
+        }
+      }
+    `;
+    const variables = { id: malId };
+    return this.http.post<any>(this.anilistUrl, { query, variables }).pipe(
+      map(response => {
+        const media = response?.data?.Media;
+        if (!media) throw new Error(`Anime con ID ${malId} no encontrado en AniList.`);
+
+        let airedDateString = null;
+        if (media.startDate?.year) {
+          const y = media.startDate.year;
+          const m = String(media.startDate.month || 1).padStart(2, '0');
+          const d = String(media.startDate.day || 1).padStart(2, '0');
+          airedDateString = `${y}-${m}-${d}T00:00:00+00:00`;
+        }
+
+        const standardAnime = {
+          mal_id: media.idMal || malId,
+          id: media.id,
+          title: media.title?.english || media.title?.romaji || media.title?.native || 'Sin título',
+          title_english: media.title?.english || null,
+          title_japanese: media.title?.native || null,
+          title_romaji: media.title?.romaji || null,
+          synopsis: media.description || 'Sin descripción disponible.',
+          images: {
+            jpg: {
+              image_url: media.coverImage?.large || media.coverImage?.medium || '',
+              small_image_url: media.coverImage?.medium || '',
+              large_image_url: media.coverImage?.extraLarge || media.coverImage?.large || ''
+            }
+          },
+          trailer: media.trailer?.id && media.trailer?.site === 'youtube'
+            ? { url: `https://www.youtube.com/watch?v=${media.trailer.id}`, youtube_id: media.trailer.id }
+            : null,
+          episodes: media.episodes || null,
+          status: media.status === 'FINISHED' ? 'Finished Airing' :
+                  media.status === 'RELEASING' ? 'Currently Airing' :
+                  media.status === 'NOT_YET_RELEASED' ? 'Not yet aired' : media.status,
+          airing: media.status === 'RELEASING',
+          duration: media.duration ? `${media.duration} min` : null,
+          score: media.averageScore ? (media.averageScore / 10).toFixed(1) : null,
+          genres: (media.genres || []).map((g: string) => ({ name: g })),
+          studios: (media.studios?.nodes || []).map((s: any) => ({ name: s.name })),
+          aired: {
+            from: airedDateString,
+            to: null,
+            string: airedDateString ? new Date(airedDateString).toLocaleDateString() : 'Desconocido'
+          },
+          episodesSource: 'anilist'
+        };
+
+        return this.processAnimeData([standardAnime])[0];
+      })
+    );
+  }
+
+  // Adaptar getAnimeById a Anilist para obtener episodios, manteniendo Jikan para el resto con fallback robusto
   getAnimeById(id: number): Observable<any> {
     const cacheKey = `anime-${id}`;
     if (this.isDataFresh(cacheKey)) {
@@ -470,43 +568,39 @@ export class AnimeService {
       });
     }
     
-    // Primero obtener datos básicos de Jikan
+    // Primero intentar obtener datos desde Jikan
     return this.http.get<{data: any}>(`${this.baseUrl}/anime/${id}/full`).pipe(
-      retry(2),
-      delay(1400),
+      retry(1),
+      delay(1200),
       map(response => {
         if (!response || !response.data) {
           throw new Error(`Anime con ID ${id} no encontrado`);
         }
         return this.processAnimeData([response.data])[0];
       }),
-      // Luego obtener el número de episodios desde Anilist
+      // Luego enriquecer con número de episodios desde Anilist
       switchMap(jikanAnime => {
         return this.getAnimeEpisodesFromAnilist(id).pipe(
           map(anilistData => {
-            // Combinar datos: usar episodios de Anilist si están disponibles
             const finalAnime = { ...jikanAnime };
-            
             if (anilistData.episodes !== null) {
               finalAnime.episodes = anilistData.episodes;
               finalAnime.episodesSource = 'anilist';
-              console.log(`📺 Usando ${anilistData.episodes} episodios desde Anilist para ${finalAnime.title}`);
             } else {
               finalAnime.episodesSource = 'jikan';
-              console.log(`📺 Usando ${finalAnime.episodes || 'desconocido'} episodios desde Jikan para ${finalAnime.title}`);
             }
-            
             return finalAnime;
           }),
-          catchError(error => {
-            console.warn('Error al obtener episodios de Anilist, usando datos de Jikan:', error);
-            return new Observable(subscriber => {
-              jikanAnime.episodesSource = 'jikan';
-              subscriber.next(jikanAnime);
-              subscriber.complete();
-            });
+          catchError(() => {
+            jikanAnime.episodesSource = 'jikan';
+            return of(jikanAnime);
           })
         );
+      }),
+      // Fallback a AniList completo si Jikan falla (504 gateway timeout, 404 o rate limit)
+      catchError(jikanError => {
+        console.warn(`Jikan falló para anime ID ${id}. Intentando fallback a AniList...`, jikanError);
+        return this.getAnimeFromAnilist(id);
       }),
       tap(finalAnime => {
         this.cache.set(cacheKey, { data: finalAnime, timestamp: Date.now() });

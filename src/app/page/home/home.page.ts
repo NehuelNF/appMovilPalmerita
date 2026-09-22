@@ -1,17 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ToastController } from '@ionic/angular';
 import { AnimeService } from '../../../managers/AnimeService';
 import { FavoritesService } from '../../../managers/FavoritesService';
-import { take } from 'rxjs/operators';
-import { debounceTime, distinctUntilChanged, switchMap, catchError, tap } from 'rxjs/operators';
-import { Subject, of } from 'rxjs';
+import { WatchProgressService, WatchProgress } from '../../../managers/WatchProgressService';
+import { take, debounceTime, distinctUntilChanged, switchMap, catchError, tap } from 'rxjs/operators';
+import { Subject, of, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],
 })
-export class HomePage implements OnInit {
+export class HomePage implements OnInit, OnDestroy {
   topAnimes: any[] = [];
   filteredAnimes: any[] = [];
   searchTerm: string = '';
@@ -19,24 +19,53 @@ export class HomePage implements OnInit {
   isSearching = false; // For search operation
   error: string | null = null;
   favorites: Set<number> = new Set();
+  recentProgress: WatchProgress[] = [];
   private searchSubject = new Subject<string>();
+  private progressSub?: Subscription;
 
   constructor(
     private animeService: AnimeService,
     private favoritesService: FavoritesService,
+    private watchProgressService: WatchProgressService,
     private toastCtrl: ToastController
   ) {}
 
   ngOnInit() {
     this.loadTopAnimes();
     this.loadFavorites();
+    this.loadWatchProgress();
     this.setupSearch();
+  }
+
+  ngOnDestroy() {
+    if (this.progressSub) {
+      this.progressSub.unsubscribe();
+    }
+  }
+
+  loadWatchProgress() {
+    if (this.progressSub) this.progressSub.unsubscribe();
+    this.progressSub = this.watchProgressService.getAllProgress().subscribe({
+      next: (list) => {
+        // Filtrar y tomar hasta 6 animes recientes
+        this.recentProgress = (list || []).slice(0, 6);
+      },
+      error: (err) => {
+        console.error('Error loading watch progress in home:', err);
+      }
+    });
+  }
+
+  getProgressPercentage(item: WatchProgress): number {
+    if (!item.totalEpisodes || !item.watchedEpisodes) return 0;
+    return Math.min(Math.round((item.watchedEpisodes.length / item.totalEpisodes) * 100), 100);
   }
 
   async handleRefresh(event: any) {
     try {
       this.loadTopAnimes();
       this.loadFavorites();
+      this.loadWatchProgress();
       if (event && event.target) {
         event.target.complete();
       }
@@ -58,45 +87,38 @@ export class HomePage implements OnInit {
     this.searchSubject.pipe(
       debounceTime(500),
       distinctUntilChanged(),
-      tap(term => { // Use tap to set searchTerm and isSearching synchronously
+      tap(term => {
         this.searchTerm = term.trim();
-        this.isSearching = !!this.searchTerm; // true if searchTerm is not empty
+        this.isSearching = !!this.searchTerm;
         if (!this.searchTerm) {
-            // If search term is cleared, show top 3. this.topAnimes is already processed top 3.
-            this.filteredAnimes = [...this.topAnimes];
+          this.filteredAnimes = [...this.topAnimes];
         }
-        this.error = null; // Clear error on new search term
+        this.error = null;
       }),
-      switchMap(term => { // term is already trimmed here
+      switchMap(term => {
         if (!term) {
-          // If term is empty, return an observable with the already set top 3 animes
           return of({ data: this.filteredAnimes, pagination: {} });
         }
-        // If term is not empty, perform the search
         return this.animeService.searchAnime(term).pipe(
           catchError(err => {
             console.error('Error during anime search API call:', err);
             this.error = 'Error al buscar animes.';
-            // isSearching will be set to false in the subscribe block's error/next handler
-            return of({ data: [], pagination: {} }); // Return empty on API error
+            return of({ data: [], pagination: {} });
           })
         );
       })
     ).subscribe({
-      next: (response: any) => { // response is AnimeResponse-like
-        // If the term was empty, filteredAnimes was already updated in tap.
-        // If the term was not empty, update with search results.
+      next: (response: any) => {
         if (this.searchTerm) {
-            this.filteredAnimes = response.data || [];
+          this.filteredAnimes = response.data || [];
         }
-        this.isSearching = false; // Search/update process is complete
+        this.isSearching = false;
       },
       error: (err: any) => {
         this.isSearching = false;
         this.error = 'Ocurrió un error con la funcionalidad de búsqueda.';
         console.error('Error in search observable pipeline:', err);
-        // Fallback: if the whole pipeline errors, show top 3
-        this.filteredAnimes = [...this.topAnimes]; // Use spread for new array
+        this.filteredAnimes = [...this.topAnimes];
       }
     });
   }
@@ -108,27 +130,19 @@ export class HomePage implements OnInit {
       next: (response: any) => {
         if (response && Array.isArray(response.data)) {
           if (response.data.length > 0) {
-            // Process all animes from response to add 'topRank' as their 1-based index
             const allAnimesProcessed = response.data.map((anime: any, index: number) => ({
               ...anime,
-              topRank: index + 1 // Assigns 1, 2, 3,... for display purposes
+              topRank: index + 1
             }));
-
-            // Store only the top 3 of these processed animes
             this.topAnimes = allAnimesProcessed.slice(0, 3);
-
-            // Update filteredAnimes: if no search term, show top 3, else preserve search results
             this.filteredAnimes = this.searchTerm ? this.filteredAnimes : [...this.topAnimes];
-          } else { // API returned an empty list
+          } else {
             this.topAnimes = [];
             this.filteredAnimes = [];
-            console.info('Top animes API returned an empty list.');
-            // Optionally, set a user-facing message if desired, e.g., this.error = 'No animes to display';
           }
-        } else { // Invalid response structure
+        } else {
           this.topAnimes = [];
           this.filteredAnimes = [];
-          console.warn('Top animes data is not in the expected format or is missing:', response);
           this.error = 'No se pudieron cargar los animes destacados.';
         }
         this.isLoading = false;
@@ -137,7 +151,7 @@ export class HomePage implements OnInit {
         this.isLoading = false;
         this.error = err.message || 'Error al cargar los animes principales';
         console.error('Error loading top animes:', err);
-        this.topAnimes = []; // Ensure lists are cleared on error
+        this.topAnimes = [];
         this.filteredAnimes = [];
       }
     });
@@ -163,7 +177,6 @@ export class HomePage implements OnInit {
     event.preventDefault();
     event.stopPropagation();
     try {
-      // Use firstValueFrom instead of deprecated toPromise
       const { firstValueFrom } = await import('rxjs');
       const result = await firstValueFrom(this.favoritesService.toggleFavorite(anime).pipe(take(1)));
       if (!result) {

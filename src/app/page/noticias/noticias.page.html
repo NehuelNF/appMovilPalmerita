@@ -22,39 +22,51 @@
       pullingIcon="chevron-down-circle-outline"
       pullingText="📰 Desliza para actualizar noticias"
       refreshingSpinner="circles"
-      refreshingText="✨ Cargando últimas noticias...">
+      refreshingText="✨ Obteniendo noticias oficiales...">
     </ion-refresher-content>
   </ion-refresher>
+
+  <!-- Banner de última actualización y fuente -->
+  <div class="news-status-bar ion-padding-horizontal ion-padding-top" *ngIf="lastUpdated && !isLoading">
+    <ion-chip color="medium" outline="true">
+      <ion-icon name="time-outline"></ion-icon>
+      <ion-label>Actualizado: {{ lastUpdated | date:'medium' }}</ion-label>
+    </ion-chip>
+    <ion-chip color="success" outline="true" *ngIf="!isSourceDown">
+      <ion-icon name="checkmark-circle-outline"></ion-icon>
+      <ion-label>{{ newsSource }}</ion-label>
+    </ion-chip>
+  </div>
 
   <!-- Loading spinner -->
   <div *ngIf="isLoading" class="loading-container">
     <div class="loading-content">
       <ion-spinner name="crescent"></ion-spinner>
       <h3>Cargando noticias</h3>
-      <p>Obteniendo las últimas noticias de anime...</p>
+      <p>Consultando servidor de Somos Kudasai...</p>
     </div>
   </div>
 
-  <!-- Error message -->
+  <!-- Error message / Fuente caída -->
   <div *ngIf="error && !isLoading" class="error-container ion-padding">
     <div class="error-content">
-      <ion-icon name="alert-circle-outline" color="danger" size="large"></ion-icon>
-      <h3>Error al cargar noticias</h3>
+      <ion-icon name="cloud-offline-outline" color="warning" size="large"></ion-icon>
+      <h3>Fuente de noticias no disponible</h3>
       <p>{{ error }}</p>
       <ion-button expand="block" fill="outline" (click)="cargarNoticias()" color="primary">
         <ion-icon name="refresh" slot="start"></ion-icon>
-        Reintentar
+        Reintentar conexión
       </ion-button>
     </div>
   </div>
 
   <!-- News list -->
-  <div class="noticias-container" *ngIf="!isLoading && !error && noticias.length > 0">
+  <div class="noticias-container" *ngIf="!isLoading && noticias.length > 0">
     <div class="noticias-grid">
       <ion-card 
         *ngFor="let noticia of noticias; let i = index"
         class="noticia-card animate-slide-up"
-        [style.animation-delay]="(i * 0.1) + 's'"
+        [style.animation-delay]="(i * 0.05) + 's'"
         (click)="abrirNoticia(noticia.url)">
         
         <div class="card-image-container">
@@ -90,7 +102,7 @@
           <div class="card-actions">
             <ion-button fill="clear" size="small" color="primary">
               <ion-icon name="open-outline" slot="start"></ion-icon>
-              Leer más
+              Leer en Somos Kudasai
             </ion-button>
           </div>
         </ion-card-content>
@@ -112,11 +124,11 @@
   </div>
 
   <!-- Footer info -->
-  <div class="footer-info ion-padding" *ngIf="!isLoading && !error">
+  <div class="footer-info ion-padding" *ngIf="!isLoading && !error && noticias.length > 0">
     <ion-text color="medium">
       <p class="text-center">
         <ion-icon name="information-circle-outline"></ion-icon>
-        Noticias obtenidas de Somos Kudasai
+        Noticias oficiales suministradas directamente por Somos Kudasai
       </p>
     </ion-text>
   </div>

@@ -2,97 +2,369 @@ import { Component, OnDestroy, OnInit, ElementRef, ViewChild, HostListener } fro
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ToastController, AlertController } from '@ionic/angular';
 import { firstValueFrom, Subscription } from 'rxjs';
 import { AnimeService } from '../../../managers/AnimeService';
+import { WatchProgressService, WatchProgress } from '../../../managers/WatchProgressService';
 
-interface Player { name: string; url: string; type?: 'direct' | 'iframe'; }
-@Component({selector:'app-watch-episode',templateUrl:'./watch-episode.page.html',styleUrls:['./watch-episode.page.scss']})
+interface Player {
+  name: string;
+  url: string;
+  type?: 'direct' | 'iframe';
+  audio?: 'sub' | 'dub';
+}
+
+@Component({
+  selector: 'app-watch-episode',
+  templateUrl: './watch-episode.page.html',
+  styleUrls: ['./watch-episode.page.scss']
+})
 export class WatchEpisodePage implements OnInit, OnDestroy {
-  animeId=''; episodeNumber=1; animeTitle=''; episodeTitle=''; episodeThumbnail='';
-  anime:any=null; totalEpisodes=0; episodes:{number:number;title:string}[]=[];
-  safeIframeUrl:SafeResourceUrl|null=null;
-  streamingError=''; loading=true; players:Player[]=[]; selectedPlayer=''; sourceUrl='';
-  directVideoUrl='';
-  showAllEpisodes=false;
-  @ViewChild('playerSurface') playerSurface?:ElementRef<HTMLElement>;
-  expanded=false;
-  fullscreenMessage='';
+  animeId = '';
+  episodeNumber = 1;
+  animeTitle = '';
+  episodeTitle = '';
+  episodeThumbnail = '';
+  anime: any = null;
+  totalEpisodes = 0;
+  episodes: { number: number; title: string }[] = [];
+  safeIframeUrl: SafeResourceUrl | null = null;
+  streamingError = '';
+  loading = true;
+  players: Player[] = [];
+  selectedAudio: 'sub' | 'dub' = 'sub';
+  selectedPlayer = '';
+  sourceUrl = '';
+  directVideoUrl = '';
+  showAllEpisodes = false;
+
+  // Seguimiento de progreso
+  watchedEpisodesSet = new Set<number>();
+  isCurrentEpisodeWatched = false;
+  lastSavedPosition = 0;
+  private progressSub?: Subscription;
+  private lastSaveTime = 0;
+
+  @ViewChild('playerSurface') playerSurface?: ElementRef<HTMLElement>;
+  @ViewChild('nativeVideo') nativeVideo?: ElementRef<HTMLVideoElement>;
+  expanded = false;
+  fullscreenMessage = '';
+
   async toggleFullscreen() {
-    const element=this.playerSurface?.nativeElement;
-    if(!element) return;
-    if(document.fullscreenElement===element) { await document.exitFullscreen(); return; }
-    if(this.expanded) { this.expanded=false; this.fullscreenMessage=''; return; }
+    const element = this.playerSurface?.nativeElement;
+    if (!element) return;
+    if (document.fullscreenElement === element) { await document.exitFullscreen(); return; }
+    if (this.expanded) { this.expanded = false; this.fullscreenMessage = ''; return; }
     try {
-      if(!document.fullscreenEnabled || !element.requestFullscreen) throw new Error('Unavailable');
+      if (!document.fullscreenEnabled || !element.requestFullscreen) throw new Error('Unavailable');
       await element.requestFullscreen();
     } catch {
-      this.expanded=true;
-      this.fullscreenMessage='Vista ampliada: este navegador no permite pantalla completa. Pulsa Salir o Escape para volver.';
+      this.expanded = true;
+      this.fullscreenMessage = 'Vista completa activa. Usa el botón Salir para volver.';
     }
   }
-  @HostListener('document:keydown.escape') closeExpanded() { this.expanded=false; this.fullscreenMessage=''; }
-  private generation=0;
-  private subscription=new Subscription();
-  constructor(private route:ActivatedRoute,private router:Router,private animeService:AnimeService,private http:HttpClient,private sanitizer:DomSanitizer) {}
+
+  @HostListener('document:keydown.escape') closeExpanded() {
+    this.expanded = false;
+    this.fullscreenMessage = '';
+  }
+
+  private generation = 0;
+  private subscription = new Subscription();
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private animeService: AnimeService,
+    private watchProgressService: WatchProgressService,
+    private toastCtrl: ToastController,
+    private alertCtrl: AlertController,
+    private http: HttpClient,
+    private sanitizer: DomSanitizer
+  ) {}
+
   ngOnInit() {
-    this.subscription=this.route.params.subscribe(params=>{
-      this.animeId=params['animeId']; this.episodeNumber=Number(params['episodeNumber']);
+    this.subscription = this.route.params.subscribe(params => {
+      this.animeId = params['animeId'];
+      this.episodeNumber = Number(params['episodeNumber']);
+      this.subscribeToWatchProgress();
       void this.loadEpisode();
     });
   }
-  async loadEpisode(useEnglish=false) {
-    const generation=++this.generation;
-    const animeId=this.animeId, episode=this.episodeNumber;
-    this.safeIframeUrl=null; this.directVideoUrl=''; this.players=[]; this.streamingError=''; this.loading=true; this.sourceUrl='';
-    this.episodeTitle='Episodio '+episode;
-    try {
-      if(!this.anime || this.anime.mal_id!==Number(animeId)) {
-        const response:any=await firstValueFrom(this.animeService.getAnimeById(Number(animeId)));
-        if(generation!==this.generation) return;
-        this.anime=response.data || response;
+
+  private subscribeToWatchProgress() {
+    if (this.progressSub) this.progressSub.unsubscribe();
+    this.progressSub = this.watchProgressService.getProgress(this.animeId).subscribe(progress => {
+      if (progress && Array.isArray(progress.watchedEpisodes)) {
+        this.watchedEpisodesSet = new Set(progress.watchedEpisodes);
+        this.isCurrentEpisodeWatched = this.watchedEpisodesSet.has(this.episodeNumber);
+        if (progress.playbackPositions && progress.playbackPositions[String(this.episodeNumber)]) {
+          this.lastSavedPosition = progress.playbackPositions[String(this.episodeNumber)];
+        }
+      } else {
+        this.watchedEpisodesSet.clear();
+        this.isCurrentEpisodeWatched = false;
+        this.lastSavedPosition = 0;
       }
-      this.animeTitle=this.anime.title || '';
-      this.totalEpisodes=this.anime.episodes || 0;
-      this.episodes=Array.from({length:this.totalEpisodes},(_,i)=>({number:i+1,title:'Episodio '+(i+1)}));
-      this.episodeThumbnail=this.anime.images?.jpg?.large_image_url || 'assets/icon/favicon.png';
-      const title=useEnglish ? this.anime.title_english : this.animeTitle;
-      const slug=(title || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/[\s-]+/g,'-');
-      this.sourceUrl='https://animeav1.com/media/'+slug+'/'+episode;
-      const result=await firstValueFrom(this.http.get<{players:Player[];sourceUrl:string}>('/api/player',{params:{slug,episode:String(episode)}}));
-      if(generation!==this.generation) return;
-      this.players=result.players;
-      this.sourceUrl=result.sourceUrl;
-      if(!this.players.length) throw new Error('Sin reproductores disponibles.');
-      this.selectPlayer(this.players.find(player => player.type !== 'direct' && /^(www\.)?mp4upload\.com$/i.test(new URL(player.url).hostname)) || this.players[0]);
-    } catch(error:any) {
-      if(generation!==this.generation) return;
-      this.streamingError=error?.error?.error || 'No se pudo obtener el reproductor del capítulo.';
-    } finally {if(generation===this.generation) this.loading=false;}
+    });
   }
-  selectPlayer(player:Player) {
-    const url=new URL(player.url);
-    if(player.type==='direct') {
-      if(url.protocol!=='https:' || !/(^|\.)mp4upload\.com$/i.test(url.hostname) || url.username || url.password) return;
-      this.selectedPlayer=player.url; this.streamingError=''; this.safeIframeUrl=null; this.directVideoUrl=player.url; return;
+
+  isEpisodeWatched(epNumber: number): boolean {
+    return this.watchedEpisodesSet.has(epNumber);
+  }
+
+  async toggleCurrentWatched() {
+    try {
+      const newState = !this.isCurrentEpisodeWatched;
+
+      // Si se va a marcar como visto y hay episodios anteriores no vistos, preguntar si desea marcarlos
+      let uncompletedPreviousCount = 0;
+      if (newState && this.episodeNumber > 1) {
+        for (let i = 1; i < this.episodeNumber; i++) {
+          if (!this.watchedEpisodesSet.has(i)) uncompletedPreviousCount++;
+        }
+      }
+
+      if (newState && uncompletedPreviousCount > 0) {
+        const alert = await this.alertCtrl.create({
+          header: '¿Marcar capítulos anteriores?',
+          message: `Vas en el capítulo ${this.episodeNumber} y tienes ${uncompletedPreviousCount} capítulo(s) anterior(es) sin marcar como visto. ¿Deseas marcarlos también como vistos?`,
+          buttons: [
+            {
+              text: 'Solo este capítulo',
+              role: 'cancel',
+              handler: () => {
+                void this.executeToggleWatched(newState, false);
+              }
+            },
+            {
+              text: 'Marcar todos los anteriores',
+              handler: () => {
+                void this.executeToggleWatched(newState, true);
+              }
+            }
+          ]
+        });
+        await alert.present();
+      } else {
+        await this.executeToggleWatched(newState, false);
+      }
+    } catch (err: any) {
+      const toast = await this.toastCtrl.create({
+        message: err.message || 'Error al actualizar progreso',
+        duration: 2500,
+        color: 'warning'
+      });
+      await toast.present();
     }
-    const hosts=['player.zilla-networks.com','animeav1.uns.bio','voe.sx','mega.nz','www.mp4upload.com','mp4upload.com'];
-    if(url.protocol!=='https:' || !hosts.includes(url.hostname) || url.username || url.password || url.port) return;
-    this.selectedPlayer=player.url; this.streamingError=''; this.directVideoUrl='';
-    this.safeIframeUrl=this.sanitizer.bypassSecurityTrustResourceUrl(player.url);
   }
-  onIframeLoad() { /* A loaded cross-origin frame does not confirm playback. */ }
-  onIframeError(event:Event) { this.streamingError='Este servidor no pudo abrirse. Prueba otro servidor o abre el capítulo en su página de origen.'; }
-  hasEnglishTitle(){return !!this.anime?.title_english && this.anime.title_english!==this.animeTitle;}
-  tryEnglishTitle(){void this.loadEpisode(true);}
-  reloadCurrentEpisode(){void this.loadEpisode();}
-  hasPreviousEpisode(){return this.episodeNumber>1;}
-  hasNextEpisode(){return this.episodeNumber<this.totalEpisodes;}
-  goToPreviousEpisode(){if(this.hasPreviousEpisode()) this.selectEpisode(this.episodeNumber-1);}
-  goToNextEpisode(){if(this.hasNextEpisode()) this.selectEpisode(this.episodeNumber+1);}
-  selectEpisode(number:number){this.safeIframeUrl=null;this.router.navigate(['/watch',this.animeId,number]);}
-  getEpisodeThumbnail(episode:any){return episode.thumbnail || this.episodeThumbnail;}
-  openExternalLink(url:string){if(url.startsWith('https://animeav1.com/')) window.open(url,'_blank','noopener,noreferrer');}
-  goBack(){this.safeIframeUrl=null;this.router.navigate(['/anime',this.animeId]);}
-  ionViewWillLeave(){++this.generation;this.safeIframeUrl=null;this.closeExpanded();if(document.fullscreenElement===this.playerSurface?.nativeElement) void document.exitFullscreen();}
-  ngOnDestroy(){++this.generation;this.safeIframeUrl=null;this.subscription.unsubscribe();}
+
+  private async executeToggleWatched(newState: boolean, markPrevious: boolean) {
+    const res = await this.watchProgressService.toggleEpisodeWatched(
+      this.anime || { id: this.animeId, title: this.animeTitle },
+      this.episodeNumber,
+      newState,
+      markPrevious
+    );
+
+    this.isCurrentEpisodeWatched = newState;
+    if (newState) {
+      this.watchedEpisodesSet.add(this.episodeNumber);
+      if (markPrevious && this.episodeNumber > 1) {
+        for (let i = 1; i < this.episodeNumber; i++) {
+          this.watchedEpisodesSet.add(i);
+        }
+      }
+    } else {
+      this.watchedEpisodesSet.delete(this.episodeNumber);
+    }
+
+    const toastMsg = newState
+      ? (markPrevious && res.addedPreviousCount > 0
+          ? `Capítulo ${this.episodeNumber} y ${res.addedPreviousCount} anteriores marcados como vistos ✓`
+          : `Episodio ${this.episodeNumber} marcado como visto ✓`)
+      : `Episodio ${this.episodeNumber} marcado como pendiente`;
+
+    const toast = await this.toastCtrl.create({
+      message: toastMsg,
+      duration: 2500,
+      color: newState ? 'success' : 'medium',
+      position: 'bottom'
+    });
+    await toast.present();
+  }
+
+  async onVideoLoadedMetadata(video: HTMLVideoElement) {
+    if (this.lastSavedPosition > 0 && this.lastSavedPosition < (video.duration - 5)) {
+      video.currentTime = this.lastSavedPosition;
+      const toast = await this.toastCtrl.create({
+        message: `Reanudando desde el minuto ${Math.floor(this.lastSavedPosition / 60)}:${String(Math.floor(this.lastSavedPosition % 60)).padStart(2, '0')}`,
+        duration: 2500,
+        color: 'primary',
+        position: 'bottom'
+      });
+      await toast.present();
+    }
+  }
+
+  onVideoTimeUpdate(video: HTMLVideoElement) {
+    const now = Date.now();
+    // Throttle Firestore updates to every 6 seconds
+    if (now - this.lastSaveTime > 6000 && !video.paused) {
+      this.lastSaveTime = now;
+      this.watchProgressService.savePlaybackPosition(
+        this.anime || { id: this.animeId, title: this.animeTitle },
+        this.episodeNumber,
+        video.currentTime,
+        video.duration
+      ).then(autoCompleted => {
+        if (autoCompleted) {
+          this.isCurrentEpisodeWatched = true;
+          this.watchedEpisodesSet.add(this.episodeNumber);
+          this.toastCtrl.create({
+            message: `¡Capítulo ${this.episodeNumber} completado (>85%)!`,
+            duration: 2500,
+            color: 'success',
+            position: 'bottom'
+          }).then(t => t.present());
+        }
+      }).catch(() => {});
+    }
+  }
+
+  onVideoEnded(video: HTMLVideoElement) {
+    this.watchProgressService.toggleEpisodeWatched(
+      this.anime || { id: this.animeId, title: this.animeTitle },
+      this.episodeNumber,
+      true
+    ).then(() => {
+      this.isCurrentEpisodeWatched = true;
+      this.watchedEpisodesSet.add(this.episodeNumber);
+    }).catch(() => {});
+  }
+
+  async loadEpisode(useEnglish = false) {
+    const generation = ++this.generation;
+    const animeId = this.animeId, episode = this.episodeNumber;
+    this.safeIframeUrl = null;
+    this.directVideoUrl = '';
+    this.players = [];
+    this.streamingError = '';
+    this.loading = true;
+    this.sourceUrl = '';
+    this.episodeTitle = 'Episodio ' + episode;
+
+    try {
+      if (!this.anime || this.anime.mal_id !== Number(animeId)) {
+        const response: any = await firstValueFrom(this.animeService.getAnimeById(Number(animeId)));
+        if (generation !== this.generation) return;
+        this.anime = response.data || response;
+      }
+      this.animeTitle = this.anime.title || '';
+      this.totalEpisodes = this.anime.episodes || 0;
+      this.episodes = Array.from({ length: this.totalEpisodes }, (_, i) => ({ number: i + 1, title: 'Episodio ' + (i + 1) }));
+      this.episodeThumbnail = this.anime.images?.jpg?.large_image_url || 'assets/icon/favicon.png';
+
+      // Registrar que se abrió el episodio en progreso
+      void this.watchProgressService.recordEpisodeOpen(this.anime, this.episodeNumber);
+
+      const title = useEnglish ? this.anime.title_english : this.animeTitle;
+      const slug = (title || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s-]+/g, '-');
+      this.sourceUrl = 'https://animeav1.com/media/' + slug + '/' + episode;
+      const result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', { params: { slug, episode: String(episode) } }));
+      if (generation !== this.generation) return;
+      this.players = result.players;
+      this.sourceUrl = result.sourceUrl;
+      if (!this.players.length) throw new Error('Sin reproductores disponibles.');
+
+      // Seleccionar automáticamente el mejor reproductor para el idioma actual
+      this.autoSelectBestPlayerForCurrentAudio();
+    } catch (error: any) {
+      if (generation !== this.generation) return;
+      this.streamingError = error?.error?.error || 'No se pudo obtener el reproductor del capítulo.';
+    } finally {
+      if (generation === this.generation) this.loading = false;
+    }
+  }
+
+  get displayedPlayers(): Player[] {
+    const list = this.players.filter(p => (p.audio || 'sub') === this.selectedAudio);
+    return list.length ? list : this.players;
+  }
+
+  hasDubPlayers(): boolean {
+    return this.players.some(p => p.audio === 'dub');
+  }
+
+  setAudioTrack(audio: 'sub' | 'dub') {
+    if (this.selectedAudio === audio) return;
+    this.selectedAudio = audio;
+    this.autoSelectBestPlayerForCurrentAudio();
+  }
+
+  private autoSelectBestPlayerForCurrentAudio() {
+    const available = this.displayedPlayers;
+    if (!available.length) return;
+
+    // Preferencia inteligente de reproductores (optimizada para iOS/iPhone y compatibilidad):
+    // 1. UPNShare (excelente soporte nativo en iOS con su propio botón fullscreen integrado)
+    // 2. HLS (streaming nativo de video)
+    // 3. MP4Upload iframe
+    // 4. Primer reproductor disponible del audio elegido
+    const upnSharePlayer = available.find(p => /upnshare/i.test(p.name) || /uns\.bio/i.test(p.url));
+    const hlsPlayer = available.find(p => /hls/i.test(p.name) || /zilla-networks/i.test(p.url));
+    const mp4UploadPlayer = available.find(p => p.type !== 'direct' && /^(www\.)?mp4upload\.com$/i.test(new URL(p.url).hostname));
+
+    const defaultChoice = upnSharePlayer || hlsPlayer || mp4UploadPlayer || available[0];
+    this.selectPlayer(defaultChoice);
+  }
+
+  selectPlayer(player: Player) {
+    const url = new URL(player.url);
+    if (player.type === 'direct') {
+      if (url.protocol !== 'https:' || !/(^|\.)mp4upload\.com$/i.test(url.hostname) || url.username || url.password) return;
+      this.selectedPlayer = player.url;
+      this.streamingError = '';
+      this.safeIframeUrl = null;
+      this.directVideoUrl = player.url;
+      return;
+    }
+    const hosts = ['player.zilla-networks.com', 'animeav1.uns.bio', 'voe.sx', 'mega.nz', 'www.mp4upload.com', 'mp4upload.com', 'byselapuix.com'];
+    if (url.protocol !== 'https:' || !hosts.includes(url.hostname) || url.username || url.password || url.port) return;
+    this.selectedPlayer = player.url;
+    this.streamingError = '';
+    this.directVideoUrl = '';
+    this.safeIframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(player.url);
+  }
+
+  onIframeLoad() { /* Cross-origin frame */ }
+  onIframeError(event: Event) {
+    this.streamingError = 'Este servidor no pudo abrirse. Prueba otro servidor o abre el capítulo en su página de origen.';
+  }
+
+  hasEnglishTitle() { return !!this.anime?.title_english && this.anime.title_english !== this.animeTitle; }
+  tryEnglishTitle() { void this.loadEpisode(true); }
+  reloadCurrentEpisode() { void this.loadEpisode(); }
+  hasPreviousEpisode() { return this.episodeNumber > 1; }
+  hasNextEpisode() { return this.episodeNumber < this.totalEpisodes; }
+  goToPreviousEpisode() { if (this.hasPreviousEpisode()) this.selectEpisode(this.episodeNumber - 1); }
+  goToNextEpisode() { if (this.hasNextEpisode()) this.selectEpisode(this.episodeNumber + 1); }
+  selectEpisode(number: number) { this.safeIframeUrl = null; this.router.navigate(['/watch', this.animeId, number]); }
+  getEpisodeThumbnail(episode: any) { return episode.thumbnail || this.episodeThumbnail; }
+  openExternalLink(url: string) { if (url.startsWith('https://animeav1.com/')) window.open(url, '_blank', 'noopener,noreferrer'); }
+  goBack() { this.safeIframeUrl = null; this.router.navigate(['/anime', this.animeId]); }
+
+  ionViewWillLeave() {
+    ++this.generation;
+    this.safeIframeUrl = null;
+    this.closeExpanded();
+    if (document.fullscreenElement === this.playerSurface?.nativeElement) void document.exitFullscreen();
+  }
+
+  ngOnDestroy() {
+    ++this.generation;
+    this.safeIframeUrl = null;
+    this.subscription.unsubscribe();
+    if (this.progressSub) this.progressSub.unsubscribe();
+  }
 }

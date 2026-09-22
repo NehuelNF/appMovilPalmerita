@@ -1,11 +1,124 @@
 // Estilos para la página de visualización de episodios
-.fullscreen-control { position:absolute; right:12px; top:12px; z-index:5; background:#123d2e; color:white; border:1px solid #83b89c; border-radius:8px; padding:10px 14px; cursor:pointer; font-size:14px; }
-.video-container:fullscreen, .video-container.player-expanded { width:100vw; height:100dvh; max-height:none; aspect-ratio:auto; background:black; }
-.video-container.player-expanded { position:fixed; inset:0; z-index:10000; }
-.fullscreen-notice { position:absolute; left:12px; right:12px; bottom:8px; z-index:5; padding:8px; background:#123d2e; color:white; font-size:14px; }
+.fullscreen-control {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 20;
+  background: rgba(18, 61, 46, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: white;
+  border: 1px solid #83b89c;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.video-container:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  aspect-ratio: auto;
+  background: black;
+}
+
+// Adaptación perfecta para iOS/iPhone y navegadores móviles en vista ampliada
+.video-container.player-expanded {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100% !important;
+  height: 100vh !important;
+  height: -webkit-fill-available !important;
+  height: 100dvh !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 99999 !important;
+  background: black !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+
+  .iframe-container {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+
+    .video-iframe {
+      width: 100% !important;
+      height: 100% !important;
+      border: none !important;
+      object-fit: contain !important;
+    }
+  }
+
+  .native-video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+}
+
+.fullscreen-notice {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 8px;
+  z-index: 20;
+  padding: 6px 10px;
+  background: rgba(18, 61, 46, 0.85);
+  backdrop-filter: blur(6px);
+  color: white;
+  font-size: 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+
 .player-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:240px; height:100%; color:white; }
 .native-video { width:100%; height:100%; object-fit:contain; background:black; }
-.player-controls { display:flex; gap:8px; flex-wrap:wrap; padding:16px; }
+
+.audio-selection-wrapper {
+  padding: 12px 16px 4px 16px;
+
+  .audio-segment {
+    --background: rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 3px;
+
+    ion-segment-button {
+      --indicator-color: var(--ion-color-primary, #00d26a);
+      --color: rgba(255, 255, 255, 0.7);
+      --color-checked: #fff;
+      font-weight: 600;
+      font-size: 13px;
+    }
+  }
+}
+
+.player-controls {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:12px 16px 16px 16px;
+
+  .audio-badge {
+    margin-left: 6px;
+    font-size: 10px;
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+}
 
 // Botón de retroceso flotante
 .back-button-floating {
@@ -187,10 +300,39 @@
         border: 2px solid var(--ion-color-primary);
       }
       
-      img {
+      .episode-img-wrapper {
+        position: relative;
         width: 100%;
         height: 80px;
-        object-fit: cover;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .watched-badge {
+          position: absolute;
+          bottom: 4px;
+          right: 4px;
+          background: rgba(16, 185, 129, 0.9);
+          color: white;
+          font-size: 10px;
+          font-weight: 600;
+          padding: 2px 6px;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+
+          ion-icon {
+            font-size: 12px;
+          }
+        }
+      }
+
+      &.watched {
+        border-color: rgba(16, 185, 129, 0.5);
       }
       
       .episode-info-item {
