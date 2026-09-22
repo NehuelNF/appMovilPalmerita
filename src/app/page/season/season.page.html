@@ -2,13 +2,13 @@
   <ion-toolbar color="primary">
     <ion-title>
       <ion-icon name="calendar-outline" class="title-icon"></ion-icon>
-      Temporada Actual
+      Temporada
     </ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="forceRefresh()" [disabled]="isLoading">
+      <ion-button aria-label="Actualizar temporada" (click)="forceRefresh()" [disabled]="isLoading">
         <ion-icon name="refresh-outline" [class.spin]="isLoading"></ion-icon>
       </ion-button>
-      <ion-button (click)="openFilterModal()">
+      <ion-button aria-label="Filtrar temporada" (click)="openFilterModal()">
         <ion-icon name="filter-outline"></ion-icon>
         <ion-badge color="secondary" *ngIf="activeFiltersCount > 0">{{activeFiltersCount}}</ion-badge>
       </ion-button>
@@ -34,29 +34,10 @@
     </ion-refresher-content>
   </ion-refresher>
 
-  <!-- Header con información de temporada -->
-  <div class="season-header" *ngIf="!isLoading">
-    <div class="season-info">
-      <h2>
-        <ion-icon name="tv-outline"></ion-icon>
-        Anime de {{currentSeason}} {{currentYear}}
-      </h2>
-      <p class="anime-count">
-        <ion-icon name="list-outline"></ion-icon>
-        {{filteredAnimes.length}} de {{animes.length}} animes
-      </p>
-      <p class="last-update" *ngIf="lastRefresh">
-        <ion-icon name="time-outline"></ion-icon>
-        Última actualización: {{lastRefresh | date:'short'}}
-      </p>
-      <!-- NUEVO: Indicador de zona horaria -->
-      <p class="timezone-info">
-        <ion-icon name="globe-outline"></ion-icon>
-        🇨🇱 Horarios convertidos a Chile
-      </p>
-    </div>
+  <div class="season-heading" *ngIf="!isLoading">
+    <h1>{{currentSeason}} {{currentYear}}</h1>
+    <p>{{filteredAnimes.length}} animes · Horarios de Chile</p>
   </div>
-
   <!-- Filtros rápidos por día - ACTUALIZADO con horarios de Chile -->
   <div class="day-filters-container" *ngIf="!isLoading && !error">
     <ion-segment 
@@ -101,7 +82,7 @@
   </div>
 
   <!-- Filtros adicionales -->
-  <div class="additional-filters" *ngIf="!isLoading && !error">
+  <details class="filter-disclosure" *ngIf="!isLoading && !error"><summary>Géneros y orden</summary><div class="additional-filters">
     <ion-chip 
       *ngFor="let genre of popularGenres" 
       [color]="selectedGenres.has(genre) ? 'primary' : 'medium'"
@@ -121,6 +102,7 @@
     </ion-item>
   </div>
 
+  </details>
   <!-- Loading state mejorado -->
   <div class="loading-container" *ngIf="isLoading">
     <div class="loading-content">
@@ -166,145 +148,24 @@
     </div>
   </div>
 
-  <!-- Grid de animes ACTUALIZADO con información de zona horaria chilena -->
-  <div class="anime-grid" *ngIf="!isLoading && !error && filteredAnimes.length > 0">
-    <div 
-      class="anime-card"
-      *ngFor="let anime of paginatedAnimes; trackBy: trackByAnimeId"
-      [routerLink]="['/anime', anime.mal_id]"
-      routerDirection="forward">
-      
-      <!-- Imagen con lazy loading -->
-      <div class="image-container">
-        <img 
-          [src]="anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url" 
-          [alt]="anime.title"
-          loading="lazy"
-          (error)="onImageError($event)"
-          class="anime-image"/>
-        
-        <!-- Botón de favorito -->
-        <ion-button 
-          fill="clear" 
-          class="favorite-button animate-scale" 
-          (click)="toggleFavorite(anime, $event)"
-          [class.is-favorite]="isFavorite(anime.mal_id)">
-          <ion-icon 
-            slot="icon-only" 
-            [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'"
-            [color]="isFavorite(anime.mal_id) ? 'danger' : 'medium'">
-          </ion-icon>
-        </ion-button>
-        
-        <!-- Overlay con información rápida -->
-        <div class="image-overlay">
-          <div class="rating" *ngIf="anime.score">
-            <ion-icon name="star"></ion-icon>
-            {{anime.score}}
-          </div>
-          
-          <div class="episode-count" *ngIf="anime.episodes">
-            <ion-icon name="play-outline"></ion-icon>
-            {{anime.episodes}} ep
-          </div>
-        </div>
-        
-        <!-- Botón de compartir -->
-        <ion-button 
-          fill="clear" 
-          size="small"
-          class="share-btn"
-          color="light"
-          (click)="shareAnime(anime); $event.stopPropagation()">
-          <ion-icon 
-            name="share-outline"
-            slot="icon-only">
-          </ion-icon>
-        </ion-button>
-        
-        <!-- Botón de favorito -->
-        <div class="anime-actions">
-          <ion-button fill="clear" (click)="toggleFavorite(anime, $event)" class="favorite-button">
-            <ion-icon [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'" 
-                      slot="icon-only"
-                      [color]="isFavorite(anime.mal_id) ? 'danger' : 'medium'"></ion-icon>
+  <div class="catalog-list" *ngIf="!isLoading && !error && filteredAnimes.length > 0">
+    <article class="catalog-card" *ngFor="let anime of paginatedAnimes; trackBy: trackByAnimeId">
+      <a class="catalog-cover" [routerLink]="['/anime', anime.mal_id]" [attr.aria-label]="'Ver ' + anime.title">
+        <img [src]="anime.images?.jpg?.image_url" [alt]="anime.title" loading="lazy" (error)="onImageError($event)">
+      </a>
+      <div class="catalog-body">
+        <a class="catalog-title" [routerLink]="['/anime', anime.mal_id]">{{anime.title}}</a>
+        <p class="catalog-meta"><span *ngIf="anime.score">★ {{anime.score}} · </span>{{anime.episodes ? anime.episodes + ' episodios' : 'Total por confirmar'}}</p>
+        <p class="catalog-schedule" *ngIf="getBroadcastInfo(anime).day !== 'Desconocido'">{{getBroadcastInfo(anime).day}} <span>{{getBroadcastInfo(anime).time}}</span></p>
+        <div class="catalog-actions">
+          <ion-button fill="clear" [attr.aria-label]="isFavorite(anime.mal_id) ? 'Quitar de favoritos' : 'Añadir a favoritos'" (click)="toggleFavorite(anime, $event)">
+            <ion-icon slot="icon-only" [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'" [color]="isFavorite(anime.mal_id) ? 'danger' : 'medium'"></ion-icon>
           </ion-button>
-          <ion-button fill="clear" (click)="openNotificationModal(anime, $event)" class="notification-button">
-            <ion-icon name="bell-outline" slot="icon-only"></ion-icon>
-          </ion-button>
+          <ion-button fill="clear" aria-label="Configurar recordatorio" (click)="openNotificationModal(anime, $event)"><ion-icon slot="icon-only" name="notifications-outline"></ion-icon></ion-button>
+          <ion-button fill="clear" aria-label="Compartir anime" (click)="shareAnime(anime)"><ion-icon slot="icon-only" name="share-outline"></ion-icon></ion-button>
         </div>
       </div>
-      
-      <!-- Información del anime ACTUALIZADA -->
-      <div class="anime-info">
-        <h3 class="anime-title">{{anime.title}}</h3>
-        <p class="anime-title-english" *ngIf="anime.title_english && anime.title_english !== anime.title">
-          {{anime.title_english}}
-        </p>
-        
-        <div class="anime-meta">
-          <!-- INFORMACIÓN DE BROADCAST ACTUALIZADA con zona horaria chilena -->
-          <div class="broadcast-info" *ngIf="getBroadcastInfo(anime).day !== 'Desconocido'">
-            <ion-icon name="calendar-outline"></ion-icon>
-            <span class="broadcast-day">{{getBroadcastInfo(anime).day}}</span>
-            <span *ngIf="getBroadcastInfo(anime).time" class="broadcast-time">{{getBroadcastInfo(anime).time}}</span>
-            
-            <!-- Indicadores de zona horaria -->
-            <ion-chip 
-              *ngIf="getBroadcastInfo(anime).isChileTime" 
-              color="success" 
-              size="small"
-              class="timezone-chip">
-              <ion-icon name="location-outline" slot="start"></ion-icon>
-              <ion-label>Chile</ion-label>
-            </ion-chip>
-            
-            <ion-chip 
-              *ngIf="getBroadcastInfo(anime).dayChanged" 
-              color="warning" 
-              size="small"
-              class="day-changed-chip">
-              <ion-icon name="swap-horizontal-outline" slot="start"></ion-icon>
-              <ion-label>Día diferente</ion-label>
-            </ion-chip>
-          </div>
-          
-          <div class="studio-info" *ngIf="anime.studios && anime.studios.length > 0">
-            <ion-icon name="business-outline"></ion-icon>
-            <span>{{anime.studios[0].name}}</span>
-          </div>
-          
-          <div class="status-info">
-            <ion-chip 
-              [color]="getStatusColor(anime.status)"
-              size="small">
-              {{getStatusTextWithTimezone(anime)}}
-            </ion-chip>
-          </div>
-        </div>
-        
-        <!-- NUEVA información de horarios completa para tooltip -->
-        <div class="timezone-details" *ngIf="getFullTimezoneInfo(anime)" [title]="getFullTimezoneInfo(anime)">
-          <ion-icon name="information-circle-outline" color="medium"></ion-icon>
-          <small>Ver horarios detallados</small>
-        </div>
-        
-        <!-- Géneros -->
-        <div class="genres" *ngIf="anime.genres && anime.genres.length > 0">
-          <ion-chip 
-            *ngFor="let genre of anime.genres.slice(0, 3)"
-            size="small"
-            color="light">
-            {{genre.name}}
-          </ion-chip>
-        </div>
-        
-        <!-- Synopsis preview -->
-        <p class="synopsis" *ngIf="anime.synopsis">
-          {{anime.synopsis | slice:0:100}}{{anime.synopsis.length > 100 ? '...' : ''}}
-        </p>
-      </div>
-    </div>
+    </article>
   </div>
 
   <!-- Paginación -->

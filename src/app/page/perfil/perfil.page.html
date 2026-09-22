@@ -1,84 +1,28 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>Perfil</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content [fullscreen]="true" class="ion-padding">
+<ion-header><ion-toolbar><ion-title>Perfil</ion-title></ion-toolbar></ion-header>
+<ion-content class="ion-padding">
   <div class="profile-container">
-    <!-- Avatar y nombre -->
     <div class="user-info">
-      <ion-avatar (click)="showActionSheet()"> <!-- Añade el evento click -->
-        <img *ngIf="avatar; else defaultAvatar" [src]="'data:image/jpeg;base64,' + avatar" />
-        <ng-template #defaultAvatar>
-          <ion-icon name="person-circle-outline" size="large"></ion-icon>
-        </ng-template>
-      </ion-avatar>
-      <h2>Bienvenido, <span class="username">{{ userName }}!</span></h2>
+      <button class="avatar-button" aria-label="Cambiar foto de perfil" (click)="showActionSheet()">
+        <img *ngIf="avatar; else defaultAvatar" [src]="'data:image/jpeg;base64,' + avatar" alt="Tu foto">
+        <ng-template #defaultAvatar><ion-icon name="person-outline"></ion-icon></ng-template>
+      </button>
+      <div><h2>{{userName || 'Tu perfil'}}</h2><p>{{isGoogleUser ? 'Cuenta vinculada con Google' : 'Tu cuenta Palmerita'}}</p></div>
     </div>
-
-    <!-- Actualizar nombre -->
     <div class="update-section">
-      <ion-item>
-        <ion-input [(ngModel)]="newUsername" 
-                   placeholder="Nuevo nombre"
-                   aria-label="Nuevo nombre de usuario"
-                   class="custom-input">
-        </ion-input>
-      </ion-item>
-      <ion-button expand="block" 
-                  (click)="onUpdateUsername()"
-                  [disabled]="savingUsername || !newUsername.trim()"
-                  class="update-button"
-                  color="success">
-        <ion-icon slot="start" name="create-outline"></ion-icon>
-        {{ savingUsername ? 'Guardando…' : 'Guardar nombre' }}
-      </ion-button>
+      <h3>NOMBRE DE USUARIO</h3>
+      <ion-input [(ngModel)]="newUsername" placeholder="Nuevo nombre" aria-label="Nuevo nombre de usuario" fill="outline"></ion-input>
+      <ion-button expand="block" (click)="onUpdateUsername()" [disabled]="savingUsername || !newUsername.trim()">{{savingUsername ? 'Guardando…' : 'Guardar nombre'}}</ion-button>
     </div>
-
-    <div class="link-account-section" *ngIf="providerResolved && !isGoogleUser">
-      <ion-button expand="block"
-                  (click)="linkWithGoogle()"
-                  class="link-google-button"
-                  color="light">
-        <ion-icon slot="start" name="logo-google"></ion-icon>
-        Vincular cuenta con Google
-      </ion-button>
-    </div>
-
-    <!-- Botones de acciones -->
-    <div class="action-buttons">
-      <ion-button expand="block" 
-                  (click)="onLogoutButtonPressed()"
-                  color="tertiary"
-                  class="logout-button">
-        <ion-icon slot="start" name="log-out-outline"></ion-icon>
-        Cerrar Sesión
-      </ion-button>
-
-      <ion-button expand="block" 
-                  (click)="onDeleteAccount()"
-                  color="danger"
-                  class="delete-button">
-        <ion-icon slot="start" name="trash-outline"></ion-icon>
-        Eliminar cuenta
-      </ion-button>
-    </div>
-
-    <!-- Botones para notificaciones -->
-    <div class="notifications-section ion-margin-top">
-      <ion-button expand="block" (click)="testNotifications()" class="ion-margin-bottom">
-        <ion-icon slot="start" name="notifications-outline"></ion-icon>
-        Probar Notificaciones
-      </ion-button>
-      
-      <ion-button expand="block" 
-                  [routerLink]="['/notifications-settings']"
-                  color="secondary"
-                  class="ion-margin-bottom">
-        <ion-icon slot="start" name="settings-outline"></ion-icon>
-        Configurar Notificaciones
-      </ion-button>
+    <ion-list class="settings-group" lines="inset">
+      <ion-item button routerLink="/favoritos"><ion-icon name="heart-outline" slot="start"></ion-icon><ion-label>Mis favoritos</ion-label></ion-item>
+      <ion-item button routerLink="/notifications-settings"><ion-icon name="notifications-outline" slot="start"></ion-icon><ion-label>Notificaciones</ion-label></ion-item>
+      <ion-item button (click)="toggleTheme()"><ion-icon name="contrast-outline" slot="start"></ion-icon><ion-label>Apariencia</ion-label><ion-note slot="end">{{darkMode ? 'Oscura' : 'Clara'}}</ion-note></ion-item>
+      <ion-item button *ngIf="providerResolved && !isGoogleUser" (click)="linkWithGoogle()"><ion-icon name="logo-google" slot="start"></ion-icon><ion-label>Vincular con Google</ion-label></ion-item>
+      <ion-item button (click)="testNotifications()" lines="none"><ion-icon name="paper-plane-outline" slot="start"></ion-icon><ion-label>Probar notificación</ion-label></ion-item>
+    </ion-list>
+    <div class="account-actions">
+      <ion-button fill="outline" (click)="onLogoutButtonPressed()">Cerrar sesión</ion-button>
+      <ion-button fill="clear" color="danger" (click)="onDeleteAccount()">Eliminar cuenta</ion-button>
     </div>
   </div>
 </ion-content>

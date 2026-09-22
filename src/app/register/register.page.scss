@@ -1,7 +1,13 @@
-.container { display:flex; justify-content:center; align-items:center; min-height:100%; padding:28px 16px; background:var(--ion-background-color); }
-.login-form { background:var(--surface); border:1px solid var(--ion-border-color); box-shadow:var(--anime-card-shadow); padding:clamp(24px,5vw,40px); border-radius:24px; width:100%; max-width:460px; }
-.form-group { margin-bottom:20px; }
+.container { min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px 20px; }
+.login-form { width:100%; max-width:400px; }
+.auth-heading { margin-bottom:24px; }
+.auth-heading ion-icon { color:var(--ion-color-primary); font-size:28px; }
+.auth-heading h1 { font-size:28px; letter-spacing:-.8px; margin:12px 0 8px; font-weight:750; }
+.auth-heading p { font-size:16px; line-height:1.5; color:var(--muted); margin:0; }
+.form-group { margin-bottom:14px; padding:4px 12px; min-height:62px; border:1px solid var(--ion-border-color); border-radius:12px; background:var(--surface); }
 ion-input { --color:var(--ion-text-color); --border-color:var(--ion-border-color); --highlight-color-focused:var(--ion-color-primary); }
-.google-btn { --background:var(--surface); --color:var(--ion-text-color); --border-color:var(--ion-border-color); --border-style:solid; --border-width:1px; }
-.separator { display:flex; align-items:center; gap:12px; margin:24px 0; color:var(--muted); }
-.separator::before,.separator::after { content:''; flex:1; border-bottom:1px solid var(--ion-border-color); }
+ion-button { min-height:48px; margin:10px 0; }
+.google-btn { --background:var(--surface); --color:var(--ion-text-color); --border-color:var(--ion-border-color); --border-width:1px; --border-style:solid; }
+.separator { display:flex; align-items:center; gap:12px; margin:16px 0; color:var(--muted); font-size:14px; }
+.separator::before,.separator::after { content:''; flex:1; border-top:1px solid var(--ion-border-color); }
+.login-error { color:var(--ion-color-danger); border:1px solid currentColor; border-radius:10px; padding:12px; }

@@ -24,6 +24,13 @@ import { UserDeleteUseCase } from 'src/app/use-cases/user-delete.use-case'; // A
   styleUrls: ['./perfil.page.scss'],
 })
 export class PerfilPage implements OnInit, OnDestroy {
+  get darkMode(): boolean { return document.documentElement.classList.contains('ion-palette-dark'); }
+  toggleTheme() {
+    const next = !this.darkMode;
+    document.documentElement.classList.toggle('ion-palette-dark', next);
+    document.documentElement.dataset['theme'] = next ? 'dark' : 'light';
+    try { localStorage.setItem('palmerita-theme', next ? 'dark' : 'light'); } catch {}
+  }
   private subscriptions = new Subscription();
   providerResolved = false;
   savingUsername = false;

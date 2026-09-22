@@ -1,6 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>Inicio</ion-title>
+    <ion-title>Palmerita</ion-title>
+    <ion-buttons slot="end"><ion-button routerLink="/favoritos" aria-label="Mis favoritos"><ion-icon name="heart-outline" slot="icon-only"></ion-icon></ion-button></ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -91,6 +92,7 @@
   </ion-card>
 
   <!-- Top Anime List -->
+  <h2 class="top-heading" *ngIf="!searchTerm && !isLoading && !error">Top de MyAnimeList</h2>
   <ion-list lines="full" *ngIf="!isLoading && !error">
     <ion-item *ngFor="let anime of filteredAnimes; let i = index" [routerLink]="['/anime', anime.mal_id]">
       <div class="container">
@@ -115,7 +117,7 @@
         </div>
       </div>
       <div class="button-container">
-        <ion-button shape="round" [attr.aria-label]="isFavorite(anime.mal_id) ? 'Quitar de favoritos' : 'Añadir a favoritos'" (click)="toggleFavorite(anime, $event)">
+        <ion-button fill="clear" [attr.aria-label]="isFavorite(anime.mal_id) ? 'Quitar de favoritos' : 'Añadir a favoritos'" (click)="toggleFavorite(anime, $event)">
           <ion-icon slot="icon-only" [name]="isFavorite(anime.mal_id) ? 'heart' : 'heart-outline'"></ion-icon>
         </ion-button>
       </div>
@@ -129,19 +131,8 @@
     </ion-text>
   </div>
   
-  <!-- Favorites Button -->
-  <div class="ion-padding">
-    <ion-button expand="block" routerLink="/favoritos">
-      <ion-icon name="heart" slot="start"></ion-icon>
-      Ver Mis Animes Favoritos
-    </ion-button>
-  </div>
-
-  <!-- News Button -->
-  <div class="ion-padding">
-    <ion-button expand="block" routerLink="/noticias" color="secondary">
-      <ion-icon name="newspaper" slot="start"></ion-icon>
-      Noticias de Anime
-    </ion-button>
-  </div>
+  <nav class="home-shortcuts" aria-label="Tu biblioteca y noticias">
+    <a routerLink="/favoritos"><ion-icon name="heart-outline"></ion-icon>Favoritos</a>
+    <a routerLink="/noticias"><ion-icon name="newspaper-outline"></ion-icon>Noticias</a>
+  </nav>
 </ion-content>

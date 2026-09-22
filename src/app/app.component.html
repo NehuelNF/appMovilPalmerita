@@ -1,10 +1,1 @@
-<ion-app>
-  <div class="appearance-bar">
-    <a routerLink="/tab/home" class="brand"><ion-icon name="leaf-outline" aria-hidden="true"></ion-icon> Palmerita</a>
-    <button class="theme-switch" (click)="toggleTheme()" [attr.aria-pressed]="darkMode" aria-label="Tema oscuro">
-      <ion-icon [name]="darkMode ? 'moon-outline' : 'sunny-outline'" aria-hidden="true"></ion-icon>
-      {{ darkMode ? 'Oscuro' : 'Claro' }}
-    </button>
-  </div>
-  <ion-router-outlet></ion-router-outlet>
-</ion-app>
+<ion-app><ion-router-outlet></ion-router-outlet></ion-app>

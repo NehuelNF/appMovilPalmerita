@@ -11,6 +11,7 @@
  <!-- LOGIN -->
  <div class="container">
    <div class="login-form">
+      <div class="auth-heading"><ion-icon name="leaf-outline"></ion-icon><h1>Vuelve a tu anime.</h1><p>Entra a Palmerita para continuar donde lo dejaste.</p></div>
       <p *ngIf="error" role="alert" class="login-error">{{ error }}</p>
 
       <div class="form-group">
@@ -36,7 +37,7 @@
       </div>
 
       <div>
-        <ion-button color="success" expand="block" (click)="onRegisterButtonPressed()"> Registrarse </ion-button>
+        <ion-button fill="clear" expand="block" (click)="onRegisterButtonPressed()">Crear una cuenta</ion-button>
       </div>
 
     </div>

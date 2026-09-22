@@ -62,8 +62,8 @@ export class SeasonPage implements OnInit, OnDestroy {
 
   private setCurrentSeason() {
     const month = new Date().getMonth();
-    const seasons = ['Winter', 'Winter', 'Spring', 'Spring', 'Spring', 'Summer', 
-                    'Summer', 'Summer', 'Fall', 'Fall', 'Fall', 'Winter'];
+    const seasons = ['Invierno', 'Invierno', 'Invierno', 'Primavera', 'Primavera', 'Primavera',
+                    'Verano', 'Verano', 'Verano', 'Otoño', 'Otoño', 'Otoño'];
     this.currentSeason = seasons[month];
   }
 

@@ -13,11 +13,6 @@
     </ion-refresher-content>
   </ion-refresher>
 
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Próximamente</ion-title>
-    </ion-toolbar>
-  </ion-header>
 
   <!-- Last refresh info -->
   <div class="ion-padding-horizontal ion-padding-top" *ngIf="lastRefresh">
@@ -52,7 +47,7 @@
         <div class="card-info">
           <h3>{{ anime.title }}</h3>
           <p class="card-status">{{ anime.status }}</p>
-          <p class="card-airing-time">Estreno: {{ anime.aired.from | date }}</p>
+          <p class="card-airing-time">{{anime.aired.from ? 'Estreno: ' + (anime.aired.from | date:'dd/MM/yyyy') : 'Fecha por confirmar'}}</p>
         </div>
       </div>
       <ion-button 
