@@ -728,6 +728,10 @@ export class AnimeService {
           duration
           status
           format
+          nextAiringEpisode {
+            episode
+            airingAt
+          }
           bannerImage
           coverImage {
             extraLarge
@@ -788,6 +792,11 @@ export class AnimeService {
             ? { url: `https://www.youtube.com/watch?v=${media.trailer.id}`, youtube_id: media.trailer.id }
             : null,
           episodes: media.episodes || null,
+          totalEpisodes: media.episodes || null,
+          airedEpisodes: media.status === 'NOT_YET_RELEASED' ? 0 :
+            media.status === 'FINISHED' ? (media.episodes || null) :
+            media.nextAiringEpisode?.episode ? Math.max(0, media.nextAiringEpisode.episode - 1) : null,
+          nextAiringEpisode: media.nextAiringEpisode || null,
           status: media.status === 'FINISHED' ? 'Finished Airing' :
                   media.status === 'RELEASING' ? 'Currently Airing' :
                   media.status === 'NOT_YET_RELEASED' ? 'Not yet aired' : media.status,
@@ -841,10 +850,26 @@ export class AnimeService {
             finalAnime.anilistStatus = anilistData.status;
             finalAnime.nextAiringEpisode = anilistData.nextAiringEpisode;
 
-            const isFinished = anilistData.status === 'FINISHED' || 
-              (jikanAnime.status && jikanAnime.status.toLowerCase().includes('finished'));
-            const isNotYetAired = anilistData.status === 'NOT_YET_RELEASED' || 
-              (jikanAnime.status && jikanAnime.status.toLowerCase().includes('not yet'));
+            // AniList puede actualizar el estado antes que Jikan. Si ambos
+            // discrepan, usar el estado que también proporciona el próximo
+            // episodio para no bloquear capítulos ya emitidos.
+            if (anilistData.status === 'RELEASING') {
+              finalAnime.status = 'Currently Airing';
+              finalAnime.airing = true;
+            } else if (anilistData.status === 'FINISHED') {
+              finalAnime.status = 'Finished Airing';
+              finalAnime.airing = false;
+            } else if (anilistData.status === 'NOT_YET_RELEASED') {
+              finalAnime.status = 'Not yet aired';
+              finalAnime.airing = false;
+            }
+
+            const isFinished = anilistData.status
+              ? anilistData.status === 'FINISHED'
+              : !!jikanAnime.status?.toLowerCase().includes('finished');
+            const isNotYetAired = anilistData.status
+              ? anilistData.status === 'NOT_YET_RELEASED'
+              : !!jikanAnime.status?.toLowerCase().includes('not yet');
 
             if (isFinished) {
               finalAnime.airedEpisodes = totalPlanned;
@@ -852,7 +877,7 @@ export class AnimeService {
               finalAnime.airedEpisodes = 0;
             } else if (anilistData.nextAiringEpisode && typeof anilistData.nextAiringEpisode.episode === 'number') {
               finalAnime.airedEpisodes = Math.max(0, anilistData.nextAiringEpisode.episode - 1);
-            } else if (totalPlanned !== null && !jikanAnime.airing) {
+            } else if (totalPlanned !== null && !finalAnime.airing) {
               finalAnime.airedEpisodes = totalPlanned;
             } else {
               finalAnime.airedEpisodes = jikanAnime.episodes || null;
