@@ -72,11 +72,23 @@ export class PerfilPage implements OnInit {
     const user = await this.userGetUseCase.getUser();
     this.avatar = user?.avatar || null;
   
-    // Check if user is authenticated with Google
-    const currentUser = await this.fireAuth.currentUser;
-    this.isGoogleUser = currentUser?.providerData.some(
-      provider => provider?.providerId === 'google.com'
+    // Check if user is authenticated or linked with Google
+    let currentUser = await this.fireAuth.currentUser;
+    if (currentUser) {
+      try {
+        await currentUser.reload();
+        currentUser = await this.fireAuth.currentUser;
+      } catch {}
+    }
+
+    const hasGoogleInProviderData = currentUser?.providerData?.some(
+      p => p?.providerId === 'google.com'
     ) || false;
+
+    const userDocData = await this.userGetUseCase.getUserDoc();
+    const hasGoogleInFirestore = userDocData?.provider === 'google' || userDocData?.linkedProviders?.includes('google.com');
+
+    this.isGoogleUser = hasGoogleInProviderData || !!hasGoogleInFirestore;
 
     this.updateAvatarUseCase.avatarUpdated$.subscribe(newAvatar => {
       this.avatar = newAvatar;
