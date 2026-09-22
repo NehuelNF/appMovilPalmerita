@@ -63,7 +63,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
       this.players=result.players;
       this.sourceUrl=result.sourceUrl;
       if(!this.players.length) throw new Error('Sin reproductores disponibles.');
-      this.selectPlayer(this.players.find(player => /mp4upload/i.test(player.name) || /mp4upload/i.test(player.url)) || this.players[0]);
+      this.selectPlayer(this.players.find(player => player.type !== 'direct' && /^(www\.)?mp4upload\.com$/i.test(new URL(player.url).hostname)) || this.players[0]);
     } catch(error:any) {
       if(generation!==this.generation) return;
       this.streamingError=error?.error?.error || 'No se pudo obtener el reproductor del capítulo.';
