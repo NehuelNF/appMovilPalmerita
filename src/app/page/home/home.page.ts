@@ -15,6 +15,7 @@ export class HomePage implements OnInit, OnDestroy {
   topAnimes: any[] = [];
   filteredAnimes: any[] = [];
   searchTerm: string = '';
+  searchFocused = false;
   isLoading = true; // For initial load of top animes
   isSearching = false; // For search operation
   error: string | null = null;
@@ -198,6 +199,23 @@ export class HomePage implements OnInit, OnDestroy {
     const searchTerm = event.target.value.toLowerCase().trim();
     this.searchTerm = searchTerm;
     this.searchSubject.next(searchTerm);
+  }
+
+  getRecentSearchMatches(): WatchProgress[] {
+    const term = this.searchTerm.toLocaleLowerCase().trim();
+    return this.recentProgress
+      .filter(item => !term || (item.animeTitle || '').toLocaleLowerCase().includes(term))
+      .slice(0, 4);
+  }
+
+  getMatchedAlternativeTitle(anime: any): string {
+    if (!this.searchTerm) return '';
+    const term = this.searchTerm.toLocaleLowerCase();
+    const primary = String(anime.title || '').toLocaleLowerCase();
+    if (primary.includes(term)) return '';
+    const alternatives = [anime.title_english, anime.title_japanese, anime.title_romaji,
+      ...(anime.title_synonyms || []), ...(anime.titles || []).map((item: any) => item?.title)];
+    return alternatives.find((title: string) => title && title.toLocaleLowerCase().includes(term)) || '';
   }
 
   loadFavorites() {

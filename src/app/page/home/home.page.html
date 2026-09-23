@@ -80,8 +80,15 @@
         placeholder="Buscar anime..."
         debounce="500"
         (ionInput)="onSearchInput($event)"
+        (ionFocus)="searchFocused = true"
         show-clear-button="focus">
       </ion-searchbar>
+      <div class="recent-search" *ngIf="(searchFocused || searchTerm) && getRecentSearchMatches().length">
+        <span class="recent-search-label">Vistos recientemente</span>
+        <div class="recent-search-links">
+          <a *ngFor="let item of getRecentSearchMatches()" [routerLink]="['/anime', item.animeId]">{{ item.animeTitle }}</a>
+        </div>
+      </div>
       
       <!-- Search loading indicator -->
       <div *ngIf="isSearching" class="search-loading">
@@ -93,7 +100,7 @@
 
   <!-- Top Anime List -->
   <h2 class="top-heading" *ngIf="!searchTerm && !isLoading && !error">Top de MyAnimeList</h2>
-  <ion-list lines="full" *ngIf="!isLoading && !error">
+  <ion-list lines="full" [class.search-results]="!!searchTerm" *ngIf="!isLoading && !error">
     <ion-item *ngFor="let anime of filteredAnimes; let i = index" [routerLink]="['/anime', anime.mal_id]">
       <div class="container">
         <div class="container-logo">
@@ -106,14 +113,8 @@
             #{{anime.topRank}}
           </div>
           
-          <!-- Indicador de ranking para resultados de búsqueda -->
-          <div class="rank-indicator search-result" 
-               *ngIf="searchTerm">
-            #{{i + 1}}
-          </div>
-          
           <img class="circular-icon" [src]="anime.images.jpg.image_url" [alt]="anime.title" loading="lazy">
-          <ion-label class="item-text">{{ anime.title }}</ion-label>
+          <ion-label class="item-text">{{ anime.title }}<small *ngIf="getMatchedAlternativeTitle(anime)">También: {{ getMatchedAlternativeTitle(anime) }}</small></ion-label>
         </div>
       </div>
       <div class="button-container">

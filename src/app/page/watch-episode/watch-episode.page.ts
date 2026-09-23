@@ -40,6 +40,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   selectedAudio: 'sub' | 'dub' = 'sub';
   selectedPlayer = '';
   selectedProvider: 'all' | 'animeav1' | 'jkanime' = 'all';
+  private failedPlayerUrls = new Set<string>();
   sourceUrl = '';
   directVideoUrl = '';
   showAllEpisodes = false;
@@ -262,6 +263,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     this.safeIframeUrl = null;
     this.directVideoUrl = '';
     this.players = [];
+    this.failedPlayerUrls.clear();
     this.streamingError = '';
     this.isNotReleased = false;
     this.loading = true;
@@ -424,6 +426,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
 
   selectPlayer(player: Player) {
     const url = new URL(player.url);
+    this.failedPlayerUrls.delete(player.url);
     if (player.type === 'direct') {
       if (url.protocol !== 'https:' || !/(^|\.)mp4upload\.com$/i.test(url.hostname) || url.username || url.password) return;
       this.selectedPlayer = player.url;
@@ -442,7 +445,27 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
 
   onIframeLoad() { /* Cross-origin frame */ }
   onIframeError(event: Event) {
-    this.streamingError = 'Este servidor no pudo abrirse. Prueba otro servidor o abre el capítulo en su página de origen.';
+    if (!this.tryNextPlayer()) {
+      this.streamingError = 'Este servidor no pudo abrirse. No quedan otros reproductores compatibles; puedes reintentar o abrir el origen.';
+    }
+  }
+
+  onNativeVideoError() {
+    if (!this.tryNextPlayer()) this.streamingError = 'El video no pudo cargarse. Prueba reintentar o abrir el capítulo en origen.';
+  }
+
+  canTryNextPlayer(): boolean {
+    return this.playablePlayers.some(player => player.url !== this.selectedPlayer && !this.failedPlayerUrls.has(player.url));
+  }
+
+  tryNextPlayer(): boolean {
+    if (this.selectedPlayer) this.failedPlayerUrls.add(this.selectedPlayer);
+    const candidates = [...this.displayedPlayers, ...this.playablePlayers];
+    const next = candidates.find(player => player.url !== this.selectedPlayer && !this.failedPlayerUrls.has(player.url));
+    if (!next) return false;
+    this.selectedProvider = 'all';
+    this.selectPlayer(next);
+    return true;
   }
 
   searchExternalWeb() {

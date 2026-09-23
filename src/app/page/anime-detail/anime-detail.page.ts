@@ -43,6 +43,9 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
   mediaProvider: string = '';
   mediaProviders: string[] = [];
   resolvedSlug: string = '';
+  mediaVerification: 'checked' | 'partial' | 'unknown' = 'checked';
+  mediaCheckedAt: number | null = null;
+  episodesByProvider: { animeav1: number[]; jkanime: number[] } = { animeav1: [], jkanime: [] };
 
   // Watch Progress
   watchProgress: WatchProgress | null = null;
@@ -202,6 +205,9 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
           this.mediaProvider = '';
           this.mediaProviders = [];
           this.resolvedSlug = '';
+          this.mediaVerification = 'checked';
+          this.mediaCheckedAt = null;
+          this.episodesByProvider = { animeav1: [], jkanime: [] };
 
           // Cargar episodios inicialmente con la información de emisión
           this.loadEpisodes(id);
@@ -467,6 +473,9 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
         next: res => {
           this.mediaChecked = true;
           this.isMediaAvailable = !!res.exists && !!res.availableEpisodes?.length;
+          this.mediaVerification = res.verification === 'unknown' ? 'unknown' : res.verification === 'partial' ? 'partial' : 'checked';
+          this.mediaCheckedAt = res.checkedAt || null;
+          this.episodesByProvider = res.episodesByProvider || { animeav1: [], jkanime: [] };
           this.mediaProvider = res.provider || '';
           this.mediaProviders = res.providers || [];
           this.resolvedSlug = res.slug || '';
@@ -492,6 +501,7 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
       this.mediaChecked = true;
       this.isMediaAvailable = false;
       this.availableEpisodes = [];
+      this.mediaVerification = 'unknown';
       this.syncEpisodeAvailability();
       return;
     }
@@ -506,6 +516,9 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
           this.mediaProviders = res.providers || (res.provider ? [res.provider] : []);
           this.resolvedSlug = currentSlug;
           this.availableEpisodes = res.availableEpisodes;
+          this.episodesByProvider = res.episodesByProvider || { animeav1: [], jkanime: [] };
+          this.mediaVerification = res.verification === 'partial' ? 'partial' : 'checked';
+          this.mediaCheckedAt = res.checkedAt || null;
           this.syncEpisodeAvailability();
         } else {
           this.tryNextSlugAvailability(slugs, index + 1);
@@ -524,12 +537,19 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
       .join(' y ');
   }
 
+  getEpisodeProviders(number: number): string {
+    const providers = [];
+    if (this.episodesByProvider.animeav1.includes(number)) providers.push('AnimeAV1');
+    if (this.episodesByProvider.jkanime.includes(number)) providers.push('JKAnime');
+    return providers.join(' · ');
+  }
+
   syncEpisodeAvailability() {
     if (!this.episodes || !this.episodes.length) return;
     this.episodes.forEach(ep => {
       if (this.mediaChecked && !this.isMediaAvailable) {
         ep.isAvailable = false;
-        ep.statusText = 'No disponible';
+        ep.statusText = this.mediaVerification === 'unknown' ? 'Sin comprobar' : 'No disponible';
         return;
       }
       if (this.availableEpisodes.length > 0) {
@@ -594,7 +614,7 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
   }
 
   async watchEpisode(episode: Episode) {
-    if (this.mediaChecked && !this.isMediaAvailable) {
+    if (this.mediaChecked && !this.isMediaAvailable && this.mediaVerification !== 'unknown') {
       const toast = await this.toastCtrl.create({
         message: 'Este título no está disponible para reproducción en la aplicación.',
         duration: 3000,
@@ -609,7 +629,7 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
       return;
     }
 
-    if (!episode.isAvailable && this.availableEpisodes.length > 0) {
+    if (!episode.isAvailable && this.availableEpisodes.length > 0 && this.mediaVerification === 'checked') {
       await this.toastService.showWarning(`El Episodio ${episode.number} ya fue emitido pero aún se está procesando para su reproducción.`);
       return;
     }
@@ -626,7 +646,7 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
   }
 
   resumeWatching() {
-    if (this.mediaChecked && !this.isMediaAvailable) {
+    if (this.mediaChecked && !this.isMediaAvailable && this.mediaVerification !== 'unknown') {
       this.toastService.showWarning('Este título no está disponible para reproducción.');
       return;
     }

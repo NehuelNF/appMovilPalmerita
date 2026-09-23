@@ -114,7 +114,11 @@
         <!-- Proveedores disponibles -->
         <div class="info-row providers-info-row" *ngIf="mediaChecked && isMediaAvailable && getProvidersDisplay()">
           <ion-icon name="server-outline" class="info-icon" color="primary"></ion-icon>
-          <span>Disponible en: <strong>{{ getProvidersDisplay() }}</strong></span>
+          <span>Fuentes detectadas: <strong>{{ getProvidersDisplay() }}</strong></span>
+        </div>
+        <div class="info-row" *ngIf="mediaCheckedAt">
+          <ion-icon name="time-outline" class="info-icon"></ion-icon>
+          <span>Comprobado: {{ mediaCheckedAt | date:'dd/MM HH:mm' }}<small *ngIf="mediaVerification === 'partial'"> · Otra fuente no respondió</small></span>
         </div>
 
         <!-- Progreso de visualización resumen -->
@@ -149,9 +153,9 @@
       <div class="unsupported-media-banner" *ngIf="mediaChecked && !isMediaAvailable">
         <div class="banner-header">
           <ion-icon name="alert-circle-outline" color="warning"></ion-icon>
-          <h4>No disponible para reproducción</h4>
+          <h4>{{ mediaVerification === 'unknown' ? 'No se pudo comprobar ahora' : 'No disponible para reproducción' }}</h4>
         </div>
-        <p>Este título actualmente no se encuentra disponible para su reproducción directa en nuestros servidores.</p>
+        <p>{{ mediaVerification === 'unknown' ? 'Las fuentes no respondieron. Puedes intentar abrir un capítulo o volver a comprobar más tarde.' : 'No se encontraron capítulos en las fuentes consultadas.' }}</p>
         <div class="banner-actions">
           <ion-button size="small" fill="outline" color="light" (click)="searchExternal()">
             <ion-icon name="search-outline" slot="start"></ion-icon>
@@ -190,7 +194,7 @@
         <article *ngFor="let episode of getDisplayedEpisodes()" class="episode-card" [class.episode-watched]="isEpisodeWatched(episode.number)">
           <button class="episode-open" (click)="watchEpisode(episode)">
             <span class="episode-index">{{episode.number}}</span>
-            <span><strong>{{episode.title || 'Episodio ' + episode.number}}</strong><small>{{episode.statusText}}</small></span>
+            <span><strong>{{episode.title || 'Episodio ' + episode.number}}</strong><small>{{episode.statusText}}<span *ngIf="episode.isAvailable && getEpisodeProviders(episode.number)"> · {{getEpisodeProviders(episode.number)}}</span></small></span>
             <ion-icon [name]="episode.isAvailable ? 'play-circle-outline' : 'time-outline'"></ion-icon>
           </button>
           <ion-button fill="clear" [attr.aria-label]="isEpisodeWatched(episode.number) ? 'Marcar episodio como pendiente' : 'Marcar episodio como visto'" (click)="toggleEpisodeWatched(episode, $event)">

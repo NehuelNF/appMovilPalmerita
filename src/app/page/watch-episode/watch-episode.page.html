@@ -12,6 +12,10 @@
       <h3>{{ isNotReleased ? 'Capítulo aún no disponible' : 'Error al cargar el episodio' }}</h3>
       <p>{{ streamingError }}</p>
       <div class="error-actions">
+        <ion-button *ngIf="canTryNextPlayer()" fill="solid" size="small" color="success" (click)="tryNextPlayer()">
+          <ion-icon name="play-skip-forward-outline" slot="start"></ion-icon>
+          Probar otro servidor
+        </ion-button>
         <ion-button *ngIf="isNotReleased && maxAiredEpisode > 0 && episodeNumber !== maxAiredEpisode" 
                     fill="solid" size="small" color="success" (click)="goToLatestAvailableEpisode()">
           <ion-icon name="play-outline" slot="start"></ion-icon>
@@ -54,7 +58,8 @@
       preload="metadata"
       (loadedmetadata)="onVideoLoadedMetadata(nativeVideo)"
       (timeupdate)="onVideoTimeUpdate(nativeVideo)"
-      (ended)="onVideoEnded(nativeVideo)">
+      (ended)="onVideoEnded(nativeVideo)"
+      (error)="onNativeVideoError()">
     </video>
 
     <!-- Reproductor iframe -->
@@ -125,6 +130,7 @@
       <ion-badge *ngIf="player.audio === 'dub'" color="warning" class="audio-badge">DUB</ion-badge>
     </ion-button>
     <ion-button fill="clear" [disabled]="loading" (click)="reloadCurrentEpisode()">Reintentar</ion-button>
+    <ion-button *ngIf="canTryNextPlayer()" fill="clear" (click)="tryNextPlayer()">Otro servidor</ion-button>
     <ion-button *ngIf="sourceUrl" fill="clear" (click)="openExternalLink(sourceUrl)">Abrir capítulo en origen</ion-button>
   </div>
 

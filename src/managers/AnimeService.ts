@@ -41,14 +41,17 @@ export class AnimeService {
     return this.http.get<AnimeResponse>(`${this.baseUrl}/anime?q=${encodeURIComponent(queryStr)}&limit=20`).pipe(
       retry(1),
       delay(400),
-      map(response => {
+      switchMap(response => {
         const processedData = this.processAnimeData(response.data || []);
+        if (!processedData.length) return this.searchAnimeFromAnilist(queryStr).pipe(
+          tap(anilistResponse => this.cache.set(cacheKey, { data: anilistResponse, timestamp: Date.now() }))
+        );
         const finalResponse = {
           ...response,
           data: processedData
         };
         this.cache.set(cacheKey, { data: finalResponse, timestamp: Date.now() });
-        return finalResponse;
+        return of(finalResponse);
       }),
       catchError(jikanErr => {
         console.warn(`Jikan search falló para "${queryStr}". Usando fallback a AniList...`, jikanErr);
@@ -78,6 +81,7 @@ export class AnimeService {
               english
               native
             }
+            synonyms
             description(asHtml: false)
             episodes
             duration
@@ -122,6 +126,7 @@ export class AnimeService {
             title_english: media.title?.english || null,
             title_japanese: media.title?.native || null,
             title_romaji: media.title?.romaji || null,
+            title_synonyms: media.synonyms || [],
             synopsis: media.description || 'Sin descripción disponible.',
             images: {
               jpg: {
@@ -549,9 +554,9 @@ export class AnimeService {
   /**
    * Obtiene la lista de capítulos disponibles para reproducción en el servidor
    */
-  getAvailableEpisodes(slug: string): Observable<{ availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[] }> {
+  getAvailableEpisodes(slug: string): Observable<{ availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[]; episodesByProvider?: { animeav1: number[]; jkanime: number[] }; verification?: string; checkedAt?: number }> {
     if (!slug) return of({ availableEpisodes: [], count: 0, exists: false });
-    return this.http.get<{ slug?: string; availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[] }>('/api/media', {
+    return this.http.get<{ slug?: string; availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[]; episodesByProvider?: { animeav1: number[]; jkanime: number[] }; verification?: string; checkedAt?: number }>('/api/media', {
       params: { slug }
     }).pipe(
       map(res => ({
@@ -559,17 +564,20 @@ export class AnimeService {
         count: res.count || 0,
         exists: !!res.exists,
         provider: res.provider,
-        providers: res.providers || (res.provider ? [res.provider] : [])
+        providers: res.providers || (res.provider ? [res.provider] : []),
+        episodesByProvider: res.episodesByProvider,
+        verification: res.verification,
+        checkedAt: res.checkedAt
       })),
       catchError(err => {
         console.warn(`No se pudo obtener disponibilidad de episodios para ${slug}:`, err);
-        return of({ availableEpisodes: [], count: 0, exists: false });
+        return of({ availableEpisodes: [], count: 0, exists: false, verification: 'unknown' });
       })
     );
   }
 
-  getAnimeMedia(malId: number, titles: string[]): Observable<{ slug?: string; sources?: { animeav1?: string; jkanime?: string }; availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[] }> {
-    return this.http.get<{ slug?: string; sources?: { animeav1?: string; jkanime?: string }; availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[] }>('/api/anime-media', {
+  getAnimeMedia(malId: number, titles: string[]): Observable<{ slug?: string; sources?: { animeav1?: string; jkanime?: string }; availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[]; episodesByProvider?: { animeav1: number[]; jkanime: number[] }; verification?: string; checkedAt?: number }> {
+    return this.http.get<{ slug?: string; sources?: { animeav1?: string; jkanime?: string }; availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[]; episodesByProvider?: { animeav1: number[]; jkanime: number[] }; verification?: string; checkedAt?: number }>('/api/anime-media', {
       params: { malId: String(malId), titles: JSON.stringify(titles.filter(Boolean).slice(0, 8)) }
     });
   }

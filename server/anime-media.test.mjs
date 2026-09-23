@@ -62,3 +62,33 @@ test('player uses the JKAnime slug separately from AnimeAV1', async () => {
   assert.equal((await response.json()).players[0].provider, 'jkanime');
   assert.ok(requests.some(url => url.includes('jkanime.net/jk-title/1/')));
 });
+
+test('a provider outage is not reported as confirmed absence', async () => {
+  const url = new URL('https://palmerita.test/api/anime-media');
+  url.searchParams.set('malId', '456');
+  url.searchParams.set('titles', JSON.stringify(['Example Anime']));
+  const fetcher = async () => new Response('Unavailable', { status: 503 });
+  const media = await (await resolveAnimeMedia(new Request(url), null, fetcher)).json();
+  assert.equal(media.exists, false);
+  assert.equal(media.verification, 'unknown');
+  assert.deepEqual(media.availableEpisodes, []);
+});
+
+test('episode availability identifies the specific provider', async () => {
+  const url = new URL('https://palmerita.test/api/anime-media');
+  url.searchParams.set('malId', '789');
+  url.searchParams.set('titles', JSON.stringify(['Example Anime']));
+  const fetcher = async target => {
+    if (String(target).includes('animeav1.com/media/example-anime')) {
+      return new Response('<a href="/media/example-anime/1">1</a>',
+        { status: 200, headers: { 'content-type': 'text/html' } });
+    }
+    if (String(target).includes('jkanime.net/example-anime/')) {
+      return new Response('<span>Episodios:</span> 2', { status: 200 });
+    }
+    return new Response('Not found', { status: 404 });
+  };
+  const media = await (await resolveAnimeMedia(new Request(url), null, fetcher)).json();
+  assert.deepEqual(media.episodesByProvider, { animeav1: [1], jkanime: [1, 2] });
+  assert.deepEqual(media.availableEpisodes, [1, 2]);
+});
