@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { matchCatalogTitle, resolveAnimeMedia, resolvePlayer } from './worker.mjs';
+import { matchCatalogTitle, resolveAnimeMedia, resolvePlayer, filterUnavailablePlayers } from './worker.mjs';
+
+test('broken VOE and reported UPNShare links are removed without hiding other servers', async () => {
+  const players = [
+    { url: 'https://voe.sx/e/broken', name: 'Voe', provider: 'animeav1' },
+    { url: 'https://animeav1.uns.bio/#hdb33u', name: 'UPNShare', provider: 'animeav1' },
+    { url: 'https://byselapuix.com/e/working', name: 'Byse', provider: 'animeav1' }
+  ];
+  const result = await filterUnavailablePlayers(players, async () => new Response('', { status: 404 }));
+  assert.deepEqual(result.map(player => player.name), ['Byse']);
+});
 
 test('catalog matching rejects another season', () => {
   assert.equal(matchCatalogTitle('Example Anime 2nd Season', ['Example Anime 3rd Season']), false);

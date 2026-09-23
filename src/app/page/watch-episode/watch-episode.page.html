@@ -130,7 +130,7 @@
       <ion-badge *ngIf="player.audio === 'dub'" color="warning" class="audio-badge">DUB</ion-badge>
     </ion-button>
     <ion-button fill="clear" [disabled]="loading" (click)="reloadCurrentEpisode()">Reintentar</ion-button>
-    <ion-button *ngIf="canTryNextPlayer()" fill="clear" (click)="tryNextPlayer()">Otro servidor</ion-button>
+    <ion-button *ngIf="canTryNextPlayer() && selectedPlayer" fill="clear" (click)="tryNextPlayer()">Este servidor falla</ion-button>
     <ion-button *ngIf="sourceUrl" fill="clear" (click)="openExternalLink(sourceUrl)">Abrir capítulo en origen</ion-button>
   </div>
 

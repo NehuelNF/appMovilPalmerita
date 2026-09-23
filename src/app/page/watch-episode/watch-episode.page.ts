@@ -416,11 +416,11 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     const available = this.displayedPlayers;
     if (!available.length) return;
 
-    // Preferencia inteligente de reproductores (optimizada para iOS/iPhone y compatibilidad):
-    // 1. UPNShare (excelente soporte nativo en iOS con su propio botón fullscreen integrado)
-    // 2. Primer reproductor disponible del audio elegido
-    const upnSharePlayer = available.find(p => /upnshare/i.test(p.name) || /uns\.bio/i.test(p.url));
-    const defaultChoice = upnSharePlayer || available[0];
+    // Un contenedor UPNShare puede cargar correctamente aunque su vídeo interno
+    // falle; Safari no comunica ese error al iframe padre. Priorizar Byse evita
+    // dejar al usuario frente a una pantalla de error sin recuperación automática.
+    const preferredPlayer = available.find(p => /byse/i.test(p.name));
+    const defaultChoice = preferredPlayer || available[0];
     this.selectPlayer(defaultChoice);
   }
 

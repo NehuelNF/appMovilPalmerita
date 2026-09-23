@@ -589,6 +589,27 @@ const json = (body, status = 200) => Response.json(body, {
 // In-memory cache for players (2 hours TTL)
 const playerCache = new Map();
 const PLAYER_CACHE_TTL = 2 * 60 * 60 * 1000;
+// Este enlace concreto devuelve un reproductor sin archivo de vídeo. El HTML
+// del contenedor responde 200, por lo que una comprobación HTTP no lo detecta.
+const reportedBrokenEmbeds = new Set(['https://animeav1.uns.bio/#hdb33u']);
+
+export async function filterUnavailablePlayers(players, fetcher = fetch) {
+  return (await Promise.all(players.map(async player => {
+    if (reportedBrokenEmbeds.has(player.url)) return null;
+    // VOE devuelve una página 404 dentro del iframe, sin disparar el evento
+    // `error` del iframe en Safari. Verificamos el enlace antes de mostrarlo.
+    if (player.provider === 'animeav1' && new URL(player.url).hostname === 'voe.sx') {
+      try {
+        const response = await fetcher(player.url, {
+          redirect: 'manual', signal: AbortSignal.timeout(5000),
+          headers: { Accept: 'text/html' }
+        });
+        if (response.status === 404 || response.status === 410) return null;
+      } catch { /* Un fallo de red al verificar no prueba que el vídeo falte. */ }
+    }
+    return player;
+  }))).filter(Boolean);
+}
 
 export function clearPlayerCache() {
   playerCache.clear();
@@ -656,7 +677,7 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
     if (av1.errorStatus && av1.errorStatus !== 404) {
       return json({error:'La página de origen no está disponible.',sourceUrl},502);
     }
-    players = av1.players;
+    players = await filterUnavailablePlayers(av1.players, fetcher);
     sourceUrl = av1.sourceUrl;
     if (players.length) availableProviders.push('animeav1');
   } else if (providerParam === 'jkanime') {
@@ -681,7 +702,7 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
     if (av1.players?.length) availableProviders.push('animeav1');
     if (jk.players?.length) availableProviders.push('jkanime');
 
-    players = [...(av1.players || []), ...(jk.players || [])];
+    players = [...(await filterUnavailablePlayers(av1.players || [], fetcher)), ...(jk.players || [])];
     sourceUrl = av1.players?.length ? av1.sourceUrl : (jk.sourceUrl || sourceUrl);
   }
 
