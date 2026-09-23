@@ -298,10 +298,18 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
 
       const querySlug = this.route.snapshot.queryParams['slug'];
       const candidateSlugs: string[] = [];
-      if (querySlug) candidateSlugs.push(querySlug);
+      let jkSlug = '';
       const titles = useEnglish
         ? [this.anime.title_english, this.animeTitle, this.anime.title_romaji]
         : [this.animeTitle, this.anime.title_romaji, this.anime.title_english];
+      if (Number.isSafeInteger(Number(animeId))) {
+        try {
+          const media = await firstValueFrom(this.animeService.getAnimeMedia(Number(animeId), titles.filter(Boolean)));
+          if (media.slug) candidateSlugs.push(media.slug);
+          jkSlug = media.sources?.jkanime || '';
+        } catch { /* The title-based fallback remains available. */ }
+      }
+      if (querySlug && !candidateSlugs.includes(querySlug)) candidateSlugs.push(querySlug);
       for (const title of titles) {
         for (const candidate of this.animeService.getStreamingSlugs(title || '')) {
           if (!candidateSlugs.includes(candidate)) candidateSlugs.push(candidate);
@@ -314,7 +322,9 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
       let lastError: any;
       for (const candidate of candidateSlugs) {
         try {
-          result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', { params: { slug: candidate, episode: String(episode) } }));
+          result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', {
+            params: { slug: candidate, jkSlug: jkSlug || candidate, episode: String(episode) }
+          }));
           slug = candidate;
           break;
         } catch (error) {

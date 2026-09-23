@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { matchCatalogTitle, resolveAnimeMedia, resolvePlayer } from './worker.mjs';
+
+test('catalog matching rejects another season', () => {
+  assert.equal(matchCatalogTitle('Example Anime 2nd Season', ['Example Anime 3rd Season']), false);
+  assert.equal(matchCatalogTitle('Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo 3rd Season',
+    ['Kimi no Koto ga Dai Dai Dai Dai Daisuki na 100-nin no Kanojo 3rd Season']), true);
+});
+
+test('discovers a provider slug and stores it by MAL ID', async () => {
+  const rows = new Map();
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            first: async () => rows.get(values[0]) || null,
+            run: async () => { rows.set(values[0], { animeav1_slug: values[1], jkanime_slug: values[2] }); }
+          };
+        }
+      };
+    }
+  };
+  const requests = [];
+  const fetcher = async url => {
+    requests.push(String(url));
+    if (String(url).includes('/catalogo?search=')) {
+      return new Response('<h3>Example Anime 3rd Season</h3><a href="/media/provider-name-third-season">Ver</a>', { status: 200 });
+    }
+    if (String(url).includes('/media/provider-name-third-season')) {
+      return new Response('<a href="/media/provider-name-third-season/1">Episode</a>',
+        { status: 200, headers: { 'content-type': 'text/html' } });
+    }
+    return new Response('Not found', { status: 404 });
+  };
+  const url = new URL('https://palmerita.test/api/anime-media');
+  url.searchParams.set('malId', '123');
+  url.searchParams.set('titles', JSON.stringify(['Example Anime 3rd Season']));
+  const first = await (await resolveAnimeMedia(new Request(url), db, fetcher)).json();
+  assert.equal(first.slug, 'provider-name-third-season');
+  assert.deepEqual(first.availableEpisodes, [1]);
+  assert.equal(rows.get(123).animeav1_slug, first.slug);
+
+  requests.length = 0;
+  const second = await (await resolveAnimeMedia(new Request(url), db, fetcher)).json();
+  assert.equal(second.slug, first.slug);
+  assert.equal(requests.some(request => request.includes('/catalogo?search=')), false);
+});
+
+test('player uses the JKAnime slug separately from AnimeAV1', async () => {
+  const requests = [];
+  const fetcher = async url => {
+    requests.push(String(url));
+    if (String(url).includes('jkanime.net/jk-title/1/')) {
+      return new Response('<a data-id="0">VOE</a><script>video[0] = \'<iframe src="https://voe.sx/e/test"></iframe>\'</script>', { status: 200 });
+    }
+    return new Response('Not found', { status: 404 });
+  };
+  const response = await resolvePlayer(new Request('https://palmerita.test/api/player?slug=av1-title&jkSlug=jk-title&episode=1'), fetcher);
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).players[0].provider, 'jkanime');
+  assert.ok(requests.some(url => url.includes('jkanime.net/jk-title/1/')));
+});

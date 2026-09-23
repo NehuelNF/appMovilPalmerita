@@ -206,6 +206,141 @@ export async function resolveMedia(request, fetcher = fetch) {
   return json({slug, availableEpisodes: [], count: 0, exists: false, providers: []}, 200);
 }
 
+function normalizedTitle(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/(?:dai[\s-]*){2,}daisuki/g, match => match.replace(/[\s-]/g, ''))
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function titleSeason(value) {
+  const title = normalizedTitle(value);
+  const numbered = title.match(/(?:season|temporada) (\d+)|(\d+)(?:st|nd|rd|th) season/);
+  if (numbered) return Number(numbered[1] || numbered[2]);
+  if (/\biii\b/.test(title)) return 3;
+  if (/\bii\b/.test(title)) return 2;
+  return 1;
+}
+
+export function matchCatalogTitle(candidate, titles) {
+  const candidateSeason = titleSeason(candidate);
+  const candidateWords = new Set(normalizedTitle(candidate).split(' ').filter(word => word.length > 2));
+  for (const title of titles) {
+    if (titleSeason(title) !== candidateSeason) continue;
+    const words = new Set(normalizedTitle(title).split(' ').filter(word => word.length > 2));
+    const overlap = [...words].filter(word => candidateWords.has(word)).length;
+    if (words.size >= 2 && overlap / Math.max(words.size, candidateWords.size) >= 0.72) return true;
+  }
+  return false;
+}
+
+async function savedStreamingSources(db, malId) {
+  if (!db) return {};
+  try {
+    const row = await db.prepare('SELECT animeav1_slug, jkanime_slug FROM streaming_matches WHERE mal_id = ?').bind(malId).first();
+    return { animeav1: row?.animeav1_slug || null, jkanime: row?.jkanime_slug || null };
+  } catch { return {}; }
+}
+
+async function saveStreamingSources(db, malId, sources) {
+  if (!db) return;
+  try {
+    await db.prepare('INSERT INTO streaming_matches (mal_id, animeav1_slug, jkanime_slug, verified_at) VALUES (?, ?, ?, ?) ON CONFLICT(mal_id) DO UPDATE SET animeav1_slug = excluded.animeav1_slug, jkanime_slug = excluded.jkanime_slug, verified_at = excluded.verified_at')
+      .bind(malId, sources.animeav1 || null, sources.jkanime || null, Date.now()).run();
+  } catch { /* Availability still works when storage is temporarily unavailable. */ }
+}
+
+export async function resolveAnimeMedia(request, db, fetcher = fetch) {
+  const q = new URL(request.url).searchParams;
+  const malId = Number(q.get('malId'));
+  let titles;
+  try { titles = JSON.parse(q.get('titles') || '[]'); } catch { titles = null; }
+  if (!Number.isSafeInteger(malId) || malId < 1 || malId > 10000000 || !Array.isArray(titles) || titles.length > 8 ||
+      titles.some(title => typeof title !== 'string' || title.length > 160)) {
+    return json({error: 'Anime no válido.'}, 400);
+  }
+  titles = titles.filter(Boolean);
+  const slugs = [];
+  const addSlug = slug => {
+    if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) && slug.length <= 180 && !slugs.includes(slug)) slugs.push(slug);
+  };
+  const saved = await savedStreamingSources(db, malId);
+  if (saved.animeav1) addSlug(saved.animeav1);
+  if (saved.jkanime) addSlug(saved.jkanime);
+  for (const title of titles) {
+    const slug = normalizedTitle(title).replace(/ /g, '-');
+    addSlug(slug);
+    addSlug(slug.replace(/(?:dai-){2,}daisuki/g, match => match.replaceAll('-', '')));
+  }
+
+  const sources = {};
+  const episodes = new Set();
+  const checked = new Set();
+  const checkSlug = async slug => {
+    if (checked.has(slug)) return;
+    checked.add(slug);
+    const [av1, jk] = await Promise.all([
+      sources.animeav1 ? null : fetchAnimeAv1Media(slug, fetcher),
+      sources.jkanime ? null : fetchJkMedia(slug, fetcher)
+    ]);
+    if (av1?.exists) {
+      sources.animeav1 = slug;
+      for (const episode of av1.availableEpisodes) episodes.add(episode);
+    }
+    if (jk?.exists) {
+      sources.jkanime = slug;
+      for (const episode of jk.availableEpisodes) episodes.add(episode);
+    }
+  };
+  for (const slug of slugs) {
+    await checkSlug(slug);
+    if (sources.animeav1 && sources.jkanime) break;
+  }
+
+  // Buscar en el catálogo solo después de agotar las variantes directas.
+  for (const title of sources.animeav1 ? [] : titles.slice(0, 3)) {
+    try {
+      const search = await fetcher(`https://animeav1.com/catalogo?search=${encodeURIComponent(title)}`, {
+        signal: AbortSignal.timeout(12000), headers: { Accept: 'text/html' }
+      });
+      if (!search.ok) continue;
+      const html = await search.text();
+      for (const match of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>[\s\S]{0,300}?href="\/media\/([a-z0-9-]+)"/gi)) {
+        const [, catalogTitle, slug] = match;
+        if (!matchCatalogTitle(catalogTitle, titles)) continue;
+        slugs.push(slug);
+        await checkSlug(slug);
+        if (sources.animeav1) break;
+      }
+    } catch { /* Try the next title. */ }
+  }
+  for (const title of sources.jkanime ? [] : titles.slice(0, 3)) {
+    try {
+      const query = normalizedTitle(title).split(' ').slice(0, 4).join(' ');
+      const search = await fetcher(`https://jkanime.net/buscar?q=${encodeURIComponent(query)}`, {
+        signal: AbortSignal.timeout(12000), headers: { Accept: 'text/html' }
+      });
+      if (!search.ok) continue;
+      const html = await search.text();
+      for (const match of html.matchAll(/<h5>\s*<a[^>]*href="https:\/\/jkanime\.net\/([a-z0-9-]+)\/"[^>]*>([^<]+)<\/a>/gi)) {
+        const [, slug, catalogTitle] = match;
+        if (!matchCatalogTitle(catalogTitle, titles)) continue;
+        slugs.push(slug);
+        await checkSlug(slug);
+        if (sources.jkanime) break;
+      }
+    } catch { /* Try the next title. */ }
+  }
+  if (sources.animeav1 || sources.jkanime) {
+    await saveStreamingSources(db, malId, sources);
+    const providers = Object.keys(sources);
+    const availableEpisodes = [...episodes].sort((a, b) => a - b);
+    const slug = sources.animeav1 || sources.jkanime;
+    return json({slug, sources, availableEpisodes, count: availableEpisodes.length, exists: true,
+      provider: providers.length > 1 ? 'both' : providers[0], providers});
+  }
+  return json({availableEpisodes: [], count: 0, exists: false, providers: [], sources: {}});
+}
+
 export function cleanHtmlText(text) {
   if (!text) return '';
   return text
@@ -482,10 +617,13 @@ export async function fetchJkPlayers(slug, episode, fetcher = fetch) {
 export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
   const q = new URL(request.url).searchParams;
   const slug = q.get('slug') || '', episode = q.get('episode') || '';
+  const jkSlug = q.get('jkSlug') || slug;
   const providerParam = (q.get('provider') || 'all').toLowerCase();
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 180 || !/^[1-9]\d{0,4}$/.test(episode)) return json({error:'Capítulo no válido.'},400);
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 180 ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(jkSlug) || jkSlug.length > 180 ||
+      !/^[1-9]\d{0,4}$/.test(episode)) return json({error:'Capítulo no válido.'},400);
 
-  const cacheKey = `${slug}:${episode}:${providerParam}`;
+  const cacheKey = `${slug}:${jkSlug}:${episode}:${providerParam}`;
   const currentTime = now();
   const cached = playerCache.get(cacheKey);
   if (cached && (currentTime - cached.time) < PLAYER_CACHE_TTL) {
@@ -505,7 +643,7 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
     sourceUrl = av1.sourceUrl;
     if (players.length) availableProviders.push('animeav1');
   } else if (providerParam === 'jkanime') {
-    const jk = await fetchJkPlayers(slug, episode, fetcher);
+    const jk = await fetchJkPlayers(jkSlug, episode, fetcher);
     players = jk.players;
     sourceUrl = jk.sourceUrl;
     if (players.length) availableProviders.push('jkanime');
@@ -513,7 +651,7 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
     // 'all': consultar ambos en paralelo
     const [av1Res, jkRes] = await Promise.allSettled([
       fetchAnimeAv1Players(slug, episode, fetcher),
-      fetchJkPlayers(slug, episode, fetcher)
+      fetchJkPlayers(jkSlug, episode, fetcher)
     ]);
 
     const av1 = av1Res.status === 'fulfilled' ? av1Res.value : { players: [], sourceUrl };
@@ -552,6 +690,10 @@ export default {
     if (url.pathname === '/api/media') {
       if (request.method !== 'GET') return json({error:'Método no permitido.'},405);
       return resolveMedia(request);
+    }
+    if (url.pathname === '/api/anime-media') {
+      if (request.method !== 'GET') return json({error:'Método no permitido.'},405);
+      return resolveAnimeMedia(request, env.DB);
     }
     if (url.pathname === '/api/noticias') {
       if (request.method !== 'GET') return json({error:'Método no permitido.'},405);

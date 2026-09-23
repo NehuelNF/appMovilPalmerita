@@ -568,6 +568,12 @@ export class AnimeService {
     );
   }
 
+  getAnimeMedia(malId: number, titles: string[]): Observable<{ slug?: string; sources?: { animeav1?: string; jkanime?: string }; availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[] }> {
+    return this.http.get<{ slug?: string; sources?: { animeav1?: string; jkanime?: string }; availableEpisodes: number[]; count: number; exists: boolean; provider?: string; providers?: string[] }>('/api/anime-media', {
+      params: { malId: String(malId), titles: JSON.stringify(titles.filter(Boolean).slice(0, 8)) }
+    });
+  }
+
   // Adaptar getSeasonalAnime a Anilist
   getSeasonalAnime(forceRefresh: boolean = false): Observable<AnimeResponse> {
     const cacheKey = 'seasonal';

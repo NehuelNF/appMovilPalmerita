@@ -439,12 +439,7 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
 
   getPossibleSlugs(): string[] {
     if (!this.anime) return [];
-    const candidates = [
-      this.anime.title_english,
-      this.anime.title,
-      this.anime.title_romaji,
-      ...(Array.isArray(this.anime.titles) ? this.anime.titles.map((t: any) => t?.title) : [])
-    ].filter(Boolean);
+    const candidates = this.getPossibleTitles();
 
     const slugs: string[] = [];
     for (const title of candidates) {
@@ -455,7 +450,33 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
     return slugs;
   }
 
+  private getPossibleTitles(): string[] {
+    if (!this.anime) return [];
+    return [
+      this.anime.title,
+      this.anime.title_romaji,
+      this.anime.title_english,
+      ...(Array.isArray(this.anime.titles) ? this.anime.titles.map((t: any) => t?.title) : [])
+    ].filter(Boolean);
+  }
+
   checkMediaAvailability() {
+    const malId = Number(this.anime?.mal_id);
+    if (Number.isSafeInteger(malId) && malId > 0) {
+      this.animeService.getAnimeMedia(malId, this.getPossibleTitles()).subscribe({
+        next: res => {
+          this.mediaChecked = true;
+          this.isMediaAvailable = !!res.exists && !!res.availableEpisodes?.length;
+          this.mediaProvider = res.provider || '';
+          this.mediaProviders = res.providers || [];
+          this.resolvedSlug = res.slug || '';
+          this.availableEpisodes = res.availableEpisodes || [];
+          this.syncEpisodeAvailability();
+        },
+        error: () => this.tryNextSlugAvailability(this.getPossibleSlugs(), 0)
+      });
+      return;
+    }
     const slugs = this.getPossibleSlugs();
     if (!slugs.length) {
       this.mediaChecked = true;
