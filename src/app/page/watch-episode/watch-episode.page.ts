@@ -454,6 +454,16 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     return true;
   }
 
+  get selectedMp4UploadUrl(): string | null {
+    if (!this.selectedPlayer) return null;
+    try {
+      const url = new URL(this.selectedPlayer);
+      if (url.protocol !== 'https:' || !['mp4upload.com', 'www.mp4upload.com'].includes(url.hostname) ||
+          url.username || url.password || url.port || !/^\/embed(?:[/-])/.test(url.pathname)) return null;
+      return url.href;
+    } catch { return null; }
+  }
+
   searchExternalWeb() {
     const term = `ver ${this.animeTitle || ''} episodio ${this.episodeNumber} online sub espanol`;
     window.open(`https://www.google.com/search?q=${encodeURIComponent(term)}`, '_blank');

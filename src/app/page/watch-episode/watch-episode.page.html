@@ -128,6 +128,10 @@
     </ion-button>
     <ion-button fill="clear" [disabled]="loading" (click)="reloadCurrentEpisode()">Reintentar</ion-button>
     <ion-button *ngIf="canTryNextPlayer()" fill="clear" (click)="tryNextPlayer()">Otro servidor</ion-button>
+    <ion-button *ngIf="isIphone && selectedMp4UploadUrl as mp4Url" fill="outline"
+      [href]="mp4Url" target="_blank" rel="noopener noreferrer">
+      Abrir MP4Upload en Safari
+    </ion-button>
     <ion-button *ngIf="sourceUrl" fill="clear" (click)="openExternalLink(sourceUrl)">Abrir capítulo en origen</ion-button>
   </div>
 
