@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -66,7 +67,8 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     private toastCtrl: ToastController,
     private alertCtrl: AlertController,
     private http: HttpClient,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private location: Location
   ) {}
 
   async toggleFullscreen() {
@@ -469,12 +471,22 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     this.safeIframeUrl = null;
     const querySlug = this.route.snapshot.queryParams['slug'];
     this.router.navigate(['/watch', this.animeId, number], {
-      queryParams: querySlug ? { slug: querySlug } : {}
+      queryParams: querySlug ? { slug: querySlug } : {},
+      replaceUrl: true,
+      state: { backTarget: history.state?.backTarget }
     });
   }
   getEpisodeThumbnail(episode: any) { return episode.thumbnail || this.episodeThumbnail; }
   openExternalLink(url: string) { if (url.startsWith('https://animeav1.com/') || url.startsWith('https://jkanime.net/')) window.open(url, '_blank', 'noopener,noreferrer'); }
-  goBack() { this.safeIframeUrl = null; this.router.navigate(['/anime', this.animeId]); }
+  goBack() {
+    this.safeIframeUrl = null;
+    const backTarget = history.state?.backTarget;
+    if (typeof backTarget === 'string' && backTarget.startsWith('/') && history.length > 1) {
+      this.location.back();
+    } else {
+      void this.router.navigate(['/anime', this.animeId], { replaceUrl: true });
+    }
+  }
 
   ionViewWillLeave() {
     ++this.generation;

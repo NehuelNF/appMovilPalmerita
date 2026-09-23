@@ -619,7 +619,8 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
     const animeId = this.route.snapshot.paramMap.get('id');
     if (animeId) {
       this.router.navigate(['/watch', animeId, episode.number], {
-        queryParams: this.resolvedSlug ? { slug: this.resolvedSlug } : {}
+        queryParams: this.resolvedSlug ? { slug: this.resolvedSlug } : {},
+        state: { backTarget: this.router.url }
       });
     }
   }
@@ -633,7 +634,8 @@ export class AnimeDetailPage implements OnInit, OnDestroy {
     const animeId = this.route.snapshot.paramMap.get('id');
     if (animeId) {
       this.router.navigate(['/watch', animeId, epNum], {
-        queryParams: this.resolvedSlug ? { slug: this.resolvedSlug } : {}
+        queryParams: this.resolvedSlug ? { slug: this.resolvedSlug } : {},
+        state: { backTarget: this.router.url }
       });
     }
   }

@@ -37,7 +37,7 @@
     </div>
 
     <div class="continue-cards-scroll">
-      <div class="continue-card" *ngFor="let item of recentProgress" [routerLink]="['/watch', item.animeId, item.lastEpisode || 1]">
+      <div class="continue-card" *ngFor="let item of recentProgress" [routerLink]="['/watch', item.animeId, item.lastEpisode || 1]" [state]="{ backTarget: '/tab/home' }">
         <div class="continue-thumb-container">
           <img [src]="item.animeImage || 'assets/default-image.png'" [alt]="item.animeTitle" loading="lazy" />
           <button 
