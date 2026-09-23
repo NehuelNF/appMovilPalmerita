@@ -1,16 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { matchCatalogTitle, resolveAnimeMedia, resolvePlayer, filterUnavailablePlayers } from './worker.mjs';
-
-test('broken VOE and reported UPNShare links are removed without hiding other servers', async () => {
-  const players = [
-    { url: 'https://voe.sx/e/broken', name: 'Voe', provider: 'animeav1' },
-    { url: 'https://animeav1.uns.bio/#hdb33u', name: 'UPNShare', provider: 'animeav1' },
-    { url: 'https://byselapuix.com/e/working', name: 'Byse', provider: 'animeav1' }
-  ];
-  const result = await filterUnavailablePlayers(players, async () => new Response('', { status: 404 }));
-  assert.deepEqual(result.map(player => player.name), ['Byse']);
-});
+import { matchCatalogTitle, resolveAnimeMedia, resolvePlayer } from './worker.mjs';
 
 test('catalog matching rejects another season', () => {
   assert.equal(matchCatalogTitle('Example Anime 2nd Season', ['Example Anime 3rd Season']), false);
@@ -71,6 +61,26 @@ test('player uses the JKAnime slug separately from AnimeAV1', async () => {
   assert.equal(response.status, 200);
   assert.equal((await response.json()).players[0].provider, 'jkanime');
   assert.ok(requests.some(url => url.includes('jkanime.net/jk-title/1/')));
+});
+
+test('retry can bypass the cached player links', async () => {
+  let calls = 0;
+  const fetcher = async url => {
+    calls++;
+    if (String(url).includes('animeav1.com')) {
+      return new Response(`<script>embeds: { SUB: [{server:"Voe",url:"https://voe.sx/e/link-${calls}"}] }, next:</script>`, {
+        headers: { 'Content-Type': 'text/html' }
+      });
+    }
+    return new Response('', { status: 404 });
+  };
+  const base = 'https://palmerita.test/api/player?slug=refresh-example&episode=7&provider=animeav1';
+  const first = await (await resolvePlayer(new Request(base), fetcher)).json();
+  const cached = await (await resolvePlayer(new Request(base), fetcher)).json();
+  const refreshed = await (await resolvePlayer(new Request(`${base}&refresh=1`), fetcher)).json();
+  assert.equal(cached.cached, true);
+  assert.equal(cached.players[0].url, first.players[0].url);
+  assert.notEqual(refreshed.players[0].url, first.players[0].url);
 });
 
 test('a provider outage is not reported as confirmed absence', async () => {

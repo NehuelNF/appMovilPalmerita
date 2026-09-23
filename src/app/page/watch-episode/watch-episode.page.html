@@ -120,9 +120,6 @@
   </div>
 
   <!-- Información del episodio y selector de servidores -->
-  <p *ngIf="hasExcludedPlayers && !loading" class="source-compatibility-note">
-    Algunas fuentes no están disponibles para este dispositivo.
-  </p>
   <div class="player-controls">
     <ion-button *ngFor="let player of displayedPlayers" [fill]="selectedPlayer === player.url ? 'solid' : 'outline'" (click)="selectPlayer(player)">
       {{ player.name }}
@@ -130,7 +127,7 @@
       <ion-badge *ngIf="player.audio === 'dub'" color="warning" class="audio-badge">DUB</ion-badge>
     </ion-button>
     <ion-button fill="clear" [disabled]="loading" (click)="reloadCurrentEpisode()">Reintentar</ion-button>
-    <ion-button *ngIf="canTryNextPlayer() && selectedPlayer" fill="clear" (click)="tryNextPlayer()">Este servidor falla</ion-button>
+    <ion-button *ngIf="canTryNextPlayer()" fill="clear" (click)="tryNextPlayer()">Otro servidor</ion-button>
     <ion-button *ngIf="sourceUrl" fill="clear" (click)="openExternalLink(sourceUrl)">Abrir capítulo en origen</ion-button>
   </div>
 

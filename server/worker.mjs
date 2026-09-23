@@ -589,28 +589,6 @@ const json = (body, status = 200) => Response.json(body, {
 // In-memory cache for players (2 hours TTL)
 const playerCache = new Map();
 const PLAYER_CACHE_TTL = 2 * 60 * 60 * 1000;
-// Este enlace concreto devuelve un reproductor sin archivo de vídeo. El HTML
-// del contenedor responde 200, por lo que una comprobación HTTP no lo detecta.
-const reportedBrokenEmbeds = new Set(['https://animeav1.uns.bio/#hdb33u']);
-
-export async function filterUnavailablePlayers(players, fetcher = fetch) {
-  return (await Promise.all(players.map(async player => {
-    if (reportedBrokenEmbeds.has(player.url)) return null;
-    // VOE devuelve una página 404 dentro del iframe, sin disparar el evento
-    // `error` del iframe en Safari. Verificamos el enlace antes de mostrarlo.
-    if (player.provider === 'animeav1' && new URL(player.url).hostname === 'voe.sx') {
-      try {
-        const response = await fetcher(player.url, {
-          redirect: 'manual', signal: AbortSignal.timeout(5000),
-          headers: { Accept: 'text/html' }
-        });
-        if (response.status === 404 || response.status === 410) return null;
-      } catch { /* Un fallo de red al verificar no prueba que el vídeo falte. */ }
-    }
-    return player;
-  }))).filter(Boolean);
-}
-
 export function clearPlayerCache() {
   playerCache.clear();
 }
@@ -657,6 +635,7 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
   const slug = q.get('slug') || '', episode = q.get('episode') || '';
   const jkSlug = q.get('jkSlug') || slug;
   const providerParam = (q.get('provider') || 'all').toLowerCase();
+  const refresh = q.get('refresh') === '1';
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 180 ||
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(jkSlug) || jkSlug.length > 180 ||
       !/^[1-9]\d{0,4}$/.test(episode)) return json({error:'Capítulo no válido.'},400);
@@ -664,7 +643,7 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
   const cacheKey = `${slug}:${jkSlug}:${episode}:${providerParam}`;
   const currentTime = now();
   const cached = playerCache.get(cacheKey);
-  if (cached && (currentTime - cached.time) < PLAYER_CACHE_TTL) {
+  if (!refresh && cached && (currentTime - cached.time) < PLAYER_CACHE_TTL) {
     return json({ sourceUrl: cached.sourceUrl, players: cached.players, providers: cached.providers, cached: true });
   }
 
@@ -677,7 +656,7 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
     if (av1.errorStatus && av1.errorStatus !== 404) {
       return json({error:'La página de origen no está disponible.',sourceUrl},502);
     }
-    players = await filterUnavailablePlayers(av1.players, fetcher);
+    players = av1.players;
     sourceUrl = av1.sourceUrl;
     if (players.length) availableProviders.push('animeav1');
   } else if (providerParam === 'jkanime') {
@@ -702,13 +681,15 @@ export async function resolvePlayer(request, fetcher = fetch, now = Date.now) {
     if (av1.players?.length) availableProviders.push('animeav1');
     if (jk.players?.length) availableProviders.push('jkanime');
 
-    players = [...(await filterUnavailablePlayers(av1.players || [], fetcher)), ...(jk.players || [])];
+    players = [...(av1.players || []), ...(jk.players || [])];
     sourceUrl = av1.players?.length ? av1.sourceUrl : (jk.sourceUrl || sourceUrl);
   }
 
   if (players.length) {
     playerCache.set(cacheKey, { sourceUrl, players, providers: availableProviders, time: currentTime });
-    return json({ sourceUrl, players, providers: availableProviders });
+    const response = json({ sourceUrl, players, providers: availableProviders });
+    if (refresh) response.headers.set('Cache-Control', 'no-store');
+    return response;
   }
 
   return json({ error: 'Este capítulo aún no está disponible para su reproducción.', sourceUrl, notReleased: true }, 404);

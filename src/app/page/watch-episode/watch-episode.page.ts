@@ -257,7 +257,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     }).catch(() => {});
   }
 
-  async loadEpisode(useEnglish = false) {
+  async loadEpisode(useEnglish = false, refreshPlayers = false) {
     const generation = ++this.generation;
     const animeId = this.animeId, episode = this.episodeNumber;
     this.safeIframeUrl = null;
@@ -327,7 +327,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
       for (const candidate of candidateSlugs) {
         try {
           result = await firstValueFrom(this.http.get<{ players: Player[]; sourceUrl: string }>('/api/player', {
-            params: { slug: candidate, jkSlug: jkSlug || candidate, episode: String(episode) }
+            params: { slug: candidate, jkSlug: jkSlug || candidate, episode: String(episode), ...(refreshPlayers ? { refresh: '1' } : {}) }
           }));
           slug = candidate;
           break;
@@ -373,17 +373,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
   }
 
   private get playablePlayers(): Player[] {
-    return this.players.filter(player => {
-      // El reproductor de Zilla rechaza los iframes y sus segmentos responden 403.
-      if (/^player\.zilla-networks\.com$/i.test(new URL(player.url).hostname)) return false;
-      // Algunos MP4Upload usan AV1; Safari en iPhone muestra un error de formato.
-      if (this.isIphone && /(^|\.)mp4upload\.com$/i.test(new URL(player.url).hostname)) return false;
-      return true;
-    });
-  }
-
-  get hasExcludedPlayers(): boolean {
-    return this.players.length > this.playablePlayers.length;
+    return this.players;
   }
 
   hasMultipleProviders(): boolean {
@@ -416,11 +406,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
     const available = this.displayedPlayers;
     if (!available.length) return;
 
-    // Un contenedor UPNShare puede cargar correctamente aunque su vídeo interno
-    // falle; Safari no comunica ese error al iframe padre. Priorizar Byse evita
-    // dejar al usuario frente a una pantalla de error sin recuperación automática.
-    const preferredPlayer = available.find(p => /byse/i.test(p.name));
-    const defaultChoice = preferredPlayer || available[0];
+    const defaultChoice = available.find(p => /upnshare/i.test(p.name) || /uns\.bio/i.test(p.url)) || available[0];
     this.selectPlayer(defaultChoice);
   }
 
@@ -475,7 +461,7 @@ export class WatchEpisodePage implements OnInit, OnDestroy {
 
   hasEnglishTitle() { return !!this.anime?.title_english && this.anime.title_english !== this.animeTitle; }
   tryEnglishTitle() { void this.loadEpisode(true); }
-  reloadCurrentEpisode() { void this.loadEpisode(); }
+  reloadCurrentEpisode() { void this.loadEpisode(false, true); }
   hasPreviousEpisode() { return this.episodeNumber > 1; }
   hasNextEpisode() {
     const limit = this.maxAiredEpisode > 0 ? this.maxAiredEpisode : this.totalEpisodes;
