@@ -8,9 +8,15 @@
 </ion-header>
 
 <ion-content>
+  <ion-segment class="favorites-filter" [(ngModel)]="typeFilter" *ngIf="favorites.length > 0" aria-label="Filtrar favoritos">
+    <ion-segment-button value="all"><ion-label>Todos</ion-label></ion-segment-button>
+    <ion-segment-button value="watching"><ion-label>Viendo</ion-label></ion-segment-button>
+    <ion-segment-button value="completed"><ion-label>Finalizados</ion-label></ion-segment-button>
+  </ion-segment>
+
   <!-- Grid mejorado con tarjetas más compactas -->
-  <div class="favorites-grid" *ngIf="favorites.length > 0">
-    <div class="favorite-card" *ngFor="let anime of favorites">
+  <div class="favorites-grid" *ngIf="filteredFavorites.length > 0">
+    <div class="favorite-card" *ngFor="let anime of filteredFavorites">
       <!-- Contenedor de imagen con overlay -->
       <div class="image-container" [routerLink]="['/anime', anime.mal_id]">
         <img 
@@ -76,6 +82,12 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="filter-empty" *ngIf="favorites.length > 0 && filteredFavorites.length === 0">
+    <ion-icon name="filter-outline" color="medium"></ion-icon>
+    <p *ngIf="typeFilter === 'watching'">No tienes animes en progreso.</p>
+    <p *ngIf="typeFilter === 'completed'">Todavía no has completado ningún anime.</p>
   </div>
   
   <!-- Estado vacío mejorado -->

@@ -13,6 +13,7 @@ export interface WatchProgress {
   lastEpisode: number;
   playbackPositions: { [episodeNumber: string]: number };
   updatedAt: any;
+  hiddenFromContinueWatching?: boolean;
 }
 
 @Injectable({
@@ -49,7 +50,8 @@ export class WatchProgressService {
                 watchedEpisodes: Array.isArray(doc.watchedEpisodes) ? doc.watchedEpisodes : [],
                 lastEpisode: Number(doc.lastEpisode || 1),
                 playbackPositions: doc.playbackPositions || {},
-                updatedAt: doc.updatedAt || null
+                updatedAt: doc.updatedAt || null,
+                hiddenFromContinueWatching: doc.hiddenFromContinueWatching === true
               };
             })
           );
@@ -79,7 +81,8 @@ export class WatchProgressService {
                 watchedEpisodes: Array.isArray(doc.watchedEpisodes) ? doc.watchedEpisodes : [],
                 lastEpisode: Number(doc.lastEpisode || 1),
                 playbackPositions: doc.playbackPositions || {},
-                updatedAt: doc.updatedAt || null
+                updatedAt: doc.updatedAt || null,
+                hiddenFromContinueWatching: doc.hiddenFromContinueWatching === true
               }));
             })
           );
@@ -119,7 +122,8 @@ export class WatchProgressService {
       watchedEpisodes: currentWatched,
       lastEpisode: episodeNum,
       playbackPositions,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      hiddenFromContinueWatching: false
     };
 
     await ref.set(payload, { merge: true });
@@ -243,10 +247,8 @@ export class WatchProgressService {
     return newlyCompleted;
   }
 
-  /**
-   * Elimina un anime del historial de progreso de visualización.
-   */
-  async removeProgress(animeId: number | string): Promise<void> {
+  /** Oculta el anime de Continuar viendo sin borrar su historial de episodios. */
+  async hideFromContinueWatching(animeId: number | string): Promise<void> {
     const user = await this.auth.currentUser;
     if (!user) return;
     await this.firestore
@@ -254,6 +256,6 @@ export class WatchProgressService {
       .doc(user.uid)
       .collection('watchProgress')
       .doc(String(animeId))
-      .delete();
+      .set({ hiddenFromContinueWatching: true }, { merge: true });
   }
 }

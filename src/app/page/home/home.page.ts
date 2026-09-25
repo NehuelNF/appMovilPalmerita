@@ -50,7 +50,9 @@ export class HomePage implements OnInit, OnDestroy {
     this.progressSub = this.watchProgressService.getAllProgress().subscribe({
       next: (list) => {
         // Filtrar y tomar hasta 6 animes recientes
-        this.recentProgress = (list || []).slice(0, 6);
+        this.recentProgress = (list || [])
+          .filter(item => !item.hiddenFromContinueWatching)
+          .slice(0, 6);
       },
       error: (err) => {
         console.error('Error loading watch progress in home:', err);
@@ -81,7 +83,7 @@ export class HomePage implements OnInit, OnDestroy {
           handler: async () => {
             this.recentProgress = this.recentProgress.filter(p => p.animeId !== item.animeId);
             try {
-              await this.watchProgressService.removeProgress(item.animeId);
+              await this.watchProgressService.hideFromContinueWatching(item.animeId);
               const toast = await this.toastCtrl.create({
                 message: 'Anime quitado de continuar viendo',
                 duration: 2000,
@@ -90,6 +92,7 @@ export class HomePage implements OnInit, OnDestroy {
               await toast.present();
             } catch (err) {
               console.error('Error removing watch progress:', err);
+              this.loadWatchProgress();
             }
           }
         }

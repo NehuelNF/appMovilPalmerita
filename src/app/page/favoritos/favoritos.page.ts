@@ -11,6 +11,7 @@ import { Observable, Subscription } from 'rxjs';
   styleUrls: ['./favoritos.page.scss'],
 })
 export class FavoritosPage implements OnInit, OnDestroy {
+  typeFilter: 'all' | 'watching' | 'completed' = 'all';
   favorites: any[] = [];
   progressMap = new Map<number, WatchProgress>();
   private progressSub?: Subscription;
@@ -95,6 +96,18 @@ export class FavoritosPage implements OnInit, OnDestroy {
       return progress.watchedEpisodes.length;
     }
     return anime.episodesWatched || 0;
+  }
+
+  get filteredFavorites(): any[] {
+    if (this.typeFilter === 'all') return this.favorites;
+    if (this.typeFilter === 'completed') return this.favorites.filter(anime => this.isCompleted(anime));
+    return this.favorites.filter(anime => this.isWatching(anime));
+  }
+
+  isWatching(anime: any): boolean {
+    const id = Number(anime.mal_id || anime.id);
+    const hasProgress = this.progressMap.has(id) || this.getWatchedCount(anime) > 0;
+    return hasProgress && !this.isCompleted(anime);
   }
 
   // Nuevos métodos para mejorar la UI
